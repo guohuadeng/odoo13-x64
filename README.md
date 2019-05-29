@@ -107,7 +107,7 @@ pip3 install .\extra\moviepy-0.2.3.5-py2.py3-none-any.whl
 pip3 install .\extra\psutil-5.5.1-cp35-cp35m-win_amd64.whl
 ```
 
-## 更新为 python 3.6
+## 更新为 python 3.6，建议不用
 ```
 pip3 install -r .\requirements.txt  -i https://mirrors.aliyun.com/pypi/simple
 pip3 install .\extra\Pillow-5.4.1-cp36-cp36m-win_amd64.whl

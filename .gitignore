@@ -8,6 +8,7 @@
 /source/.tx
 /source_git
 /source_pack
+odoo_ent.conf
 .idea
 .git
 .tx

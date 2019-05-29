@@ -7845,3 +7845,148 @@
 ÈÕÖ¾:  ÕýÔÚ¹Ø±ÕautovacuumÆô¶¯½ø³Ì
 ÈÕÖ¾:  ÕýÔÚ¹Ø±Õ
 ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÉÏ´Î¹Ø±ÕÊ±¼äÎª 2019-05-29 17:33:31 HKT
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÈÕÖ¾:  ½ÓÊÕµ½¿ìËÙ (fast) Í£Ö¹ÇëÇó
+ÈÕÖ¾:  ÖÐ¶ÏÈÎºÎ¼¤»îÊÂÎñ
+ÈÕÖ¾:  ÕýÔÚ¹Ø±ÕautovacuumÆô¶¯½ø³Ì
+ÈÕÖ¾:  ÕýÔÚ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÉÏ´Î¹Ø±ÕÊ±¼äÎª 2019-05-29 18:14:09 HKT
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÈÕÖ¾:  Í³¼ÆÊÕ¼¯Æ÷½ø³Ì (PID 11408) ±»Òì³£ 0x40010004 ÖÕÖ¹
+ÌáÊ¾:  ¹ØÓÚ¶Ô16½øÖÆÖµµÄÃèÊö£¬ ²Î¼ûCÓïÑÔµÄÒýÓÃÎÄ¼þ "ntstatus.h" 
+ÈÕÖ¾:  ·þÎñÆ÷½ø³Ì (PID 10340) ±»Òì³£ 0x40010004 ÖÕÖ¹
+ÏêÏ¸ÐÅÏ¢:  Ê§°Ü½ø³Ì:COMMITÕýÔÚÔËÐÐ
+ÌáÊ¾:  ¹ØÓÚ¶Ô16½øÖÆÖµµÄÃèÊö£¬ ²Î¼ûCÓïÑÔµÄÒýÓÃÎÄ¼þ "ntstatus.h" 
+ÈÕÖ¾:  ÖÐ¶ÏÈÎºÎÆäËüÒÑ¼¤»îµÄ·þÎñÆ÷½ø³Ì
+è­¦å‘Š:  ä¸­æ–­è”æŽ¥, å› ä¸ºå…¶å®ƒæœåŠ¡å™¨è¿›ç¨‹å´©æºƒ
+è¯¦ç»†ä¿¡æ¯:  Postmaster å‘½ä»¤æ­¤æœåŠ¡å™¨è¿›ç¨‹å›žæ»šå½“å‰äº‹ç‰©å¹¶é€€å‡º, å› ä¸ºå…¶å®ƒæœåŠ¡å™¨è¿›ç¨‹ä¸æ­£å¸¸çš„é€€å‡ºå¯èƒ½æ¯åäº†å…±äº«å†…å­˜.
+æç¤º:  ä¸€ä¼šå„¿ä½ å°†å¯ä»¥é‡è”æŽ¥æ•°æ®åº“å¹¶ä¸”é‡å¤ä½ çš„å‘½ä»¤.
+ÈÕÖ¾:  Í³¼ÆÊÕ¼¯Æ÷½ø³Ì (PID 20544) ±»Òì³£ 0xC000026B ÖÕÖ¹
+ÌáÊ¾:  ¹ØÓÚ¶Ô16½øÖÆÖµµÄÃèÊö£¬ ²Î¼ûCÓïÑÔµÄÒýÓÃÎÄ¼þ "ntstatus.h" 
+ÈÕÖ¾:  ËùÓÐµÄ·þÎñÆ÷½ø³Ì±»ÖÐÖ¹; ÖØÐÂ³õÊ¼»¯
+ÈÕÖ¾:  Æô¶¯½ø³Ì (PID 21228) ±»Òì³£ 0xC000026B ÖÕÖ¹
+ÌáÊ¾:  ¹ØÓÚ¶Ô16½øÖÆÖµµÄÃèÊö£¬ ²Î¼ûCÓïÑÔµÄÒýÓÃÎÄ¼þ "ntstatus.h" 
+ÈÕÖ¾:  ÓÉÓÚÆô¶¯½ø³ÌÊ§°Ü, ÖÕÖ¹Æô¶¯
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÖÐ¶Ï£»ÉÏÒ»´ÎµÄÆô¶¯Ê±¼äÊÇÔÚ2019-05-29 19:44:21 HKT
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³Ã»ÓÐÕýÈ·µÄ¹Ø±Õ; ´¦ÓÚ×Ô¶¯»Ö¸´×´Ì¬ÖÐ
+ÈÕÖ¾:  0/7478778 ´¦µÄ¼ÇÂ¼³¤¶È²»ºÏ·¨£ºÏëÒª 24£¬µ«µÃµ½µÄÊÇ 0
+ÈÕÖ¾:  ²»ÐèÒª redo
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÈÕÖ¾:  ½ÓÊÕµ½¿ìËÙ (fast) Í£Ö¹ÇëÇó
+ÈÕÖ¾:  ÖÐ¶ÏÈÎºÎ¼¤»îÊÂÎñ
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+ÈÕÖ¾:  ÕýÔÚ¹Ø±ÕautovacuumÆô¶¯½ø³Ì
+ÈÕÖ¾:  ÕýÔÚ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÉÏ´Î¹Ø±ÕÊ±¼äÎª 2019-05-30 01:00:34 HKT
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÈÕÖ¾:  ½ÓÊÕµ½¿ìËÙ (fast) Í£Ö¹ÇëÇó
+ÈÕÖ¾:  ÖÐ¶ÏÈÎºÎ¼¤»îÊÂÎñ
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+ÈÕÖ¾:  ÕýÔÚ¹Ø±ÕautovacuumÆô¶¯½ø³Ì
+ÈÕÖ¾:  ÕýÔÚ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÉÏ´Î¹Ø±ÕÊ±¼äÎª 2019-05-30 02:08:11 HKT
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+æ—¥å¿—:  æ— æ³•ä»Žå®¢æˆ·ç«¯èŽ·å¾—æ•°æ®: An existing connection was forcibly closed by the remote host.
+	
+æ—¥å¿—:  æ— æ³•ä»Žå®¢æˆ·ç«¯èŽ·å¾—æ•°æ®: An existing connection was forcibly closed by the remote host.
+	
+æ—¥å¿—:  æ— æ³•ä»Žå®¢æˆ·ç«¯èŽ·å¾—æ•°æ®: An existing connection was forcibly closed by the remote host.
+	
+æ—¥å¿—:  æ— æ³•ä»Žå®¢æˆ·ç«¯èŽ·å¾—æ•°æ®: An existing connection was forcibly closed by the remote host.
+	
+ÖÂÃü´íÎó:  Êý¾Ý¿â "demo" ²»´æÔÚ
+è‡´å‘½é”™è¯¯:  ç”±äºŽæ„å¤–çš„ postmaster é€€å‡ºè€Œç»ˆæ­¢è¿žæŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽæ„å¤–çš„ postmaster é€€å‡ºè€Œç»ˆæ­¢è¿žæŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽæ„å¤–çš„ postmaster é€€å‡ºè€Œç»ˆæ­¢è¿žæŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽæ„å¤–çš„ postmaster é€€å‡ºè€Œç»ˆæ­¢è¿žæŽ¥
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÖÐ¶Ï£»ÉÏÒ»´ÎµÄÆô¶¯Ê±¼äÊÇÔÚ2019-05-30 02:46:16 HKT
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³Ã»ÓÐÕýÈ·µÄ¹Ø±Õ; ´¦ÓÚ×Ô¶¯»Ö¸´×´Ì¬ÖÐ
+ÈÕÖ¾:  0/FF9F410 ´¦µÄ¼ÇÂ¼³¤¶È²»ºÏ·¨£ºÏëÒª 24£¬µ«µÃµ½µÄÊÇ 0
+ÈÕÖ¾:  ²»ÐèÒª redo
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÈÕÖ¾:  ½ÓÊÕµ½¿ìËÙ (fast) Í£Ö¹ÇëÇó
+ÈÕÖ¾:  ÖÐ¶ÏÈÎºÎ¼¤»îÊÂÎñ
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+ÈÕÖ¾:  ÕýÔÚ¹Ø±ÕautovacuumÆô¶¯½ø³Ì
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+ÈÕÖ¾:  ÕýÔÚ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÉÏ´Î¹Ø±ÕÊ±¼äÎª 2019-05-30 03:00:53 HKT
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÖÂÃü´íÎó:  Êý¾Ý¿â "demo" ²»´æÔÚ
+ÈÕÖ¾:  ½ÓÊÕµ½¿ìËÙ (fast) Í£Ö¹ÇëÇó
+ÈÕÖ¾:  ÖÐ¶ÏÈÎºÎ¼¤»îÊÂÎñ
+ÈÕÖ¾:  ÕýÔÚ¹Ø±ÕautovacuumÆô¶¯½ø³Ì
+ÈÕÖ¾:  ÕýÔÚ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÉÏ´Î¹Ø±ÕÊ±¼äÎª 2019-05-30 03:12:48 HKT
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÈÕÖ¾:  ½ÓÊÕµ½¿ìËÙ (fast) Í£Ö¹ÇëÇó
+ÈÕÖ¾:  ÖÐ¶ÏÈÎºÎ¼¤»îÊÂÎñ
+ÈÕÖ¾:  ÕýÔÚ¹Ø±ÕautovacuumÆô¶¯½ø³Ì
+ÈÕÖ¾:  ÕýÔÚ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÉÏ´Î¹Ø±ÕÊ±¼äÎª 2019-05-30 03:13:53 HKT
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÁÙÊ±Í³¼ÆÎÄ¼þ "pg_stat_tmp/global.tmp": No such file or directory
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÁÙÊ±Í³¼ÆÎÄ¼þ "pg_stat_tmp/global.tmp": No such file or directory
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÁÙÊ±Í³¼ÆÎÄ¼þ "pg_stat_tmp/global.tmp": No such file or directory
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÁÙÊ±Í³¼ÆÎÄ¼þ "pg_stat_tmp/global.tmp": No such file or directory
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÁÙÊ±Í³¼ÆÎÄ¼þ "pg_stat_tmp/global.tmp": No such file or directory
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÎÄ¼þ "postmaster.pid": No such file or directory
+ÈÕÖ¾:  ÓÉÓÚÊý¾ÝÄ¿Â¼ËøÎÄ¼þ·Ç·¨¶øÖ´ÐÐÁ¢¼´¹Ø±Õ
+ÈÕÖ¾:  ½ÓÊÕµ½Á¢¼´ (immediate) Í£Ö¹ÇëÇó
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÁÙÊ±Í³¼ÆÎÄ¼þ "pg_stat_tmp/global.tmp": No such file or directory
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÁÙÊ±Í³¼ÆÎÄ¼þ "pg_stat_tmp/global.tmp": No such file or directory
+ÈÕÖ¾:  ÎÞ·¨´ò¿ªÁÙÊ±Í³¼ÆÎÄ¼þ "pg_stat/global.tmp": No such file or directory
+¾¯¸æ:  ÖÐ¶ÏÁª½Ó, ÒòÎªÆäËü·þÎñÆ÷½ø³Ì±ÀÀ£
+ÏêÏ¸ÐÅÏ¢:  Postmaster ÃüÁî´Ë·þÎñÆ÷½ø³Ì»Ø¹öµ±Ç°ÊÂÎï²¢ÍË³ö, ÒòÎªÆäËü·þÎñÆ÷½ø³Ì²»Õý³£µÄÍË³ö¿ÉÄÜ»Ù»µÁË¹²ÏíÄÚ´æ.
+ÌáÊ¾:  Ò»»á¶ùÄã½«¿ÉÒÔÖØÁª½ÓÊý¾Ý¿â²¢ÇÒÖØ¸´ÄãµÄÃüÁî.
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÉÏ´Î¹Ø±ÕÊ±¼äÎª 2019-05-30 03:17:57 HKT
+ÈÕÖ¾:  ¶àÊÂÎñ³ÉÔ±»Ø¾í±£»¤ÏÖÔÚ±»ÆôÓÃ¡£
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³×¼±¸½ÓÊÜÁ¬½Ó
+ÈÕÖ¾:  ÒÑÆô¶¯autovacuum
+ÈÕÖ¾:  ½ÓÊÕµ½¿ìËÙ (fast) Í£Ö¹ÇëÇó
+ÈÕÖ¾:  ÖÐ¶ÏÈÎºÎ¼¤»îÊÂÎñ
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+è‡´å‘½é”™è¯¯:  ç”±äºŽç®¡ç†å‘˜å‘½ä»¤ä¸­æ–­è”æŽ¥
+ÈÕÖ¾:  ÕýÔÚ¹Ø±ÕautovacuumÆô¶¯½ø³Ì
+ÈÕÖ¾:  ÕýÔÚ¹Ø±Õ
+ÈÕÖ¾:  Êý¾Ý¿âÏµÍ³ÒÑ¹Ø±Õ

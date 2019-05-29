@@ -1,4 +1,4 @@
-title init db GreenOdoo12 x64 fast - www.sunpop.cn
+title init db GreenOdoo13 x64 fast - www.sunpop.cn
 cd runtime\pgsql\bin
 rd /s/q ..\data
 initdb.exe -D ..\data -E UTF8
