@@ -93,7 +93,7 @@ http://www.lfd.uci.edu/~gohlke/pythonlibs/
 ## python 3.5 ，此版本才可断点
 ```
 pip3 install -r .\source\requirements.txt  -i https://mirrors.aliyun.com/pypi/simple
-pip3 install -r .\source\rfix.txt  -i https://mirrors.aliyun.com/pypi/simple
+pip3 install -r .\rfix.txt  -i https://mirrors.aliyun.com/pypi/simple
 pip3 install .\extra\Pillow-5.0.0-cp35-cp35m-win_amd64.whl
 pip3 install .\extra\psycopg2-2.7.4-cp35-cp35m-win_amd64.whl
 pip3 install .\extra\pyldap-2.4.45-cp35-cp35m-win_amd64.whl
