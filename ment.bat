@@ -91,7 +91,9 @@ move /y .\addons_ent\l10n_mx_edi_external_trade .\addons_ent_remove\
 move /y .\addons_ent\l10n_mx_edi_landing .\addons_ent_remove\
 move /y .\addons_ent\l10n_mx_edi_payment .\addons_ent_remove\
 move /y .\addons_ent\l10n_mx_edi_payment_bank .\addons_ent_remove\
+move /y .\addons_ent\l10n_mx_edi_sale_coupon .\addons_ent_remove\
 move /y .\addons_ent\l10n_mx_reports .\addons_ent_remove\
+move /y .\addons_ent\l10n_mx_tax_cash_basis .\addons_ent_remove\
 move /y .\addons_ent\l10n_nl .\addons_ent_remove\
 move /y .\addons_ent\l10n_nl_intrastat .\addons_ent_remove\
 move /y .\addons_ent\l10n_nl_reports .\addons_ent_remove\
@@ -119,6 +121,7 @@ move /y .\addons_ent\l10n_uk_reports .\addons_ent_remove\
 move /y .\addons_ent\l10n_us .\addons_ent_remove\
 move /y .\addons_ent\l10n_us_check_printing .\addons_ent_remove\
 move /y .\addons_ent\l10n_us_reports .\addons_ent_remove\
+move /y .\addons_ent\l10n_uk_reports_hmrc .\addons_ent_remove\
 move /y .\addons_ent\l10n_uy .\addons_ent_remove\
 move /y .\addons_ent\l10n_uy_reports .\addons_ent_remove\
 move /y .\addons_ent\l10n_ve .\addons_ent_remove\
