@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- Add action entry in the Action Menu for Events -->
+    <act_window id="sms_message_send_action_mutli"
+        name="Send SMS to attendees"
+        binding_model="calendar.event"
+        res_model="sms.send_sms"
+        view_type="form"
+        view_mode="form"
+        target="new"/>
+
+</odoo>
