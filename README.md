@@ -5,10 +5,11 @@ Green Odoo 13 x64， https://www.Sunpop.cn
 64位版本性能会比32位高很多，包括高效指令及大内存更快巡址。对高资源消耗的odoo，使用64位是十分有必要的。
 本版本在使用64位的基础上，对postgresql进行了优化，并使用nginx进行反向代理，实现了longpolling，可以使用odoo的桌面消息通知，也不会经常报错了。
 在windows上搭建了一个完整的高性能 Odoo 环境。
-因速度原因，不再支持一键更新至最新版，请手工高速下载 https://nightly.odoocdn.com/12.0/nightly/src/odoo_12.0.latest.zip
+因速度原因，不再支持一键更新至最新版，请手工高速下载后解压覆盖 /source 目录文件。
+http://nightly.odoocdn.com/master/nightly/src/odoo_13.0alpha1.latest.zip
 
 ## 版本信息
-1. python 3.5,64位
+1. python 3.5.2, 64位
 2. postgresql 9.6.4 ,64位
 3. Nginx 1.15.5， 64位
 4. Odoo 13社区版，20190529版本
