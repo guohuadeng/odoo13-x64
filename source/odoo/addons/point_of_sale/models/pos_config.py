@@ -13,7 +13,6 @@ class AccountCashboxLine(models.Model):
 
     default_pos_id = fields.Many2one('pos.config', string='This cashbox line is used by default when opening or closing a balance for this point of sale')
 
-    @api.multi
     def name_get(self):
         result = []
         for cashbox_line in self:
@@ -39,20 +38,20 @@ class PosConfig(models.Model):
     _name = 'pos.config'
     _description = 'Point of Sale Configuration'
 
+    def _default_picking_type_id(self):
+        return self.env['stock.warehouse'].search([('company_id', '=', self.env.company.id)], limit=1).pos_type_id.id
+
     def _default_sale_journal(self):
         journal = self.env.ref('point_of_sale.pos_sale_journal', raise_if_not_found=False)
-        if journal and journal.sudo().company_id == self.env.company_id:
+        if journal and journal.sudo().company_id == self.env.company:
             return journal
         return self._default_invoice_journal()
 
     def _default_invoice_journal(self):
-        return self.env['account.journal'].search([('type', '=', 'sale'), ('company_id', '=', self.env.company_id.id)], limit=1)
+        return self.env['account.journal'].search([('type', '=', 'sale'), ('company_id', '=', self.env.company.id)], limit=1)
 
     def _default_pricelist(self):
-        return self.env['product.pricelist'].search([('currency_id', '=', self.env.company_id.currency_id.id)], limit=1)
-
-    def _get_default_location(self):
-        return self.env['stock.warehouse'].search([('company_id', '=', self.env.company_id.id)], limit=1).lot_stock_id
+        return self.env['product.pricelist'].search([('currency_id', '=', self.env.company.currency_id.id)], limit=1)
 
     def _get_group_pos_manager(self):
         return self.env.ref('point_of_sale.group_pos_manager')
@@ -70,11 +69,12 @@ class PosConfig(models.Model):
         'account.journal', 'pos_config_journal_rel',
         'pos_config_id', 'journal_id', string='Available Payment Methods',
         domain="[('journal_user', '=', True ), ('type', 'in', ['bank', 'cash'])]",)
-    picking_type_id = fields.Many2one('stock.picking.type', string='Operation Type')
+    picking_type_id = fields.Many2one(
+        'stock.picking.type',
+        string='Operation Type',
+        default=_default_picking_type_id,
+        domain="[('code', '=', 'outgoing'), ('warehouse_id.company_id', '=', company_id)]")
     use_existing_lots = fields.Boolean(related='picking_type_id.use_existing_lots', readonly=False)
-    stock_location_id = fields.Many2one(
-        'stock.location', string='Stock Location',
-        domain=[('usage', '=', 'internal')], required=True, default=_get_default_location)
     journal_id = fields.Many2one(
         'account.journal', string='Sales Journal',
         domain=[('type', '=', 'sale')],
@@ -137,10 +137,10 @@ class PosConfig(models.Model):
         help="The pricelist used if no customer is selected or if the customer has no Sale Pricelist configured.")
     available_pricelist_ids = fields.Many2many('product.pricelist', string='Available Pricelists', default=_default_pricelist,
         help="Make several pricelists available in the Point of Sale. You can also apply a pricelist to specific customers from their contact form (in Sales tab). To be valid, this pricelist must be listed here as an available pricelist. Otherwise the default pricelist will apply.")
-    company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.company_id)
+    company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.company)
     barcode_nomenclature_id = fields.Many2one('barcode.nomenclature', string='Barcode Nomenclature',
         help='Defines what kind of barcodes are available and how they are assigned to products, customers and cashiers.',
-        default=lambda self: self.env.company_id.nomenclature_id, required=True)
+        default=lambda self: self.env.company.nomenclature_id, required=True)
     group_pos_manager_id = fields.Many2one('res.groups', string='Point of Sale Manager Group', default=_get_group_pos_manager,
         help='This field is there to pass the id of the pos manager group to the point of sale client.')
     group_pos_user_id = fields.Many2one('res.groups', string='Point of Sale User Group', default=_get_group_pos_user,
@@ -172,20 +172,18 @@ class PosConfig(models.Model):
         for pos_config in self:
             pos_config.is_installed_account_accountant = account_accountant and account_accountant.id
 
-    @api.depends('journal_id.currency_id', 'journal_id.company_id.currency_id')
+    @api.depends('journal_id.currency_id', 'journal_id.company_id.currency_id', 'company_id', 'company_id.currency_id')
     def _compute_currency(self):
         for pos_config in self:
             if pos_config.journal_id:
                 pos_config.currency_id = pos_config.journal_id.currency_id.id or pos_config.journal_id.company_id.currency_id.id
             else:
-                pos_config.currency_id = self.env.company_id.currency_id.id
+                pos_config.currency_id = pos_config.company_id.currency_id.id
 
     @api.depends('session_ids')
     def _compute_current_session(self):
         for pos_config in self:
-            session = pos_config.session_ids.filtered(lambda r: r.user_id.id == self.env.uid and \
-                not r.state == 'closed' and \
-                not r.rescue)
+            session = pos_config.session_ids.filtered(lambda s: s.state != 'closed' and not s.rescue)
             # sessions ordered by id desc
             pos_config.current_session_id = session and session[0].id or False
             pos_config.current_session_state = session and session[0].state or False
@@ -220,11 +218,6 @@ class PosConfig(models.Model):
                 pos_config.pos_session_state = False
                 pos_config.pos_session_duration = 0
 
-    @api.constrains('company_id', 'stock_location_id')
-    def _check_company_location(self):
-        if self.stock_location_id.company_id and self.stock_location_id.company_id.id != self.company_id.id:
-            raise ValidationError(_("The stock location and the point of sale must belong to the same company."))
-
     @api.constrains('company_id', 'journal_id')
     def _check_company_journal(self):
         if self.journal_id and self.journal_id.company_id.id != self.company_id.id:
@@ -250,7 +243,7 @@ class PosConfig(models.Model):
                                     " the Accounting application."))
         if self.invoice_journal_id.currency_id and self.invoice_journal_id.currency_id != self.currency_id:
             raise ValidationError(_("The invoice journal must be in the same currency as the Sales Journal or the company currency if that is not set."))
-        if any(self.journal_ids.mapped(lambda journal: journal.currency_id and journal.currency_id != self.currency_id)):
+        if any(self.journal_ids.mapped(lambda journal: self.currency_id not in (journal.company_id.currency_id, journal.currency_id))):
             raise ValidationError(_("All payment methods must be in the same currency as the Sales Journal or the company currency if that is not set."))
 
     @api.constrains('company_id', 'available_pricelist_ids')
@@ -267,11 +260,6 @@ class PosConfig(models.Model):
         if self.module_account:
             self.invoice_journal_id = self.env.ref('point_of_sale.pos_sale_journal')
 
-    @api.onchange('picking_type_id')
-    def _onchange_picking_type_id(self):
-        if self.picking_type_id.default_location_src_id.usage == 'internal' and self.picking_type_id.default_location_dest_id.usage == 'customer':
-            self.stock_location_id = self.picking_type_id.default_location_src_id.id
-
     @api.onchange('use_pricelist')
     def _onchange_use_pricelist(self):
         """
@@ -283,7 +271,7 @@ class PosConfig(models.Model):
 
     @api.onchange('available_pricelist_ids')
     def _onchange_available_pricelist_ids(self):
-        if self.pricelist_id not in self.available_pricelist_ids:
+        if self.pricelist_id not in self.available_pricelist_ids._origin:
             self.pricelist_id = False
 
     @api.onchange('is_posbox')
@@ -330,7 +318,6 @@ class PosConfig(models.Model):
             self.receipt_header = False
             self.receipt_footer = False
 
-    @api.multi
     def name_get(self):
         result = []
         for config in self:
@@ -365,7 +352,6 @@ class PosConfig(models.Model):
         # If you plan to add something after this, use a new environment. The one above is no longer valid after the modules install.
         return pos_config
 
-    @api.multi
     def write(self, vals):
         result = super(PosConfig, self).write(vals)
 
@@ -378,7 +364,6 @@ class PosConfig(models.Model):
         self.sudo()._check_groups_implied()
         return result
 
-    @api.multi
     def unlink(self):
         for pos_config in self.filtered(lambda pos_config: pos_config.sequence_id or pos_config.sequence_line_id):
             pos_config.sequence_id.unlink()
@@ -422,7 +407,6 @@ class PosConfig(models.Model):
          }
 
     # Methods to open the POS
-    @api.multi
     def open_ui(self):
         """ open the pos interface """
         self.ensure_one()
@@ -432,7 +416,6 @@ class PosConfig(models.Model):
             'target': 'self',
         }
 
-    @api.multi
     def open_session_cb(self):
         """ new session button
 
@@ -441,7 +424,6 @@ class PosConfig(models.Model):
         """
         self.ensure_one()
         if not self.current_session_id:
-            self._check_company_location()
             self._check_company_journal()
             self._check_company_invoice_journal()
             self._check_company_payment()
@@ -455,7 +437,6 @@ class PosConfig(models.Model):
             return self._open_session(self.current_session_id.id)
         return self._open_session(self.current_session_id.id)
 
-    @api.multi
     def open_existing_session_cb(self):
         """ close session button
 
@@ -467,7 +448,6 @@ class PosConfig(models.Model):
     def _open_session(self, session_id):
         return {
             'name': _('Session'),
-            'view_type': 'form',
             'view_mode': 'form,tree',
             'res_model': 'pos.session',
             'res_id': session_id,

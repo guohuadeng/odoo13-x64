@@ -51,7 +51,6 @@
         <field name="name">Units of Measure</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">uom.uom</field>
-        <field name="view_type">form</field>
         <field name="view_id" ref="product_uom_tree_view"/>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">
@@ -77,11 +76,22 @@
             </form>
         </field>
     </record>
+
+    <record id="product_uom_categ_tree_view" model="ir.ui.view">
+        <field name="name">uom.category.tree</field>
+        <field name="model">uom.category</field>
+        <field name="arch" type="xml">
+            <tree string="Units of Measure categories" editable="bottom">
+                <field name="name"/>
+                <field name="measure_type"/>
+            </tree>
+        </field>
+    </record>
+
     <record id="product_uom_categ_form_action" model="ir.actions.act_window">
         <field name="name">Unit of Measure Categories</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">uom.category</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">

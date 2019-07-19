@@ -46,7 +46,6 @@ class Invite(models.TransientModel):
     message = fields.Html('Message')
     send_mail = fields.Boolean('Send Email', default=True, help="If checked, the partners will receive an email warning they have been added in the document's followers.")
 
-    @api.multi
     def add_followers(self):
         email_from = self.env['mail.message']._get_default_from()
         for wizard in self:
@@ -72,11 +71,13 @@ class Invite(models.TransientModel):
                     'no_auto_thread': True,
                     'add_sign': True,
                 })
-                self.env['res.partner'].with_context(auto_delete=True)._notify(
-                    message,
-                    [{'id': pid, 'share': True, 'notif': 'email', 'type': 'customer', 'groups': []} for pid in new_partners.ids],
-                    document,
-                    force_send=True,
-                    send_after_commit=False)
+                recipients_data = {'partners': [{
+                    'id': pid,
+                    'share': True,
+                    'notif': 'email',
+                    'type': 'customer',
+                    'groups': []
+                } for pid in new_partners.ids]}
+                document._notify_record_by_email(message, recipients_data, send_after_commit=False)
                 message.unlink()
         return {'type': 'ir.actions.act_window_close'}

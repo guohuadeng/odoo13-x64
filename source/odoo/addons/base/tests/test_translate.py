@@ -1,16 +1,12 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-
-import unittest
-
 from odoo.tools import mute_logger
 from odoo.tools.translate import quote, unquote, xml_translate, html_translate
-from odoo.tests.common import TransactionCase, tagged
+from odoo.tests.common import TransactionCase, BaseCase
 from psycopg2 import IntegrityError
 
 
-@tagged('standard', 'at_install')
-class TranslationToolsTestCase(unittest.TestCase):
+class TranslationToolsTestCase(BaseCase):
     def assertItemsEqual(self, a, b, msg=None):
         self.assertEqual(sorted(a), sorted(b), msg)
 
@@ -251,7 +247,7 @@ class TestTranslation(TransactionCase):
 
     def setUp(self):
         super(TestTranslation, self).setUp()
-        self.env['ir.translation'].load_module_terms(['base'], ['fr_FR'])
+        self.env['ir.translation']._load_module_terms(['base'], ['fr_FR'])
         self.customers = self.env['res.partner.category'].create({'name': 'Customers'})
         self.env['ir.translation'].create({
             'type': 'model',
@@ -327,7 +323,7 @@ class TestTranslation(TransactionCase):
                 })
         self.env['ir.translation'].translate_fields('res.partner.category', padawans.id, 'name')
         translations = self.env['ir.translation'].search([
-            ('res_id', '=', padawans.id), ('name', '=', 'res.partner.category,name')
+            ('res_id', '=', padawans.id), ('name', '=', 'res.partner.category,name'), ('lang', '=', 'fr_FR'),
         ])
         self.assertEqual(len(translations), 1, "Translations were not duplicated after `translate_fields` call")
         self.assertEqual(translations.value, "Apprenti", "The first translation must stay")
@@ -336,7 +332,7 @@ class TestTranslation(TransactionCase):
 class TestXMLTranslation(TransactionCase):
     def setUp(self):
         super(TestXMLTranslation, self).setUp()
-        self.env['ir.translation'].load_module_terms(['base'], ['fr_FR', 'nl_NL'])
+        self.env['ir.translation']._load_module_terms(['base'], ['fr_FR', 'nl_NL'])
 
     def create_view(self, archf, terms, **kwargs):
         view = self.env['ir.ui.view'].create({

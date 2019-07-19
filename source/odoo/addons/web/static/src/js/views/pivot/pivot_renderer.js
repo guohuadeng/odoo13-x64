@@ -77,7 +77,10 @@ var PivotRenderer = AbstractRenderer.extend({
     _render: function () {
         if (!this._hasContent()) {
             // display the nocontent helper
-            this._replaceElement(QWeb.render('PivotView.nodata'));
+            this._replaceElement(QWeb.render('View.NoContentHelper', {
+                description: _t("Try to add some records, or make sure that there is at least " +
+                    "one measure and no active filter in the search bar."),
+            }));
             return this._super.apply(this, arguments);
         }
 
@@ -283,7 +286,7 @@ var PivotRenderer = AbstractRenderer.extend({
                     $cell = $('<td>')
                                 .data('id', rows[i].id)
                                 .data('col_id', rows[i].col_ids[Math.floor(j / nbrMeasures)])
-                                .toggleClass('o_empty', !value)
+                                .toggleClass('o_empty', _.isUndefined(value))
                                 .addClass('o_pivot_cell_value text-right');
                     if (value !== undefined) {
                         $cell.append($('<div>', {class: 'o_value'}).html(formatter(value, measure)));

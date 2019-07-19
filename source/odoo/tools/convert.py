@@ -182,15 +182,18 @@ def _eval_xml(self, node, env):
                 return tuple(res)
             return res
     elif node.tag == "function":
-        model = env[node.get('model')]
+        model_str = node.get('model')
+        model = env[model_str]
         method_name = node.get('name')
         # determine arguments
         args = []
         kwargs = {}
         a_eval = node.get('eval')
+
         if a_eval:
-            self.idref['ref'] = self.id_get
-            args = list(safe_eval(a_eval, self.idref))
+            idref2 = _get_idref(self, env, model_str, self.idref)
+            args = safe_eval(a_eval, idref2)
+            args = list(safe_eval(a_eval, idref2))
         for child in node:
             if child.tag == 'value' and child.get('name'):
                 kwargs[child.get('name')] = _eval_xml(self, child, env)
@@ -339,7 +342,6 @@ form: module.record_id""" % (xml_id,)
         domain = rec.get('domain') or '[]'
         res_model = rec.get('res_model')
         binding_model = rec.get('binding_model')
-        view_type = rec.get('view_type') or 'form'
         view_mode = rec.get('view_mode') or 'tree,form'
         usage = rec.get('usage')
         limit = rec.get('limit')
@@ -368,7 +370,6 @@ form: module.record_id""" % (xml_id,)
             'domain': domain,
             'res_model': res_model,
             'src_model': binding_model,
-            'view_type': view_type,
             'view_mode': view_mode,
             'usage': usage,
             'limit': limit,
@@ -395,7 +396,6 @@ form: module.record_id""" % (xml_id,)
             'domain': domain,
             'context': context,
             'res_model': res_model,
-            'view_type': view_type,
             'view_mode': view_mode,
             'usage': usage,
             'limit': limit,

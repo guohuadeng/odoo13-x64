@@ -7990,3 +7990,5 @@
 日志:  正在关闭autovacuum启动进程
 日志:  正在关闭
 日志:  数据库系统已关闭
+FATAL:  could not open directory "pg_tblspc": No such file or directory
+LOG:  database system is shut down

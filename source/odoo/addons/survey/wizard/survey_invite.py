@@ -227,14 +227,13 @@ class SurveyInvite(models.TransientModel):
                 template_ctx = {
                     'message': self.env['mail.message'].sudo().new(dict(body=mail_values['body_html'], record_name=self.survey_id.title)),
                     'model_description': self.env['ir.model']._get('survey.survey').display_name,
-                    'company': self.env.company_id,
+                    'company': self.env.company,
                 }
                 body = template.render(template_ctx, engine='ir.qweb', minimal_qcontext=True)
                 mail_values['body_html'] = self.env['mail.thread']._replace_local_links(body)
 
         return self.env['mail.mail'].sudo().create(mail_values)
 
-    @api.multi
     def action_invite(self):
         """ Process the wizard content and proceed with sending the related
             email(s), rendering any template patterns on the fly if needed """

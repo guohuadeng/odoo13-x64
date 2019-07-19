@@ -196,6 +196,7 @@ var SearchPanel = Widget.extend({
                         values: {},
                         tooltip: value.group_tooltip,
                         sequence: value.group_sequence,
+                        hex_color: value.group_hex_color,
                         sortedValueIds: [],
                     };
                     // restore former checked and folded state
@@ -319,7 +320,9 @@ var SearchPanel = Widget.extend({
         function categoryToDomain(domain, categoryId) {
             var category = self.categories[categoryId];
             if (category.activeValueId) {
-                domain.push([category.fieldName, '=', category.activeValueId]);
+                var field = self.fields[category.fieldName];
+                var op = field.type === 'many2one' ? 'child_of' : '=';
+                domain.push([category.fieldName, op, category.activeValueId]);
             }
             return domain;
         }

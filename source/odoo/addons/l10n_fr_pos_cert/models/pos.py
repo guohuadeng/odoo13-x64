@@ -27,7 +27,6 @@ def ctx_tz(record, field):
 class pos_config(models.Model):
     _inherit = 'pos.config'
 
-    @api.multi
     def open_ui(self):
         for config in self.filtered(lambda c: c.company_id._is_accounting_unalterable()):
             if config.current_session_id:
@@ -38,7 +37,6 @@ class pos_config(models.Model):
 class pos_session(models.Model):
     _inherit = 'pos.session'
 
-    @api.multi
     def _check_session_timing(self):
         self.ensure_one()
         date_today = datetime.utcnow()
@@ -47,7 +45,6 @@ class pos_session(models.Model):
             raise UserError(_("This session has been opened another day. To comply with the French law, you should close sessions on a daily basis. Please close session %s and open a new one.") % self.name)
         return True
 
-    @api.multi
     def open_frontend_cb(self):
         for session in self.filtered(lambda s: s.config_id.company_id._is_accounting_unalterable()):
             session._check_session_timing()
@@ -112,7 +109,6 @@ class pos_order(models.Model):
                                                 ensure_ascii=True, indent=None,
                                                 separators=(',',':'))
 
-    @api.multi
     def write(self, vals):
         has_been_posted = False
         for order in self:
@@ -154,7 +150,7 @@ class pos_order(models.Model):
                             order="l10n_fr_secure_sequence_number ASC")
 
         if not orders:
-            raise UserError(_('There isn\'t any order flagged for data inalterability yet for the company %s. This mechanism only runs for point of sale orders generated after the installation of the module France - Certification CGI 286 I-3 bis. - POS') % self.env.company_id.name)
+            raise UserError(_('There isn\'t any order flagged for data inalterability yet for the company %s. This mechanism only runs for point of sale orders generated after the installation of the module France - Certification CGI 286 I-3 bis. - POS') % self.env.company.name)
         previous_hash = u''
         start_order_info = []
         for order in orders:
@@ -187,7 +183,6 @@ class pos_order(models.Model):
 class PosOrderLine(models.Model):
     _inherit = "pos.order.line"
 
-    @api.multi
     def write(self, vals):
         # restrict the operation in case we are trying to write a forbidden field
         if set(vals).intersection(LINE_FIELDS):

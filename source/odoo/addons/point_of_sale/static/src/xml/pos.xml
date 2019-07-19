@@ -363,6 +363,18 @@
                         <input class='detail client-address-zip'    name='zip'          t-att-value='partner.zip || ""' placeholder='ZIP'></input>
                     </div>
                     <div class='client-detail'>
+                        <span class='label'>State</span>
+                        <select class='detail client-address-states needsclick' name='state_id'>
+                            <option value=''>None</option>
+                            <t t-foreach='widget.pos.states' t-as='state'>
+                                <option t-if="partner.country_id[0] == state.country_id[0]" t-att-value='state.id'
+                                    t-att-selected="partner.state_id ? ((state.id === partner.state_id[0]) ? true : undefined) : undefined">
+                                    <t t-esc='state.name'/>
+                                </option>
+                            </t>
+                        </select>
+                    </div>
+                    <div class='client-detail'>
                         <span class='label'>Country</span>
                         <select class='detail client-address-country needsclick' name='country_id'>
                             <option value=''>None</option>
@@ -785,14 +797,14 @@
 
             <div class='orderlines' line-ratio='0.6'>
                 <t t-foreach='receipt.orderlines' t-as='line'>
-                    <t t-set='simple' t-value='(line.discount === 0 and line.unit_name === "Unit(s)" and line.quantity === 1 and !discount_to_show and !(line.display_discount_policy == "without_discount" &amp;&amp; line.price != line.price_lst))' />
+                    <t t-set='simple' t-value='(line.discount === 0 and line.unit_name === "Units" and line.quantity === 1 and !discount_to_show and !(line.display_discount_policy == "without_discount" &amp;&amp; line.price != line.price_lst))' />
                     <t t-if='simple'>
                         <line>
                             <left><t t-esc='line.product_name_wrapped[0]' /></left>
                             <right><value t-att-value-decimals='pos.currency.decimals'><t t-esc='line.price_display' /></value></right>
                         </line>
+                        <t t-call="XmlReceiptWrappedProductNameLines"/>
                     </t>
-                    <t t-call="XmlReceiptWrappedProductNameLines"/>
                     <t t-if='!simple'>
                         <line><left><t t-esc='line.product_name_wrapped[0]' /></left></line>
                         <t t-call="XmlReceiptWrappedProductNameLines"/>
@@ -812,7 +824,12 @@
                             <line indent='1'>
                                 <left>
                                     <value t-att-value-decimals='pos.dp["Product Price"]'>
-                                        <t t-esc="line.price_lst" />
+                                        <t t-if="pos.config.iface_tax_included === 'total'">
+                                            <t t-esc="line.price_with_tax_before_discount" />
+                                        </t>
+                                        <t t-else="">
+                                            <t t-esc="line.price_lst" />
+                                        </t>
                                     </value>
                                 </left>
                             </line>
@@ -829,7 +846,7 @@
                                 <value t-att-value-decimals='pos.dp["Product Unit of Measure"]' value-autoint='on'>
                                     <t t-esc='line.quantity' />
                                 </value>
-                                <t t-if='line.unit_name !== "Unit(s)"'>
+                                <t t-if='line.unit_name !== "Units"'>
                                     <t t-esc='line.unit_name' />
                                 </t>
                                 x
@@ -952,7 +969,7 @@
                             <value value-decimals='2' value-autoint='on'>
                                 <t t-esc='line.quantity' />
                             </value>
-                            <t t-if='line.uom !== "Unit(s)"'>
+                            <t t-if='line.uom !== "Units"'>
                                 <t t-esc='line.uom' />
                             </t>
                         </right>
@@ -990,7 +1007,7 @@
             <line t-foreach='taxes' t-as='taxe'>
                 <left><t t-esc='taxe.name' /></left>
                 <right>
-                    <t t-esc='widget.format_currency_no_symbol(taxe.total)'/>
+                    <t t-esc='widget.format_currency_no_symbol(taxe.tax_amount)'/>
                 </right>
             </line>
 

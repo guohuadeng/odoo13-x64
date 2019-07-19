@@ -64,6 +64,21 @@ STATIC_CACHE = 60 * 60 * 24 * 7
 # To remove when corrected in Babel
 babel.core.LOCALE_ALIASES['nb'] = 'nb_NO'
 
+""" Debug mode is stored in session and should always be a string.
+    It can be activated with an URL query string `debug=<mode>` where
+    mode is either:
+    - 'tests' to load tests assets
+    - 'assets' to load assets non minified
+    - any other truthy value to enable simple debug mode (to show some
+      technical feature, to show complete traceback in frontend error..)
+    - any falsy value to disable debug mode
+
+    You can use any truthy/falsy value from `str2bool` (eg: 'on', 'f'..)
+    Multiple debug modes can be activated simultaneously, separated with
+    a comma (eg: 'tests, assets').
+"""
+ALLOWED_DEBUG_MODES = ['', '1', 'assets', 'tests']
+
 #----------------------------------------------------------
 # RequestHandler
 #----------------------------------------------------------
@@ -83,16 +98,16 @@ def replace_request_password(args):
         args[2] = '*'
     return tuple(args)
 
+
 # don't trigger debugger for those exceptions, they carry user-facing warnings
 # and indications, they're not necessarily indicative of anything being
 # *broken*
-NO_POSTMORTEM = (odoo.osv.orm.except_orm,
-                 odoo.exceptions.AccessError,
-                 odoo.exceptions.ValidationError,
-                 odoo.exceptions.MissingError,
+NO_POSTMORTEM = (odoo.exceptions.except_orm,
                  odoo.exceptions.AccessDenied,
                  odoo.exceptions.Warning,
                  odoo.exceptions.RedirectWarning)
+
+
 def dispatch_rpc(service_name, method, params):
     """ Handle a RPC call.
 
@@ -143,15 +158,10 @@ def dispatch_rpc(service_name, method, params):
         odoo.tools.debugger.post_mortem(odoo.tools.config, sys.exc_info())
         raise
 
-def local_redirect(path, query=None, keep_hash=False, forward_debug=True, code=303):
+def local_redirect(path, query=None, keep_hash=False, code=303):
     url = path
     if not query:
         query = {}
-    if request and request.debug:
-        if forward_debug:
-            query['debug'] = ''
-        else:
-            query['debug'] = None
     if query:
         url += '?' + werkzeug.url_encode(query)
     if keep_hash:
@@ -281,13 +291,15 @@ class WebRequest(object):
         _request_stack.pop()
 
         if self._cr:
-            if exc_type is None and not self._failed:
-                self._cr.commit()
-                if self.registry:
-                    self.registry.signal_changes()
-            elif self.registry:
-                self.registry.reset_changes()
-            self._cr.close()
+            try:
+                if exc_type is None and not self._failed:
+                    self._cr.commit()
+                    if self.registry:
+                        self.registry.signal_changes()
+                elif self.registry:
+                    self.registry.reset_changes()
+            finally:
+                self._cr.close()
         # just to be sure no one tries to re-use the request
         self.disable_db = True
         self.uid = None
@@ -304,7 +316,7 @@ class WebRequest(object):
         """Called within an except block to allow converting exceptions
            to abitrary responses. Anything returned (except None) will
            be used as response."""
-        self._failed = exception # prevent tx commit
+        self._failed = exception  # prevent tx commit
         if not isinstance(exception, NO_POSTMORTEM) \
                 and not isinstance(exception, werkzeug.exceptions.HTTPException):
             odoo.tools.debugger.post_mortem(
@@ -344,22 +356,6 @@ class WebRequest(object):
         if self.db:
             return checked_call(self.db, *args, **kwargs)
         return self.endpoint(*args, **kwargs)
-
-    @property
-    def debug(self):
-        """ Indicates whether the current request is in "debug" mode
-        """
-        debug = 'debug' in self.httprequest.args
-        if debug and self.httprequest.args.get('debug') == 'assets':
-            debug = 'assets'
-
-        # check if request from rpc in debug mode
-        if not debug:
-            debug = self.httprequest.environ.get('HTTP_X_DEBUG_MODE')
-
-        if not debug and self.httprequest.referrer:
-            debug = 'debug' in urls.url_parse(self.httprequest.referrer).decode_query()
-        return debug
 
     @contextlib.contextmanager
     def registry_cr(self):
@@ -513,8 +509,16 @@ def route(route=None, **kw):
             else:
                 routes = [route]
             routing['routes'] = routes
+
         @functools.wraps(f)
         def response_wrap(*args, **kw):
+            # if controller cannot be called with extra args (utm, debug, ...), call endpoint ignoring them
+            spec = inspect.getargspec(f)
+            if not spec.keywords:
+                ignored = ['<%s=%s>' % (k, kw.pop(k)) for k in list(kw) if k not in spec.args]
+                if ignored:
+                    _logger.info("<function %s.%s> called ignoring args %s" % (f.__module__, f.__name__, ', '.join(ignored)))
+
             response = f(*args, **kw)
             if isinstance(response, Response) or f.routing_type == 'json':
                 return response
@@ -626,13 +630,18 @@ class JsonRequest(WebRequest):
         try:
             return super(JsonRequest, self)._handle_exception(exception)
         except Exception:
-            if not isinstance(exception, (odoo.exceptions.Warning, SessionExpiredException,
-                                          odoo.exceptions.except_orm, werkzeug.exceptions.NotFound)):
-                _logger.exception("Exception during JSON request handling.")
+            if not isinstance(exception, SessionExpiredException):
+                if exception.args and exception.args[0] == "bus.Bus not available in test mode":
+                    _logger.info(exception)
+                elif isinstance(exception, (odoo.exceptions.Warning, odoo.exceptions.except_orm,
+                                          werkzeug.exceptions.NotFound)):
+                    _logger.warning(exception)
+                else:
+                    _logger.exception("Exception during JSON request handling.")
             error = {
-                    'code': 200,
-                    'message': "Odoo Server Error",
-                    'data': serialize_exception(exception)
+                'code': 200,
+                'message': "Odoo Server Error",
+                'data': request.registry['ir.http'].serialize_exception(exception),
             }
             if isinstance(exception, werkzeug.exceptions.NotFound):
                 error['http_status'] = 404
@@ -682,31 +691,6 @@ class JsonRequest(WebRequest):
         except Exception as e:
             return self._handle_exception(e)
 
-def serialize_exception(e):
-    tmp = {
-        "name": type(e).__module__ + "." + type(e).__name__ if type(e).__module__ else type(e).__name__,
-        "debug": traceback.format_exc(),
-        "message": ustr(e),
-        "arguments": e.args,
-        "exception_type": "internal_error"
-    }
-    if isinstance(e, odoo.exceptions.UserError):
-        tmp["exception_type"] = "user_error"
-    elif isinstance(e, odoo.exceptions.Warning):
-        tmp["exception_type"] = "warning"
-    elif isinstance(e, odoo.exceptions.RedirectWarning):
-        tmp["exception_type"] = "warning"
-    elif isinstance(e, odoo.exceptions.AccessError):
-        tmp["exception_type"] = "access_error"
-    elif isinstance(e, odoo.exceptions.MissingError):
-        tmp["exception_type"] = "missing_error"
-    elif isinstance(e, odoo.exceptions.AccessDenied):
-        tmp["exception_type"] = "access_denied"
-    elif isinstance(e, odoo.exceptions.ValidationError):
-        tmp["exception_type"] = "validation_error"
-    elif isinstance(e, odoo.exceptions.except_orm):
-        tmp["exception_type"] = "except_orm"
-    return tmp
 
 class HttpRequest(WebRequest):
     """ Handler for the ``http`` request type.
@@ -763,7 +747,7 @@ class HttpRequest(WebRequest):
         if request.httprequest.method == 'OPTIONS' and request.endpoint and request.endpoint.routing.get('cors'):
             headers = {
                 'Access-Control-Max-Age': 60 * 60 * 24,
-                'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, X-Debug-Mode'
+                'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept'
             }
             return Response(status=200, headers=headers)
 
@@ -1038,7 +1022,7 @@ class OpenERPSession(werkzeug.contrib.sessions.Session):
 
     def logout(self, keep_db=False):
         for k in list(self):
-            if not (keep_db and k == 'db'):
+            if not (keep_db and k == 'db') and k != 'debug':
                 del self[k]
         self._default_values()
         self.rotate = True
@@ -1049,6 +1033,7 @@ class OpenERPSession(werkzeug.contrib.sessions.Session):
         self.setdefault("login", None)
         self.setdefault("session_token", None)
         self.setdefault("context", {})
+        self.setdefault("debug", '')
 
     def get_context(self):
         """
@@ -1242,13 +1227,12 @@ class Response(werkzeug.wrappers.Response):
 class DisableCacheMiddleware(object):
     def __init__(self, app):
         self.app = app
+
     def __call__(self, environ, start_response):
         def start_wrapped(status, headers):
-            referer = environ.get('HTTP_REFERER', '')
-            parsed = urls.url_parse(referer)
-            debug = parsed.query.count('debug') >= 1
-
-            if debug:
+            req = werkzeug.wrappers.Request(environ)
+            root.setup_session(req)
+            if req.session and req.session.debug:
                 new_headers = [('Cache-Control', 'no-cache')]
 
                 for k, v in headers:
@@ -1410,7 +1394,7 @@ class Root(object):
             httprequest = werkzeug.wrappers.Request(environ)
             httprequest.app = self
             httprequest.parameter_storage_class = werkzeug.datastructures.ImmutableOrderedMultiDict
-            
+
             current_thread = threading.current_thread()
             current_thread.url = httprequest.url
             current_thread.query_count = 0

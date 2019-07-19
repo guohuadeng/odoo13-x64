@@ -8,6 +8,7 @@ odoo.define('web.basic_fields', function (require) {
  */
 
 var AbstractField = require('web.AbstractField');
+var config = require('web.config');
 var core = require('web.core');
 var crash_manager = require('web.crash_manager');
 var datepicker = require('web.datepicker');
@@ -16,10 +17,13 @@ var Domain = require('web.Domain');
 var DomainSelector = require('web.DomainSelector');
 var DomainSelectorDialog = require('web.DomainSelectorDialog');
 var framework = require('web.framework');
+var py_utils = require('web.py_utils');
 var session = require('web.session');
 var utils = require('web.utils');
 var view_dialogs = require('web.view_dialogs');
 var field_utils = require('web.field_utils');
+
+require("web.zoomodoo");
 
 var qweb = core.qweb;
 var _t = core._t;
@@ -368,6 +372,41 @@ var NumericField = InputField.extend({
     // Private
     //--------------------------------------------------------------------------
 
+    /** 
+     * Evaluate a string representing a simple formula,
+     * a formula is composed of numbers and arithmetic operations
+     * (ex: 4+3*2)
+     * 
+     * Supported arithmetic operations: + - * / ^ ( )
+     * Since each number in the formula can be expressed in user locale,
+     * we parse each float value inside the formula using the user context
+     * This function uses py_eval to safe eval the formula.
+     * We assume that this function is used as a calculator so operand ^ (xor)
+     * is replaced by operand ** (power) so that users that are used to
+     * excel or libreoffice are not confused
+     * 
+     * @private
+     * @param expr
+     * @return a float representing the result of the evaluated formula
+     * @throws error if formula can't be evaluated
+     */
+    _evalFormula: function (expr, context) {
+        // remove extra space
+        var val = expr.replace(new RegExp(/( )/g), '');
+        var safeEvalString = '';
+        for (let v of val.split(new RegExp(/([-+*/()^])/g))) {
+            if (!['+','-','*','/','(',')','^'].includes(v) && v.length) {
+                // check if this is a float and take into account user delimiter preference
+                v = field_utils.parse.float(v);
+            }
+            if (v === '^') {
+                v = '**';
+            }
+            safeEvalString += v;
+        };
+        return py_utils.py_eval(safeEvalString, context);
+    },
+
     /**
      * Format numerical value (integer or float)
      *
@@ -403,7 +442,36 @@ var NumericField = InputField.extend({
             this.$input.attr({step: this.nodeOptions.step});
         }
         return result;
-    }
+    },
+
+    /**
+     * Evaluate value set by user if starts with =
+     *
+     * @override
+     * @private
+     * @param {any} value
+     * @param {Object} [options]
+     */
+    _setValue: function (value, options) {
+        var originalValue = value;
+        value = value.trim();
+        if (value.startsWith('=')) {
+            try {
+                // Evaluate the formula
+                value = this._evalFormula(value.substr(1));
+                // Format back the value in user locale
+                value = this._formatValue(value);
+                // Set the computed value in the input
+                this.$input.val(value);
+            } catch (err) {
+                // in case of exception, set value as the original value
+                // that way the Webclient will show an error as
+                // it is expecting a numeric value.
+                value = originalValue;
+            }
+        }
+        return this._super(value, options);
+    },
 });
 
 var FieldChar = InputField.extend(TranslatableFieldMixin, {
@@ -662,7 +730,7 @@ var FieldDateTime = FieldDate.extend({
     },
 });
 
-var FieldMonetary = InputField.extend({
+var FieldMonetary = NumericField.extend({
     description: _lt("Monetary"),
     className: 'o_field_monetary o_field_number',
     tagName: 'span',
@@ -1525,6 +1593,7 @@ var AbstractFieldBinary = AbstractField.extend({
      */
     _clearFile: function (){
         var self = this;
+        this.$('.o_input_file').val('');
         this.set_filename('');
         if (!this.isDestroyed()) {
             this._setValue(false).then(function() {
@@ -1569,6 +1638,25 @@ var FieldBinaryImage = AbstractFieldBinary.extend({
         'i': 'png',
         'P': 'svg+xml',
     },
+    /**
+     * Returns the image URL from a model.
+     * 
+     * @private
+     * @param {string} model    model from which to retrieve the image
+     * @param {string} res_id   id of the record
+     * @param {string} field    name of the image field
+     * @param {string} unique   an unique integer for the record, usually __last_update
+     * @returns {string} URL of the image
+     */
+    _getImageUrl: function (model, res_id, field, unique) {
+        return session.url('/web/image', {
+            model: model,
+            id: JSON.stringify(res_id),
+            field: field,
+            // unique forces a reload of the image when the record has been updated	
+            unique: field_utils.format.datetime(unique).replace(/[^0-9]/g, ''),
+        });
+    },
     _render: function () {
         var self = this;
         var url = this.placeholder;
@@ -1577,13 +1665,9 @@ var FieldBinaryImage = AbstractFieldBinary.extend({
                 // Use magic-word technique for detecting image type
                 url = 'data:image/' + (this.file_type_magic_word[this.value[0]] || 'png') + ';base64,' + this.value;
             } else {
-                url = session.url('/web/image', {
-                    model: this.model,
-                    id: JSON.stringify(this.res_id),
-                    field: this.nodeOptions.preview_image || this.name,
-                    // unique forces a reload of the image when the record has been updated
-                    unique: field_utils.format.datetime(this.recordData.__last_update).replace(/[^0-9]/g, ''),
-                });
+                var field = this.nodeOptions.preview_image || this.name;
+                var unique = this.recordData.__last_update;
+                url = this._getImageUrl(this.model, this.res_id, field, unique);
             }
         }
         var $img = $(qweb.render("FieldBinaryImage-img", {widget: this, url: url}));
@@ -1606,6 +1690,62 @@ var FieldBinaryImage = AbstractFieldBinary.extend({
             $img.attr('src', self.placeholder);
             self.do_warn(_t("Image"), _t("Could not display the selected image."));
         });
+
+        return this._super.apply(this, arguments);
+    },
+    /**
+     * Only enable the zoom on image in read-only mode, and if the option is enabled.
+     * 
+     * @override
+     * @private
+     */
+    _renderReadonly: function () {
+        this._super.apply(this, arguments);
+
+        if(this.nodeOptions.zoom) {
+            var unique = this.recordData.__last_update;
+            var url = this._getImageUrl(this.model, this.res_id, 'image', unique);
+            var $img;
+
+            if(this.nodeOptions.background)
+            {
+                if('tag' in this.nodeOptions) {
+                    this.tagName = this.nodeOptions.tag;
+                }
+
+                if('class' in this.attrs) {
+                    this.$el.addClass(this.attrs.class);
+                }
+
+                var urlThumb = this._getImageUrl(this.model, this.res_id, 'image_medium', unique);
+
+                this.$el.empty();
+                $img = this.$el;
+                $img.css('backgroundImage', 'url(' + urlThumb + ')');
+            } else {
+                $img = this.$('img');
+            }
+
+            if(this.recordData.image) {
+                $img.attr('data-zoom', 1);
+                $img.attr('data-zoom-image', url);
+
+                $img.zoomOdoo({
+                    event: 'mouseenter',
+                    attach: '.o_content',
+                    attachToTarget: true,
+                    onShow: function () {
+                        if(this.$zoom.height() < 256 && this.$zoom.width() < 256) {
+                            this.hide();
+                        }
+                    },
+                    beforeAttach: function () {
+                        this.$flyout.css({ width: '512px', height: '512px' });
+                    },
+                    preventClicks: this.nodeOptions.preventClicks,
+                });
+            }
+        }
     },
 });
 
@@ -1680,7 +1820,7 @@ var FieldBinaryFile = AbstractFieldBinary.extend({
                     'id': this.res_id,
                     'field': this.name,
                     'filename_field': filename_fieldname,
-                    'filename': this.recordData[filename_fieldname] || null,
+                    'filename': this.recordData[filename_fieldname] || "",
                     'download': true,
                     'data': utils.is_bin_size(this.value) ? null : this.value,
                 },
@@ -2108,68 +2248,6 @@ var LabelSelection = AbstractField.extend({
         this.classes = this.nodeOptions && this.nodeOptions.classes || {};
         var labelClass = this.classes[this.value] || 'primary';
         this.$el.addClass('badge badge-' + labelClass).text(this._formatValue(this.value));
-    },
-});
-
-var FieldBooleanButton = AbstractField.extend({
-    className: 'o_stat_info',
-    supportedFieldTypes: ['boolean'],
-
-    //--------------------------------------------------------------------------
-    // Public
-    //--------------------------------------------------------------------------
-
-    /**
-     * A boolean field is always set since false is a valid value.
-     *
-     * @override
-     */
-    isSet: function () {
-        return true;
-    },
-
-    //--------------------------------------------------------------------------
-    // Private
-    //--------------------------------------------------------------------------
-
-    /**
-     * This widget is supposed to be used inside a stat button and, as such, is
-     * rendered the same way in edit and readonly mode.
-     *
-     * @override
-     * @private
-     */
-    _render: function () {
-        this.$el.empty();
-        var text, hover;
-        switch (this.nodeOptions.terminology) {
-            case "active":
-                text = this.value ? _t("Active") : _t("Inactive");
-                hover = this.value ? _t("Deactivate") : _t("Activate");
-                break;
-            case "archive":
-                text = this.value ? _t("Active") : _t("Archived");
-                hover = this.value ? _t("Archive") : _t("Restore");
-                break;
-            case "close":
-                text = this.value ? _t("Active") : _t("Closed");
-                hover = this.value ? _t("Close") : _t("Open");
-                break;
-            default:
-                var opt_terms = this.nodeOptions.terminology || {};
-                if (typeof opt_terms === 'string') {
-                    opt_terms = {}; //unsupported terminology
-                }
-                text = this.value ? _t(opt_terms.string_true) || _t("On")
-                                  : _t(opt_terms.string_false) || _t("Off");
-                hover = this.value ? _t(opt_terms.hover_true) || _t("Switch Off")
-                                   : _t(opt_terms.hover_false) || _t("Switch On");
-        }
-        var val_color = this.value ? 'text-success' : 'text-danger';
-        var hover_color = this.value ? 'text-danger' : 'text-success';
-        var $val = $('<span>').addClass('o_stat_text o_not_hover ' + val_color).text(text);
-        var $hover = $('<span>').addClass('o_stat_text o_hover ' + hover_color).text(hover);
-        this.$el.append($val).append($hover);
     },
 });
 
@@ -2770,7 +2848,7 @@ var FieldDomain = AbstractField.extend({
             this.domainSelector = new DomainSelector(this, this._domainModel, value, {
                 readonly: this.mode === "readonly" || this.inDialog,
                 filters: this.fsFilters,
-                debugMode: session.debug,
+                debugMode: config.isDebug(),
             });
             def = this.domainSelector.prependTo(this.$el);
         } else {
@@ -2859,7 +2937,7 @@ var FieldDomain = AbstractField.extend({
         new DomainSelectorDialog(this, this._domainModel, this.value || "[]", {
             readonly: this.mode === "readonly",
             filters: this.fsFilters,
-            debugMode: session.debug,
+            debugMode: config.isDebug(),
         }).open();
     },
     /**
@@ -3018,7 +3096,6 @@ return {
     AbstractFieldBinary: AbstractFieldBinary,
     FieldBinaryImage: FieldBinaryImage,
     FieldBoolean: FieldBoolean,
-    FieldBooleanButton: FieldBooleanButton,
     BooleanToggle: BooleanToggle,
     FieldChar: FieldChar,
     LinkButton: LinkButton,

@@ -4,7 +4,6 @@
 from datetime import datetime, timedelta
 
 from odoo import api, fields, models, _
-from odoo.addons import decimal_precision as dp
 from odoo.exceptions import UserError
 
 
@@ -20,7 +19,6 @@ class SaleOrder(models.Model):
         copy=True, readonly=True,
         states={'draft': [('readonly', False)], 'sent': [('readonly', False)]})
 
-    @api.multi
     @api.returns('self', lambda value: value.id)
     def copy(self, default=None):
         if self.sale_order_template_id and self.sale_order_template_id.number_of_days > 0:
@@ -92,7 +90,7 @@ class SaleOrder(models.Model):
         self.order_line = order_lines
         self.order_line._compute_tax_id()
 
-        option_lines = []
+        option_lines = [(5, 0, 0)]
         for option in template.sale_order_template_option_ids:
             data = self._compute_option_data_for_template_change(option)
             option_lines.append((0, 0, data))
@@ -107,7 +105,6 @@ class SaleOrder(models.Model):
         if template.note:
             self.note = template.note
 
-    @api.multi
     def action_confirm(self):
         res = super(SaleOrder, self).action_confirm()
         for order in self:
@@ -115,7 +112,6 @@ class SaleOrder(models.Model):
                 self.sale_order_template_id.mail_template_id.send_mail(order.id)
         return res
 
-    @api.multi
     def get_access_action(self, access_uid=None):
         """ Instead of the classic form view, redirect to the online quote if it exists. """
         self.ensure_one()
@@ -154,15 +150,31 @@ class SaleOrderOption(models.Model):
     _description = "Sale Options"
     _order = 'sequence, id'
 
+    is_present = fields.Boolean(string="Present on Quotation",
+                           help="This field will be checked if the option line's product is "
+                                "already present in the quotation.",
+                           compute="_compute_is_present", search="_search_is_present")
     order_id = fields.Many2one('sale.order', 'Sales Order Reference', ondelete='cascade', index=True)
-    line_id = fields.Many2one('sale.order.line', ondelete="set null")
+    line_id = fields.Many2one('sale.order.line', ondelete="set null", copy=False)
     name = fields.Text('Description', required=True)
     product_id = fields.Many2one('product.product', 'Product', required=True, domain=[('sale_ok', '=', True)])
-    price_unit = fields.Float('Unit Price', required=True, digits=dp.get_precision('Product Price'))
-    discount = fields.Float('Discount (%)', digits=dp.get_precision('Discount'))
+    price_unit = fields.Float('Unit Price', required=True, digits='Product Price')
+    discount = fields.Float('Discount (%)', digits='Discount')
     uom_id = fields.Many2one('uom.uom', 'Unit of Measure ', required=True)
-    quantity = fields.Float('Quantity', required=True, digits=dp.get_precision('Product UoS'), default=1)
+    quantity = fields.Float('Quantity', required=True, digits='Product UoS', default=1)
     sequence = fields.Integer('Sequence', help="Gives the sequence order when displaying a list of optional products.")
+
+    @api.depends('line_id', 'order_id.order_line', 'product_id')
+    def _compute_is_present(self):
+        # NOTE: this field cannot be stored as the line_id is usually removed
+        # through cascade deletion, which means the compute would be false
+        for option in self:
+            option.is_present = bool(option.order_id.order_line.filtered(lambda l: l.product_id == option.product_id))
+
+    def _search_is_present(self, operator, value):
+        if (operator, value) in [('=', True), ('!=', False)]:
+            return [('line_id', '=', False)]
+        return [('line_id', '!=', False)]
 
     @api.onchange('product_id', 'uom_id')
     def _onchange_product_id(self):
@@ -179,12 +191,9 @@ class SaleOrderOption(models.Model):
         domain = {'uom_id': [('category_id', '=', self.product_id.uom_id.category_id.id)]}
         return {'domain': domain}
 
-    @api.multi
     def button_add_to_order(self):
         self.add_option_to_order()
-        return {'type': 'ir.actions.client', 'tag': 'reload'}
 
-    @api.multi
     def add_option_to_order(self):
         self.ensure_one()
 
@@ -199,7 +208,6 @@ class SaleOrderOption(models.Model):
 
         self.write({'line_id': order_line.id})
 
-    @api.multi
     def _get_values_to_add_to_order(self):
         self.ensure_one()
         return {

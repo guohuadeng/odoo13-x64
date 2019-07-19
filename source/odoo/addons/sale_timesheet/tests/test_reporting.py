@@ -121,7 +121,7 @@ class TestReporting(TestCommonSaleTimesheetNoChart):
     def test_profitability_report(self):
 
         # this test suppose everything is in the same currency as the current one
-        currency = self.env.company_id.currency_id
+        currency = self.env.company.currency_id
         rounding = currency.rounding
 
         project_global_stat = self.env['project.profitability.report'].search([('project_id', '=', self.project_global.id)]).read()[0]
@@ -236,8 +236,8 @@ class TestReporting(TestCommonSaleTimesheetNoChart):
         })
         action_invoice = payment.with_context(context).create_invoices()
         invoice_id = action_invoice['res_id']
-        invoice_1 = self.env['account.invoice'].browse(invoice_id)
-        invoice_1.action_invoice_open()
+        invoice_1 = self.env['account.move'].browse(invoice_id)
+        invoice_1.post()
 
         # deliver project should now have cost and something invoiced
         project_so_1_stat = self.env['project.profitability.report'].read_group([('project_id', 'in', project_so_1.ids)], ['project_id', 'amount_untaxed_to_invoice', 'amount_untaxed_invoiced', 'timesheet_unit_amount', 'timesheet_cost', 'expense_cost', 'expense_amount_untaxed_to_invoice', 'expense_amount_untaxed_invoiced'], ['project_id'])[0]
@@ -290,8 +290,8 @@ class TestReporting(TestCommonSaleTimesheetNoChart):
         })
         action_invoice = payment.with_context(context).create_invoices()
         invoice_id = action_invoice['res_id']
-        invoice_2 = self.env['account.invoice'].browse(invoice_id)
-        invoice_2.action_invoice_open()
+        invoice_2 = self.env['account.move'].browse(invoice_id)
+        invoice_2.post()
 
         # deliver project should not be impacted by the invoice of the other SO
         project_so_1_stat = self.env['project.profitability.report'].read_group([('project_id', 'in', project_so_1.ids)], ['project_id', 'amount_untaxed_to_invoice', 'amount_untaxed_invoiced', 'timesheet_unit_amount', 'timesheet_cost', 'expense_cost', 'expense_amount_untaxed_to_invoice', 'expense_amount_untaxed_invoiced'], ['project_id'])[0]

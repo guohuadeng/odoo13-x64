@@ -21,7 +21,7 @@ class LunchOrderWizard(models.TransientModel):
                                                                 order="date desc, id desc", limit=1)
         return last_time_ordered
 
-    currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company_id.currency_id)
+    currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company.currency_id)
 
     product_id = fields.Many2one('lunch.product', string='Product ID')
     product_description = fields.Text('Description', related='product_id.description')
@@ -43,9 +43,13 @@ class LunchOrderWizard(models.TransientModel):
                                      domain="[('category_id', '=', product_category), ('topping_category', '=', 3)]",
                                      default=lambda self: self._default_order_line().topping_ids_3)
 
-    available_toppings_1 = fields.Boolean(help='Are toppings available for this product', compute='_compute_available_toppings')
-    available_toppings_2 = fields.Boolean(help='Are toppings available for this product', compute='_compute_available_toppings')
-    available_toppings_3 = fields.Boolean(help='Are toppings available for this product', compute='_compute_available_toppings')
+    available_toppings_1 = fields.Boolean(help='Are extras available for this product', compute='_compute_available_toppings')
+    available_toppings_2 = fields.Boolean(help='Are extras available for this product', compute='_compute_available_toppings')
+    available_toppings_3 = fields.Boolean(help='Are extras available for this product', compute='_compute_available_toppings')
+
+    image = fields.Binary(related='product_id.image')
+    image_medium = fields.Binary(related='product_id.image_medium')
+    image_small = fields.Binary(related='product_id.image_small')
 
     quantity = fields.Float('Quantity', default=1)
     price_total = fields.Float('Total Price', compute='_compute_price_total')
@@ -86,7 +90,7 @@ class LunchOrderWizard(models.TransientModel):
                                                     sum((wizard.topping_ids_1 | wizard.topping_ids_2 | wizard.topping_ids_3).mapped('price')))
 
     def _get_matching_lines(self):
-        domain = [('product_id', '=', self.product_id.id), ('date', '=', fields.Date.today()), ('note', '=', self._get_note())]
+        domain = [('user_id', '=', self.user_id.id), ('product_id', '=', self.product_id.id), ('date', '=', fields.Date.today()), ('note', '=', self._get_note())]
         lines = self.env['lunch.order'].search(domain)
         return lines.filtered(lambda line: (line.topping_ids_1 | line.topping_ids_2 | line.topping_ids_3) == self.topping_ids_1)
 

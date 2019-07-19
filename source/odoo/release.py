@@ -35,5 +35,5 @@ author_email = 'info@odoo.com'
 license = 'LGPL-3'
 
 nt_service_name = "odoo-server-" + series.replace('~','-')
-version += '-20190529' 
-# hash = '73474f5'
+version += '-20190718' 
+# hash = '998ff5e'

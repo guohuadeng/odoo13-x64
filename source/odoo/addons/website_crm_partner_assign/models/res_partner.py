@@ -17,7 +17,6 @@ class ResPartnerGrade(models.Model):
     partner_weight = fields.Integer('Level Weight', default=1,
         help="Gives the probability to assign a lead to this partner. (0 means no assignation.)")
 
-    @api.multi
     def _compute_website_url(self):
         super(ResPartnerGrade, self)._compute_website_url()
         for grade in self:
@@ -54,10 +53,10 @@ class ResPartner(models.Model):
     )
     implemented_count = fields.Integer(compute='_compute_implemented_partner_count', store=True)
 
-    @api.one
     @api.depends('implemented_partner_ids', 'implemented_partner_ids.website_published', 'implemented_partner_ids.active')
     def _compute_implemented_partner_count(self):
-        self.implemented_count = len(self.implemented_partner_ids.filtered('website_published'))
+        for partner in self:
+            partner.implemented_count = len(partner.implemented_partner_ids.filtered('website_published'))
 
     @api.onchange('grade_id')
     def _onchange_grade_id(self):

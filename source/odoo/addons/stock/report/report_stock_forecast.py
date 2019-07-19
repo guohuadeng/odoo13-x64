@@ -17,7 +17,6 @@ class ReportStockForecat(models.Model):
     picking_id = fields.Many2one('stock.picking', string='Picking', readonly=True)
     reference = fields.Char('Reference')
 
-    @api.model_cr
     def init(self):
         tools.drop_view_if_exists(self._cr, 'report_stock_forecast')
         query = """
@@ -129,6 +128,8 @@ class ReportStockForecat(models.Model):
         WHERE
             final.product_qty != 0 OR final.reference = 'Starting Inventory'
         %s
+        ORDER BY
+            date
         )
         """ % (self._select(), self._left_join(), self._groupby())
         self.env.cr.execute(query)
@@ -185,7 +186,6 @@ class ReportStockForecat(models.Model):
         order to analyze different quantities in different situations.
         """
         # Sort result by date_expected and id.
-        orderby = 'date, id' if not orderby else orderby
         if 'cumulative_quantity' in fields and 'quantity' not in fields:
             fields.append('quantity')
         res = super(ReportStockForecat, self).read_group(domain, fields, groupby, offset=offset, limit=limit, orderby=orderby, lazy=lazy)

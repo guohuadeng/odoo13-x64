@@ -39,7 +39,6 @@ class PortalShare(models.TransientModel):
                 record = res_model.browse(rec.res_id)
                 rec.access_warning = record.access_warning
 
-    @api.multi
     def action_send_mail(self):
         active_record = self.env[self.res_model].browse(self.res_id)
         template = self.env.ref('portal.portal_share_template', False)
@@ -58,7 +57,7 @@ class PortalShare(models.TransientModel):
                         'share_link': share_link},
                 subject=_("You are invited to access %s" % active_record.display_name),
                 subtype_id=note.id,
-                notif_layout='mail.mail_notification_light',
+                email_layout_xmlid='mail.mail_notification_light',
                 partner_ids=[(6, 0, partner.ids)])
         # when partner not user send individual mail with signup token
         for partner in self.partner_ids - partner_ids:
@@ -70,6 +69,6 @@ class PortalShare(models.TransientModel):
                         'share_link': share_link},
                 subject=_("You are invited to access %s" % active_record.display_name),
                 subtype_id=note.id,
-                notif_layout='mail.mail_notification_light',
+                email_layout_xmlid='mail.mail_notification_light',
                 partner_ids=[(6, 0, partner.ids)])
         return {'type': 'ir.actions.act_window_close'}

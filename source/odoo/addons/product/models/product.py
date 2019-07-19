@@ -8,7 +8,6 @@ from odoo import api, fields, models, tools, _
 from odoo.exceptions import ValidationError
 from odoo.osv import expression
 
-from odoo.addons import decimal_precision as dp
 
 from odoo.tools import float_compare
 
@@ -48,7 +47,7 @@ class ProductCategory(models.Model):
         group_data = dict((data['categ_id'][0], data['categ_id_count']) for data in read_group_res)
         for categ in self:
             product_count = 0
-            for sub_categ_id in categ.search([('id', 'child_of', categ.id)]).ids:
+            for sub_categ_id in categ.search([('id', 'child_of', categ.ids)]).ids:
                 product_count += group_data.get(sub_categ_id, 0)
             categ.product_count = product_count
 
@@ -63,23 +62,6 @@ class ProductCategory(models.Model):
         return self.create({'name': name}).name_get()[0]
 
 
-class ProductPriceHistory(models.Model):
-    """ Keep track of the ``product.template`` standard prices as they are changed. """
-    _name = 'product.price.history'
-    _rec_name = 'datetime'
-    _order = 'datetime desc'
-    _description = 'Product Price List History'
-
-    def _get_default_company_id(self):
-        return self._context.get('force_company', self.env.company_id.id)
-
-    company_id = fields.Many2one('res.company', string='Company',
-        default=_get_default_company_id, required=True)
-    product_id = fields.Many2one('product.product', 'Product', ondelete='cascade', required=True)
-    datetime = fields.Datetime('Date', default=fields.Datetime.now)
-    cost = fields.Float('Cost', digits=dp.get_precision('Product Price'))
-
-
 class ProductProduct(models.Model):
     _name = "product.product"
     _description = "Product"
@@ -90,16 +72,16 @@ class ProductProduct(models.Model):
     # price: total price, context dependent (partner, pricelist, quantity)
     price = fields.Float(
         'Price', compute='_compute_product_price',
-        digits=dp.get_precision('Product Price'), inverse='_set_product_price')
+        digits='Product Price', inverse='_set_product_price')
     # price_extra: catalog extra value only, sum of variant extra attributes
     price_extra = fields.Float(
         'Variant Price Extra', compute='_compute_product_price_extra',
-        digits=dp.get_precision('Product Price'),
+        digits='Product Price',
         help="This is the sum of the extra price of all attributes")
     # lst_price: catalog value + extra, context dependent (uom)
     lst_price = fields.Float(
         'Public Price', compute='_compute_product_lst_price',
-        digits=dp.get_precision('Product Price'), inverse='_set_product_lst_price',
+        digits='Product Price', inverse='_set_product_lst_price',
         help="The sale price is managed from the product template. Click on the 'Configure Variants' button to set the extra attribute prices.")
 
     default_code = fields.Char('Internal Reference', index=True)
@@ -123,13 +105,13 @@ class ProductProduct(models.Model):
 
     standard_price = fields.Float(
         'Cost', company_dependent=True,
-        digits=dp.get_precision('Product Price'),
+        digits='Product Price',
         groups="base.group_user",
         help = "Cost used for stock valuation in standard price and as a first price to set in average/fifo. "
                "Also used as a base price for pricelists. "
                "Expressed in the default unit of measure of the product.")
     volume = fields.Float('Volume')
-    weight = fields.Float('Weight', digits=dp.get_precision('Stock Weight'))
+    weight = fields.Float('Weight', digits='Stock Weight')
 
     pricelist_item_ids = fields.Many2many(
         'product.pricelist.item', 'Pricelist Items', compute='_get_pricelist_items')
@@ -162,25 +144,24 @@ class ProductProduct(models.Model):
 
     image = fields.Binary("Image", compute='_compute_image', inverse='_set_image')
 
-    @api.multi
     @api.depends('image_raw_original')
     def _compute_images(self):
         for record in self:
-            images = tools.image_get_resized_images(record.image_raw_original, big_name=False)
-            record.image_raw_big = tools.image_get_resized_images(record.image_raw_original,
+            image = record.image_raw_original
+            # for performance: avoid calling unnecessary methods when falsy
+            images = image and tools.image_get_resized_images(image, big_name=False)
+            record.image_raw_big = image and tools.image_get_resized_images(image,
                 large_name=False, medium_name=False, small_name=False)['image']
-            record.image_raw_large = images['image_large']
-            record.image_raw_medium = images['image_medium']
-            record.image_raw_small = images['image_small']
-            record.can_image_raw_be_zoomed = tools.is_image_size_above(record.image_raw_original)
+            record.image_raw_large = image and images['image_large']
+            record.image_raw_medium = image and images['image_medium']
+            record.image_raw_small = image and images['image_small']
+            record.can_image_raw_be_zoomed = image and tools.is_image_size_above(image)
 
-    @api.multi
     def _compute_image_original(self):
         """Get the image from the template if no image is set on the variant."""
         for record in self:
             record.image_original = record.image_raw_original or record.product_tmpl_id.image_original
 
-    @api.multi
     def _set_image_original(self):
         for record in self:
             if (
@@ -196,47 +177,41 @@ class ProductProduct(models.Model):
                     ('active', '=', True),
                 ]) <= 1
             ):
+                record.image_raw_original = False
                 record.product_tmpl_id.image_original = record.image_original
             else:
                 record.image_raw_original = record.image_original
 
-    @api.multi
     def _compute_image_big(self):
         """Get the image from the template if no image is set on the variant."""
         for record in self:
             record.image_big = record.image_raw_big or record.product_tmpl_id.image_big
 
-    @api.multi
     def _compute_image_large(self):
         """Get the image from the template if no image is set on the variant."""
         for record in self:
             record.image_large = record.image_raw_large or record.product_tmpl_id.image_large
 
-    @api.multi
     def _compute_image_medium(self):
         """Get the image from the template if no image is set on the variant."""
         for record in self:
             record.image_medium = record.image_raw_medium or record.product_tmpl_id.image_medium
 
-    @api.multi
     def _compute_image_small(self):
         """Get the image from the template if no image is set on the variant."""
         for record in self:
             record.image_small = record.image_raw_small or record.product_tmpl_id.image_small
 
-    @api.multi
     def _compute_can_image_be_zoomed(self):
         """Get the image from the template if no image is set on the variant."""
         for record in self:
             record.can_image_be_zoomed = record.can_image_raw_be_zoomed if record.image_raw_original else record.product_tmpl_id.can_image_be_zoomed
 
-    @api.multi
     @api.depends('image_big')
     def _compute_image(self):
         for record in self:
             record.image = record.image_big
 
-    @api.multi
     def _set_image(self):
         for record in self:
             record.image_original = record.image
@@ -316,24 +291,24 @@ class ProductProduct(models.Model):
                 list_price = product.list_price
             product.lst_price = list_price + product.price_extra
 
-    @api.one
     def _compute_product_code(self):
-        for supplier_info in self.seller_ids:
-            if supplier_info.name.id == self._context.get('partner_id'):
-                self.code = supplier_info.product_code or self.default_code
-                break
-        else:
-            self.code = self.default_code
+        for product in self:
+            for supplier_info in product.seller_ids:
+                if supplier_info.name.id == product._context.get('partner_id'):
+                    product.code = supplier_info.product_code or product.default_code
+                    break
+            else:
+                product.code = product.default_code
 
-    @api.one
     def _compute_partner_ref(self):
-        for supplier_info in self.seller_ids:
-            if supplier_info.name.id == self._context.get('partner_id'):
-                product_name = supplier_info.product_name or supplier_info.product_code or self.default_code or self.name
-                self.partner_ref = '%s%s' % (self.code and '[%s] ' % self.code or '', product_name)
-                break
-        else:
-            self.partner_ref = self.display_name
+        for product in self:
+            for supplier_info in product.seller_ids:
+                if supplier_info.name.id == product._context.get('partner_id'):
+                    product_name = supplier_info.product_name or product.default_code or product.name
+                    product.partner_ref = '%s%s' % (product.code and '[%s] ' % product.code or '', product_name)
+                    break
+            else:
+                product.partner_ref = product.display_name
 
     @api.depends('product_tmpl_id', 'attribute_value_ids')
     def _compute_product_template_attribute_value_ids(self):
@@ -359,12 +334,12 @@ class ProductProduct(models.Model):
                 else:
                     product.product_template_attribute_value_ids += values_per_template[product.product_tmpl_id.id][pav.id]
 
-    @api.one
     def _get_pricelist_items(self):
-        self.pricelist_item_ids = self.env['product.pricelist.item'].search([
-            '|',
-            ('product_id', '=', self.id),
-            ('product_tmpl_id', '=', self.product_tmpl_id.id)]).ids
+        for product in self:
+            product.pricelist_item_ids = self.env['product.pricelist.item'].search([
+                '|',
+                ('product_id', '=', product.id),
+                ('product_tmpl_id', '=', product.product_tmpl_id.id)]).ids
 
     @api.constrains('attribute_value_ids')
     def _check_attribute_value_ids(self):
@@ -385,20 +360,20 @@ class ProductProduct(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         products = super(ProductProduct, self.with_context(create_product_product=True)).create(vals_list)
-        for product, vals in zip(products, vals_list):
-            # When a unique variant is created from tmpl then the standard price is set by _set_standard_price
-            if not (self.env.context.get('create_from_tmpl') and len(product.product_tmpl_id.product_variant_ids) == 1):
-                product._set_standard_price(vals.get('standard_price') or 0.0)
         # `_get_variant_id_for_combination` depends on existing variants
         self.clear_caches()
+        self.env['product.template'].invalidate_cache(
+            fnames=[
+                'product_variant_ids',
+                'product_variant_id',
+                'product_variant_count'
+            ],
+            ids=products.mapped('product_tmpl_id').ids
+        )
         return products
 
-    @api.multi
     def write(self, values):
-        ''' Store the standard price change in order to be able to retrieve the cost of a product for a given date'''
         res = super(ProductProduct, self).write(values)
-        if 'standard_price' in values:
-            self._set_standard_price(values['standard_price'])
         if 'attribute_value_ids' in values:
             # `_get_variant_id_for_combination` depends on `attribute_value_ids`
             self.clear_caches()
@@ -410,7 +385,6 @@ class ProductProduct(models.Model):
             self.clear_caches()
         return res
 
-    @api.multi
     def unlink(self):
         unlink_products = self.env['product.product']
         unlink_templates = self.env['product.template']
@@ -436,7 +410,40 @@ class ProductProduct(models.Model):
         self.clear_caches()
         return res
 
-    @api.multi
+    def _unlink_or_archive(self, check_access=True):
+        """Unlink or archive products.
+        Try in batch as much as possible because it is much faster.
+        Use dichotomy when an exception occurs.
+        """
+
+        # Avoid access errors in case the products is shared amongst companies
+        # but the underlying objects are not. If unlink fails because of an
+        # AccessError (e.g. while recomputing fields), the 'write' call will
+        # fail as well for the same reason since the field has been set to
+        # recompute.
+        if check_access:
+            self.check_access_rights('unlink')
+            self.check_access_rule('unlink')
+            self.check_access_rights('write')
+            self.check_access_rule('write')
+            self = self.sudo()
+
+        try:
+            with self.env.cr.savepoint(), tools.mute_logger('odoo.sql_db'):
+                self.unlink()
+        except Exception:
+            # We catch all kind of exceptions to be sure that the operation
+            # doesn't fail.
+            if len(self) > 1:
+                self[:len(self) // 2]._unlink_or_archive(check_access=False)
+                self[len(self) // 2:]._unlink_or_archive(check_access=False)
+            else:
+                if self.active:
+                    # Note: this can still fail if something is preventing
+                    # from archiving.
+                    # This is the case from existing stock reordering rules.
+                    self.write({'active': False})
+
     @api.returns('self', lambda value: value.id)
     def copy(self, default=None):
         # TDE FIXME: clean context / variant brol
@@ -457,7 +464,6 @@ class ProductProduct(models.Model):
             args.append((('categ_id', 'child_of', self._context['search_default_categ_id'])))
         return super(ProductProduct, self)._search(args, offset=offset, limit=limit, order=order, count=count, access_rights_uid=access_rights_uid)
 
-    @api.multi
     def name_get(self):
         # TDE: this could be cleaned a bit I think
 
@@ -592,7 +598,6 @@ class ProductProduct(models.Model):
             return _('Products: ') + self.env['product.category'].browse(self._context['categ_id']).name
         return res
 
-    @api.multi
     def open_product_template(self):
         """ Utility method used to add an "Open Template" button in product views """
         self.ensure_one()
@@ -605,7 +610,6 @@ class ProductProduct(models.Model):
     def _prepare_sellers(self, params):
         return self.seller_ids
 
-    @api.multi
     def _select_seller(self, partner_id=False, quantity=0.0, date=None, uom_id=False, params=False):
         self.ensure_one()
         if date is None:
@@ -637,7 +641,6 @@ class ProductProduct(models.Model):
             break
         return res
 
-    @api.multi
     def price_compute(self, price_type, uom=False, currency=False, company=False):
         # TDE FIXME: delegate to template or not ? fields are reencoded here ...
         # compatibility about context keys used a bit everywhere in the code
@@ -651,7 +654,7 @@ class ProductProduct(models.Model):
             # standard_price field can only be seen by users in base.group_user
             # Thus, in order to compute the sale price from the cost for users not in this group
             # We fetch the standard price as the superuser
-            products = self.with_context(force_company=company and company.id or self._context.get('force_company', self.env.company_id.id)).sudo()
+            products = self.with_context(force_company=company and company.id or self._context.get('force_company', self.env.company.id)).sudo()
 
         prices = dict.fromkeys(self.ids, 0.0)
         for product in products:
@@ -674,31 +677,6 @@ class ProductProduct(models.Model):
                     prices[product.id], currency, product.company_id, fields.Date.today())
 
         return prices
-
-
-    # compatibility to remove after v10 - DEPRECATED
-    @api.multi
-    def price_get(self, ptype='list_price'):
-        return self.price_compute(ptype)
-
-    @api.multi
-    def _set_standard_price(self, value):
-        ''' Store the standard price change in order to be able to retrieve the cost of a product for a given date'''
-        PriceHistory = self.env['product.price.history']
-        for product in self:
-            PriceHistory.create({
-                'product_id': product.id,
-                'cost': value,
-                'company_id': self._context.get('force_company', self.env.company_id.id),
-            })
-
-    @api.multi
-    def get_history_price(self, company_id, date=None):
-        history = self.env['product.price.history'].search([
-            ('company_id', '=', company_id),
-            ('product_id', 'in', self.ids),
-            ('datetime', '<=', date or fields.Datetime.now())], order='datetime desc,id desc', limit=1)
-        return history.cost or 0.0
 
     @api.model
     def get_empty_list_help(self, help):
@@ -743,7 +721,6 @@ class ProductProduct(models.Model):
                 return False
         return True
 
-    @api.multi
     def _is_variant_possible(self, parent_combination=None):
         """Return whether the variant is possible based on its own combination,
         and optionally a parent combination.
@@ -763,7 +740,6 @@ class ProductProduct(models.Model):
         self.ensure_one()
         return self.product_tmpl_id._is_combination_possible(self.product_template_attribute_value_ids, parent_combination=parent_combination)
 
-    @api.multi
     def toggle_active(self):
         """ Archiving related product.template if there is only one active product.product """
         with_one_active = self.filtered(lambda product: len(product.product_tmpl_id.product_variant_ids) == 1)
@@ -810,14 +786,14 @@ class SupplierInfo(models.Model):
         'Quantity', default=0.0, required=True,
         help="The quantity to purchase from this vendor to benefit from the price, expressed in the vendor Product Unit of Measure if not any, in the default unit of measure of the product otherwise.")
     price = fields.Float(
-        'Price', default=0.0, digits=dp.get_precision('Product Price'),
+        'Price', default=0.0, digits='Product Price',
         required=True, help="The price to purchase a product")
     company_id = fields.Many2one(
         'res.company', 'Company',
-        default=lambda self: self.env.company_id.id, index=1)
+        default=lambda self: self.env.company.id, index=1)
     currency_id = fields.Many2one(
         'res.currency', 'Currency',
-        default=lambda self: self.env.company_id.currency_id.id,
+        default=lambda self: self.env.company.currency_id.id,
         required=True)
     date_start = fields.Date('Start Date', help="Start date for this vendor price")
     date_end = fields.Date('End Date', help="End date for this vendor price")

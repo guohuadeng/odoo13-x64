@@ -10,7 +10,9 @@ from odoo.exceptions import ValidationError, UserError
 class TestWorkOrderProcess(TestMrpCommon):
     def full_availability(self):
         """set full availability for all calendars"""
-        self.env['resource.calendar'].search([]).write({'attendance_ids': [
+        calendar = self.env['resource.calendar'].search([])
+        calendar.write({'attendance_ids': [(5, 0, 0)]})
+        calendar.write({'attendance_ids': [
             (0, 0, {'name': 'Monday', 'dayofweek': '0', 'hour_from': 0, 'hour_to': 24, 'day_period': 'morning'}),
             (0, 0, {'name': 'Tuesday', 'dayofweek': '1', 'hour_from': 0, 'hour_to': 24, 'day_period': 'morning'}),
             (0, 0, {'name': 'Wednesday', 'dayofweek': '2', 'hour_from': 0, 'hour_to': 24, 'day_period': 'morning'}),
@@ -88,7 +90,6 @@ class TestWorkOrderProcess(TestMrpCommon):
         # --------------------
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product Table',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': product_table_sheet.id,
                 'product_uom_id': product_table_sheet.uom_id.id,
@@ -114,6 +115,7 @@ class TestWorkOrderProcess(TestMrpCommon):
                 'location_id': self.source_location_id
             })]
         })
+        inventory.action_start()
         inventory.action_validate()
 
         # Create work order
@@ -195,7 +197,6 @@ class TestWorkOrderProcess(TestMrpCommon):
         # --------------------
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product Table',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': product_table_sheet.id,
                 'product_uom_id': product_table_sheet.uom_id.id,
@@ -216,6 +217,7 @@ class TestWorkOrderProcess(TestMrpCommon):
                 'location_id': self.source_location_id
             })]
         })
+        inventory.action_start()
         inventory.action_validate()
 
         # Create work order
@@ -307,11 +309,11 @@ class TestWorkOrderProcess(TestMrpCommon):
         man_order = man_order_form.save()
         # reset quantities
         self.product_1.type = "product"
-        self.env['stock.change.product.qty'].create({
+        self.env['stock.quant'].with_context(inventory_mode=True).create({
             'product_id': self.product_1.id,
-            'new_quantity': 0.0,
+            'inventory_quantity': 0.0,
             'location_id': self.warehouse_1.lot_stock_id.id,
-        }).change_product_qty()
+        })
 
         (self.product_2 | self.product_4).write({
             'tracking': 'none',
@@ -344,7 +346,6 @@ class TestWorkOrderProcess(TestMrpCommon):
         # refuel stock
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory For Product C',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': self.product_2.id,
                 'product_uom_id': self.product_2.uom_id.id,
@@ -487,7 +488,6 @@ class TestWorkOrderProcess(TestMrpCommon):
         # --------------------
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product Table',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': product_charger.id,
                 'product_uom_id': product_charger.uom_id.id,
@@ -502,7 +502,7 @@ class TestWorkOrderProcess(TestMrpCommon):
                 'location_id': self.source_location_id
             })]
         })
-        # inventory.action_start()
+        inventory.action_start()
         inventory.action_validate()
 
         # Check consumed move status
@@ -662,7 +662,6 @@ class TestWorkOrderProcess(TestMrpCommon):
         # ----------------
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product B and C',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': product_B.id,
                 'product_uom_id': product_B.uom_id.id,
@@ -677,7 +676,7 @@ class TestWorkOrderProcess(TestMrpCommon):
                 'location_id': self.source_location_id
             })]
         })
-        # inventory.action_start()
+        inventory.action_start()
         inventory.action_validate()
 
         # Start Production ...
@@ -863,8 +862,31 @@ class TestWorkOrderProcess(TestMrpCommon):
         workorder = production_table.workorder_ids[0]
 
         # Check that the workorder is planned now and that it lasts one hour
-        self.assertEqual(workorder.date_planned_start, date_start, msg="Workorder should be planned tomorrow.")
-        self.assertEqual(workorder.date_planned_finished, date_start + timedelta(hours=1), msg="Workorder should be done one hour later.")
+        self.assertAlmostEqual(workorder.date_planned_start, date_start, delta=timedelta(seconds=1), msg="Workorder should be planned tomorrow.")
+        self.assertAlmostEqual(workorder.date_planned_finished, date_start + timedelta(hours=1), delta=timedelta(seconds=1), msg="Workorder should be done one hour later.")
+
+    def test_change_production_1(self):
+        """Change the quantity to produce on the MO while workorders are already planned."""
+        dining_table = self.env.ref("mrp.product_product_computer_desk")
+        dining_table.tracking = 'lot'
+        production_table_form = Form(self.env['mrp.production'])
+        production_table_form.product_id = dining_table
+        production_table_form.bom_id = self.env.ref("mrp.mrp_bom_desk")
+        production_table_form.product_qty = 1.0
+        production_table_form.product_uom_id = dining_table.uom_id
+        production_table = production_table_form.save()
+        production_table.action_confirm()
+
+        # Create work order
+        production_table.button_plan()
+
+        context = {'active_id': production_table.id, 'active_model': 'mrp.production'}
+        change_qty_form = Form(self.env['change.production.qty'].with_context(context))
+        change_qty_form.product_qty = 2.00
+        change_qty = change_qty_form.save()
+        change_qty.change_prod_qty()
+
+        self.assertEqual(production_table.workorder_ids[0].qty_producing, 2, "Quantity to produce not updated")
 
     def test_planning_0(self):
         """ Test alternative conditions

@@ -8,10 +8,8 @@ class ResConfigSettings(models.TransientModel):
 
     _inherit = 'res.config.settings'
 
-    group_multi_company = fields.Boolean("Manage multiple companies", implied_group='base.group_multi_company')
-    group_toggle_company = fields.Boolean("Toggle multiple companies", implied_group='base.group_toggle_company')
     company_id = fields.Many2one('res.company', string='Company', required=True,
-        default=lambda self: self.env.company_id)
+        default=lambda self: self.env.company)
     user_default_rights = fields.Boolean(
         "Default Access Rights",
         config_parameter='base_setup.default_user_rights',
@@ -55,23 +53,19 @@ class ResConfigSettings(models.TransientModel):
         )
         return res
 
-    @api.multi
     def set_values(self):
         super(ResConfigSettings, self).set_values()
         self.env.ref('base.res_partner_rule').write({'active': not self.company_share_partner})
 
-    @api.multi
     def open_company(self):
         return {
             'type': 'ir.actions.act_window',
             'name': 'My Company',
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'res.company',
-            'res_id': self.env.company_id.id,
+            'res_id': self.env.company.id,
             'target': 'current',
         }
-    @api.multi
     def open_default_user(self):
         action = self.env.ref('base.action_res_users').read()[0]
         action['res_id'] = self.env.ref('base.default_user').id
@@ -84,27 +78,23 @@ class ResConfigSettings(models.TransientModel):
         return {
             'type': 'ir.actions.act_window',
             'res_model': 'ir.ui.view',
-            'view_type': 'form',
             'view_mode': 'form',
             'res_id': template_id.id,
         }
 
-    @api.multi
     def edit_external_header(self):
         if not self.external_report_layout_id:
             return False
         return self._prepare_report_view_action(self.external_report_layout_id.key)
 
-    @api.multi
     def change_report_template(self):
         self.ensure_one()
         template = self.env.ref('base.view_company_document_template_form')
         return {
             'name': _('Choose Your Document Layout'),
             'type': 'ir.actions.act_window',
-            'view_type': 'form',
             'view_mode': 'form',
-            'res_id': self.env.company_id.id,
+            'res_id': self.env.company.id,
             'res_model': 'res.company',
             'views': [(template.id, 'form')],
             'view_id': template.id,

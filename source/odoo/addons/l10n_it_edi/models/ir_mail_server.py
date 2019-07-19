@@ -37,7 +37,6 @@ class FetchmailServer(models.Model):
             if record.l10n_it_is_pec and record.type != 'imap':
                 raise ValidationError("PEC mail server must be of type IMAP.")
 
-    @api.multi
     def fetch_mail(self):
         """ WARNING: meant for cron usage only - will commit() after each email! """
 
@@ -127,7 +126,7 @@ class FetchmailServer(models.Model):
                     self._create_invoice_from_mail_with_zip(attachment, from_address)
 
     def _create_invoice_from_mail(self, att_content, att_name, from_address):
-        if self.env['account.invoice'].search([('l10n_it_einvoice_name', '=', att_name)], limit=1):
+        if self.env['account.move'].search([('l10n_it_einvoice_name', '=', att_name)], limit=1):
             # invoice already exist
             _logger.info('E-invoice already exist: %s', att_name)
             return
@@ -135,11 +134,10 @@ class FetchmailServer(models.Model):
         invoice_attachment = self.env['ir.attachment'].create({
                 'name': att_name,
                 'datas': base64.encodestring(att_content),
-                'datas_fname': att_name,
                 'type': 'binary',
                 })
 
-        invoice = self.env['account.invoice']._import_xml_invoice(att_content, invoice_attachment)
+        invoice = self.env['account.move']._import_xml_invoice(att_content, invoice_attachment)
         invoice.l10n_it_send_state = "new"
         invoice.source_email = from_address
         self._cr.commit()
@@ -150,7 +148,7 @@ class FetchmailServer(models.Model):
     def _create_invoice_from_mail_with_zip(self, attachment_zip, from_address):
         with zipfile.ZipFile(io.BytesIO(attachment_zip.content)) as z:
             for att_name in z.namelist():
-                if self.env['account.invoice'].search([('l10n_it_einvoice_name', '=', att_name)], limit=1):
+                if self.env['account.move'].search([('l10n_it_einvoice_name', '=', att_name)], limit=1):
                     # invoice already exist
                     _logger.info('E-invoice in zip file (%s) already exist: %s', attachment_zip.fname, att_name)
                     continue
@@ -182,7 +180,7 @@ class FetchmailServer(models.Model):
                     else:
                         return
 
-                    related_invoice = self.env['account.invoice'].search([
+                    related_invoice = self.env['account.move'].search([
                         ('l10n_it_einvoice_name', '=', filename)])
                     if not related_invoice:
                         _logger.info('Error: invoice not found for receipt file: %s', filename)
@@ -212,7 +210,7 @@ class FetchmailServer(models.Model):
             # Delivery receipt
             # This is the receipt sent by the ES to the transmitting subject to communicate
             # delivery of the file to the addressee
-            related_invoice = self.env['account.invoice'].search([
+            related_invoice = self.env['account.move'].search([
                 ('l10n_it_einvoice_name', '=', filename),
                 ('l10n_it_send_state', '=', 'sent')])
             if not related_invoice:
@@ -228,7 +226,7 @@ class FetchmailServer(models.Model):
             # Rejection notice
             # This is the receipt sent by the ES to the transmitting subject if one or more of
             # the checks carried out by the ES on the file received do not have a successful result.
-            related_invoice = self.env['account.invoice'].search([
+            related_invoice = self.env['account.move'].search([
                 ('l10n_it_einvoice_name', '=', filename),
                 ('l10n_it_send_state', '=', 'sent')])
             if not related_invoice:
@@ -241,7 +239,7 @@ class FetchmailServer(models.Model):
             )
             activity_vals = {
                 'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
-                'user_id': related_invoice.user_id.id if related_invoice.user_id else self.env.user.id
+                'invoice_user_id': related_invoice.invoice_user_id.id if related_invoice.invoice_user_id else self.env.user.id
             }
             related_invoice.activity_schedule(summary='Rejection notice', **activity_vals)
 
@@ -249,7 +247,7 @@ class FetchmailServer(models.Model):
             # Failed delivery notice
             # This is the receipt sent by the ES to the transmitting subject if the file is not
             # delivered to the addressee.
-            related_invoice = self.env['account.invoice'].search([
+            related_invoice = self.env['account.move'].search([
                 ('l10n_it_einvoice_name', '=', filename),
                 ('l10n_it_send_state', '=', 'sent')])
             if not related_invoice:
@@ -274,7 +272,7 @@ class FetchmailServer(models.Model):
             # This is the receipt sent by the ES to the invoice sender to communicate the result
             # (acceptance or refusal of the invoice) of the checks carried out on the document by
             # the addressee.
-            related_invoice = self.env['account.invoice'].search([
+            related_invoice = self.env['account.move'].search([
                 ('l10n_it_einvoice_name', '=', filename),
                 ('l10n_it_send_state', '=', 'delivered')])
             if not related_invoice:
@@ -301,7 +299,7 @@ class FetchmailServer(models.Model):
             if related_invoice.l10n_it_send_state == 'delivered_refused':
                 activity_vals = {
                     'activity_type_id': self.env.ref('mail.mail_activity_data_todo').id,
-                    'user_id': related_invoice.user_id.id if related_invoice.user_id else self.env.user.id
+                    'invoice_user_id': related_invoice.invoice_user_id.id if related_invoice.invoice_user_id else self.env.user.id
                 }
                 related_invoice.activity_schedule(summary='Outcome notice: Refused', **activity_vals)
 
@@ -317,7 +315,7 @@ class FetchmailServer(models.Model):
             # This is the receipt sent by the ES to both the invoice sender and the invoice
             # addressee to communicate the expiry of the maximum term for communication of
             # acceptance/refusal.
-            related_invoice = self.env['account.invoice'].search([
+            related_invoice = self.env['account.move'].search([
                 ('l10n_it_einvoice_name', '=', filename), ('l10n_it_send_state', '=', 'delivered')])
             if not related_invoice:
                 _logger.info('Error: invoice not found for receipt file: %s', attachment.fname)

@@ -18,9 +18,12 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
         self.env['pos.open.statement'].create({}).open_statement()
 
     def test_order_refund(self):
+        self.pos_config.open_session_cb()
+        current_session = self.pos_config.current_session_id
         # I create a new PoS order with 2 lines
         order = self.PosOrder.create({
             'company_id': self.company_id,
+            'session_id': current_session.id,
             'partner_id': self.partner1.id,
             'pricelist_id': self.partner1.property_product_pricelist.id,
             'lines': [(0, 0, {
@@ -84,6 +87,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
 
         # I click on create a new session button
         self.pos_config.open_session_cb()
+        current_session = self.pos_config.current_session_id
 
         # I create a PoS order with 2 units of PCSC234 at 450 EUR
         # and 3 units of PCSC349 at 300 EUR.
@@ -91,6 +95,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
         untax2, atax2 = compute_tax(self.product4, 300, 3)
         self.pos_order_pos1 = self.PosOrder.create({
             'company_id': self.company_id,
+            'session_id': current_session.id,
             'pricelist_id': self.partner1.property_product_pricelist.id,
             'partner_id': self.partner1.id,
             'lines': [(0, 0, {
@@ -155,6 +160,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
         untax2, atax2 = compute_tax(self.product4, 300, -3)
         self.pos_order_pos2 = self.PosOrder.create({
             'company_id': self.company_id,
+            'session_id': current_session.id,
             'pricelist_id': self.partner1.property_product_pricelist.id,
             'partner_id': self.partner1.id,
             'lines': [(0, 0, {
@@ -219,6 +225,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
         untax2, atax2 = compute_tax(self.product4, 300, 3)
         self.pos_order_pos3 = self.PosOrder.create({
             'company_id': self.company_id,
+            'session_id': current_session.id,
             'pricelist_id': self.partner1.property_product_pricelist.id,
             'partner_id': self.partner1.id,
             'lines': [(0, 0, {
@@ -291,11 +298,15 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
             untax = res['total_excluded']
             return untax, sum(tax.get('amount', 0.0) for tax in res['taxes'])
 
+        self.pos_config.open_session_cb()
+        current_session = self.pos_config.current_session_id
+
         untax1, atax1 = compute_tax(self.product3, 450*0.95, 2)
         untax2, atax2 = compute_tax(self.product4, 300*0.95, 3)
         # I create a new PoS order with 2 units of PC1 at 450 EUR (Tax Incl) and 3 units of PCSC349 at 300 EUR. (Tax Excl)
         self.pos_order_pos1 = self.PosOrder.create({
             'company_id': self.company_id,
+            'session_id': current_session.id,
             'partner_id': self.partner1.id,
             'pricelist_id': self.partner1.property_product_pricelist.id,
             'lines': [(0, 0, {
@@ -304,7 +315,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
                 'price_unit': 450,
                 'discount': 5.0,
                 'qty': 2.0,
-                'tax_ids': [(6, 0, self.product3.taxes_id.ids)],
+                'tax_ids': [(6, 0, self.product3.taxes_id.filtered(lambda t: t.company_id.id == self.company_id).ids)],
                 'price_subtotal': untax1,
                 'price_subtotal_incl': untax1 + atax1,
             }), (0, 0, {
@@ -313,7 +324,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
                 'price_unit': 300,
                 'discount': 5.0,
                 'qty': 3.0,
-                'tax_ids': [(6, 0, self.product4.taxes_id.ids)],
+                'tax_ids': [(6, 0, self.product4.taxes_id.filtered(lambda t: t.company_id.id == self.company_id).ids)],
                 'price_subtotal': untax2,
                 'price_subtotal_incl': untax2 + atax2,
             })],
@@ -335,14 +346,14 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
         # I check that the order is marked as paid and there is no invoice
         # attached to it
         self.assertEqual(self.pos_order_pos1.state, 'paid', "Order should be in paid state.")
-        self.assertFalse(self.pos_order_pos1.invoice_id, 'Invoice should not be attached to order.')
+        self.assertFalse(self.pos_order_pos1.account_move, 'Invoice should not be attached to order.')
 
         # I generate an invoice from the order
         res = self.pos_order_pos1.action_pos_order_invoice()
         self.assertIn('res_id', res, "No invoice created")
 
         # I test that the total of the attached invoice is correct
-        invoice = self.env['account.invoice'].browse(res['res_id'])
+        invoice = self.env['account.move'].browse(res['res_id'])
         self.assertAlmostEqual(
             invoice.amount_total, self.pos_order_pos1.amount_total, places=2, msg="Invoice not correct")
 
@@ -559,7 +570,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
         # Make sure the company is in USD
         self.env.cr.execute(
             "UPDATE res_company SET currency_id = %s WHERE id = %s",
-            [self.env.ref('base.USD').id, self.env.company_id.id])
+            [self.env.ref('base.USD').id, self.env.company.id])
 
         # Demo data are crappy, clean-up the rates
         self.env['res.currency.rate'].search([]).unlink()
@@ -579,6 +590,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
 
         # I click on create a new session button
         self.pos_config.open_session_cb()
+        current_session = self.pos_config.current_session_id
 
         # I create a PoS order with 2 units of PCSC234 at 450 EUR (Tax Incl)
         # and 3 units of PCSC349 at 300 EUR. (Tax Excl)
@@ -587,6 +599,7 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
         untax2, atax2 = compute_tax(self.product4, 300*0.95, 3)
         self.pos_order_pos0 = self.PosOrder.create({
             'company_id': self.company_id,
+            'session_id': current_session.id,
             'pricelist_id': self.partner1.property_product_pricelist.copy(default={'currency_id': self.env.ref('base.EUR').id}).id,
             'partner_id': self.partner1.id,
             'lines': [(0, 0, {
@@ -673,9 +686,14 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
             self.assertAlmostEqual(a, b)
 
     def test_order_to_invoice_no_tax(self):
+
+        self.pos_config.open_session_cb()
+        current_session = self.pos_config.current_session_id
+
         # I create a new PoS order with 2 units of PC1 at 450 EUR (Tax Incl) and 3 units of PCSC349 at 300 EUR. (Tax Excl)
         self.pos_order_pos1 = self.PosOrder.create({
             'company_id': self.company_id,
+            'session_id': current_session.id,
             'partner_id': self.partner1.id,
             'pricelist_id': self.partner1.property_product_pricelist.id,
             'lines': [(0, 0, {
@@ -713,16 +731,16 @@ class TestPointOfSaleFlow(TestPointOfSaleCommon):
         # I check that the order is marked as paid and there is no invoice
         # attached to it
         self.assertEqual(self.pos_order_pos1.state, 'paid', "Order should be in paid state.")
-        self.assertFalse(self.pos_order_pos1.invoice_id, 'Invoice should not be attached to order.')
+        self.assertFalse(self.pos_order_pos1.account_move, 'Invoice should not be attached to order.')
 
         # I generate an invoice from the order
         res = self.pos_order_pos1.action_pos_order_invoice()
         self.assertIn('res_id', res, "No invoice created")
 
         # I test that the total of the attached invoice is correct
-        invoice = self.env['account.invoice'].browse(res['res_id'])
+        invoice = self.env['account.move'].browse(res['res_id'])
         self.assertAlmostEqual(
             invoice.amount_total, self.pos_order_pos1.amount_total, places=2, msg="Invoice not correct")
 
         for iline in invoice.invoice_line_ids:
-            self.assertFalse(iline.invoice_line_tax_ids)
+            self.assertFalse(iline.tax_ids)

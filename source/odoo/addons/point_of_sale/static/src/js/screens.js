@@ -289,7 +289,6 @@ var ScaleScreenWidget = ScreenWidget.extend({
     show: function(){
         this._super();
         var self = this;
-        var queue = this.pos.proxy_queue;
 
         this.set_weight(0);
         this.renderElement();
@@ -314,7 +313,12 @@ var ScaleScreenWidget = ScreenWidget.extend({
             // add product *after* switching screen to scroll properly
             self.order_product();
         });
+        this._read_scale();
+    },
 
+    _read_scale: function() {
+        var self = this;
+        var queue = this.pos.proxy_queue;
         queue.schedule(function(){
             return self.pos.proxy.scale_read().then(function(weight){
                 self.set_weight(weight.weight);
@@ -1150,6 +1154,7 @@ var ClientListScreenWidget = ScreenWidget.extend({
         this.$('.new-customer').click(function(){
             self.display_client_details('edit',{
                 'country_id': self.pos.company.country_id,
+                'state_id': self.pos.company.state_id,
             });
         });
 
@@ -1533,6 +1538,24 @@ var ClientListScreenWidget = ScreenWidget.extend({
                 setTimeout(function() {
                     self.$('.window').scrollTop(0);
                 }, 0);
+            });
+
+            contents.find('.client-address-country').on('change', function (ev) {
+                var $stateSelection = contents.find('.client-address-states');
+                var value = this.value;
+                $stateSelection.empty()
+                $stateSelection.append($("<option/>", {
+                    value: '',
+                    text: 'None',
+                }));
+                self.pos.states.forEach(function (state) {
+                    if (state.country_id[0] == value) {
+                        $stateSelection.append($("<option/>", {
+                            value: state.id,
+                            text: state.name
+                        }));
+                    }
+                });
             });
 
             contents.find('.image-uploader').on('change',function(event){

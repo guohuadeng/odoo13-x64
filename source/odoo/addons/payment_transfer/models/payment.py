@@ -18,7 +18,7 @@ class TransferPaymentAcquirer(models.Model):
     @api.model
     def _create_missing_journal_for_acquirers(self, company=None):
         # By default, the wire transfer method uses the default Bank journal.
-        company = company or self.env.company_id
+        company = company or self.env.company
         acquirers = self.env['payment.acquirer'].search(
             [('provider', '=', 'transfer'), ('journal_id', '=', False), ('company_id', '=', company.id)])
 
@@ -32,7 +32,7 @@ class TransferPaymentAcquirer(models.Model):
         return '/payment/transfer/feedback'
 
     def _format_transfer_data(self):
-        company_id = self.env.company_id.id
+        company_id = self.env.company.id
         # filter only bank accounts marked as visible
         journals = self.env['account.journal'].search([('type', '=', 'bank'), ('company_id', '=', company_id)])
         accounts = journals.mapped('bank_account_id').name_get()
@@ -59,7 +59,6 @@ class TransferPaymentAcquirer(models.Model):
             values['post_msg'] = self._format_transfer_data()
         return super(TransferPaymentAcquirer, self).create(values)
 
-    @api.multi
     def write(self, values):
         """ Hook in write to create a default post_msg. See create(). """
         if all(not acquirer.post_msg and acquirer.provider != 'transfer' for acquirer in self) and values.get('provider') == 'transfer':

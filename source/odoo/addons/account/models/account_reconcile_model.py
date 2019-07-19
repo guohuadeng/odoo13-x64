@@ -13,7 +13,7 @@ class AccountReconcileModel(models.Model):
     # Base fields.
     name = fields.Char(string='Name', required=True)
     sequence = fields.Integer(required=True, default=10)
-    company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.company_id)
+    company_id = fields.Many2one('res.company', string='Company', required=True, default=lambda self: self.env.company)
 
     rule_type = fields.Selection(selection=[
         ('writeoff_button', _('Manually create a write-off on clicked button.')),
@@ -102,19 +102,24 @@ class AccountReconcileModel(models.Model):
     second_analytic_account_id = fields.Many2one('account.analytic.account', string='Second Analytic Account', ondelete='set null')
     second_analytic_tag_ids = fields.Many2many('account.analytic.tag', string='Second Analytic Tags',
                                                relation='account_reconcile_model_second_analytic_tag_rel')
-    
+
     number_entries = fields.Integer(string='Number of entries related to this model', compute='_compute_number_entries')
 
-    @api.multi
     def action_reconcile_stat(self):
+        self.ensure_one()
         action = self.env.ref('account.action_move_journal_line').read()[0]
+        self._cr.execute('''
+            SELECT ARRAY_AGG(DISTINCT move_id)
+            FROM account_move_line
+            WHERE reconcile_model_id = %s
+        ''', [self.id])
         action.update({
-            'context': {'search_default_reconcile_model_id': self.name},
+            'context': {},
+            'domain': [('id', 'in', self._cr.fetchone()[0])],
             'help': """<p class="o_view_nocontent_empty_folder">{}</p>""".format(_('No move from this reconciliation model')),
         })
         return action
-        
-    @api.multi
+
     def _compute_number_entries(self):
         data = self.env['account.move.line'].read_group([('reconcile_model_id', 'in', self.ids)], ['reconcile_model_ids'], 'reconcile_model_id')
         mapped_data = dict([(d['reconcile_model_id'][0], d['reconcile_model_id_count']) for d in data])
@@ -167,22 +172,25 @@ class AccountReconcileModel(models.Model):
             tax = self.env['account.tax'].browse(tax_res['id'])
 
             new_aml_dicts.append({
-                'account_id': tax.account_id and tax.account_id.id or base_line_dict['account_id'],
-                'name': tax.name,
+                'account_id': tax_res['account_id'] or base_line_dict['account_id'],
+                'name': tax_res['name'],
                 'partner_id': base_line_dict.get('partner_id'),
                 'debit': tax_res['amount'] > 0 and tax_res['amount'] or 0,
                 'credit': tax_res['amount'] < 0 and -tax_res['amount'] or 0,
                 'analytic_account_id': tax.analytic and base_line_dict['analytic_account_id'],
                 'analytic_tag_ids': tax.analytic and base_line_dict['analytic_tag_ids'],
-                'tax_exigible': tax.tax_exigibility == 'on_payment',
+                'tax_exigible': tax_res['tax_exigibility'],
+                'tax_repartition_line_id': tax_res['tax_repartition_line_id'],
+                'tax_ids': tax_res['tax_ids'],
+                'tag_ids': tax_res['tag_ids']
             })
 
             # Handle price included taxes.
             base_line_dict['debit'] = tax_res['base'] > 0 and tax_res['base'] or base_line_dict['debit']
             base_line_dict['credit'] = tax_res['base'] < 0 and -tax_res['base'] or base_line_dict['credit']
+        base_line_dict['tag_ids'] = [(6, 0, res['base_tags'])]
         return new_aml_dicts
 
-    @api.multi
     def _get_write_off_move_lines_dict(self, st_line, move_lines=None):
         ''' Get move.lines dict (to be passed to the create()) corresponding to the reconciliation model's write-off lines.
         :param st_line:     An account.bank.statement.line record.
@@ -254,7 +262,6 @@ class AccountReconcileModel(models.Model):
 
         return new_aml_dicts
 
-    @api.multi
     def _prepare_reconciliation(self, st_line, move_lines=None, partner=None):
         ''' Reconcile the statement line with some move lines using this reconciliation model.
         :param st_line:     An account.bank.statement.line record.
@@ -313,7 +320,6 @@ class AccountReconcileModel(models.Model):
     # RECONCILIATION CRITERIA
     ####################################################
 
-    @api.multi
     def _apply_conditions(self, query, params):
         self.ensure_one()
         rule = self
@@ -371,7 +377,6 @@ class AccountReconcileModel(models.Model):
 
         return query, params
 
-    @api.multi
     def _get_with_tables(self, st_lines, partner_map=None):
         with_tables = '''
             WITH jnl_precision AS (
@@ -392,7 +397,6 @@ class AccountReconcileModel(models.Model):
         with_tables += ', partners_table AS (' + partners_table + ')'
         return with_tables
 
-    @api.multi
     def _get_invoice_matching_query(self, st_lines, excluded_ids=None, partner_map=None):
         ''' Get the query applying all rules trying to match existing entries with the given statement lines.
         :param st_lines:        Account.bank.statement.lines recordset.
@@ -438,10 +442,11 @@ class AccountReconcileModel(models.Model):
             LEFT JOIN res_company company           ON company.id = st_line.company_id
             LEFT JOIN partners_table line_partner   ON line_partner.line_id = st_line.id
             , account_move_line aml
-            LEFT JOIN account_move move             ON move.id = aml.move_id
+            LEFT JOIN account_move move             ON move.id = aml.move_id AND move.state = 'posted'
             LEFT JOIN account_account account       ON account.id = aml.account_id
             WHERE st_line.id IN %s
                 AND aml.company_id = st_line.company_id
+                AND move.state = 'posted'
                 AND (
                         -- the field match_partner of the rule might enforce the second part of
                         -- the OR condition, later in _apply_conditions()
@@ -456,7 +461,7 @@ class AccountReconcileModel(models.Model):
 
                 -- if there is a partner, propose all aml of the partner, otherwise propose only the ones
                 -- matching the statement line communication
-                AND 
+                AND
                 (
                     (
                         line_partner.partner_id != 0
@@ -466,6 +471,8 @@ class AccountReconcileModel(models.Model):
                     OR
                     (
                         line_partner.partner_id = 0
+                        AND
+                        TRIM(REGEXP_REPLACE(st_line.name, '[^0-9|^\s]', '', 'g')) != ''
                         AND
                         (
                             regexp_split_to_array(TRIM(REGEXP_REPLACE(move.name, '[^0-9|^\s]', '', 'g')),'\s+')
@@ -520,7 +527,6 @@ class AccountReconcileModel(models.Model):
         full_query += ' ORDER BY aml_date_maturity, aml_id'
         return full_query, all_params
 
-    @api.multi
     def _get_writeoff_suggestion_query(self, st_lines, excluded_ids=None, partner_map=None):
         ''' Get the query applying all reconciliation rules.
         :param st_lines:        Account.bank.statement.lines recordset.
@@ -556,7 +562,6 @@ class AccountReconcileModel(models.Model):
         full_query += ' UNION ALL '.join(queries)
         return full_query, all_params
 
-    @api.multi
     def _check_rule_propositions(self, statement_line, candidates):
         ''' Check restrictions that can't be handled for each move.line separately.
         /!\ Only used by models having a type equals to 'invoice_matching'.
@@ -587,7 +592,6 @@ class AccountReconcileModel(models.Model):
             amount_percentage = (line_residual / total_residual) * 100 if total_residual else 0
         return amount_percentage >= self.match_total_amount_param
 
-    @api.multi
     def _apply_rules(self, st_lines, excluded_ids=None, partner_map=None):
         ''' Apply criteria to get candidates for all reconciliation models.
         :param st_lines:        Account.bank.statement.lines recordset.

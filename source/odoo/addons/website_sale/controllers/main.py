@@ -10,6 +10,7 @@ from odoo.addons.base.models.ir_qweb_fields import nl2br
 from odoo.addons.http_routing.models.ir_http import slug
 from odoo.addons.payment.controllers.portal import PaymentProcessing
 from odoo.addons.website.controllers.main import QueryURL
+from odoo.addons.website.models.ir_http import sitemap_qs2dom
 from odoo.exceptions import ValidationError
 from odoo.addons.website.controllers.main import Website
 from odoo.addons.website_form.controllers.main import WebsiteForm
@@ -197,12 +198,24 @@ class WebsiteSale(http.Controller):
 
         return expression.AND(domains)
 
+    def sitemap_shop(env, rule, qs):
+        if not qs or qs.lower() in '/shop':
+            yield {'loc': '/shop'}
+
+        Category = env['product.public.category']
+        dom = sitemap_qs2dom(qs, '/shop/category', Category._rec_name)
+        dom += env['website'].get_current_website().website_domain()
+        for cat in Category.search(dom):
+            loc = '/shop/category/%s' % slug(cat)
+            if not qs or qs.lower() in loc:
+                yield {'loc': loc}
+
     @http.route([
         '''/shop''',
         '''/shop/page/<int:page>''',
-        '''/shop/category/<model("product.public.category", "[('website_id', 'in', (False, current_website_id))]"):category>''',
-        '''/shop/category/<model("product.public.category", "[('website_id', 'in', (False, current_website_id))]"):category>/page/<int:page>'''
-    ], type='http', auth="public", website=True)
+        '''/shop/category/<model("product.public.category"):category>''',
+        '''/shop/category/<model("product.public.category"):category>/page/<int:page>'''
+    ], type='http', auth="public", website=True, sitemap=sitemap_shop)
     def shop(self, page=0, category=None, search='', ppg=False, **post):
         add_qty = int(post.get('add_qty', 1))
         if category:
@@ -390,20 +403,20 @@ class WebsiteSale(http.Controller):
                 return request.render('website.404')
             if abandoned_order.state != 'draft':  # abandoned cart already finished
                 values.update({'abandoned_proceed': True})
-            elif revive == 'squash' or (revive == 'merge' and not request.session['sale_order_id']):  # restore old cart or merge with unexistant
+            elif revive == 'squash' or (revive == 'merge' and not request.session.get('sale_order_id')):  # restore old cart or merge with unexistant
                 request.session['sale_order_id'] = abandoned_order.id
                 return request.redirect('/shop/cart')
             elif revive == 'merge':
                 abandoned_order.order_line.write({'order_id': request.session['sale_order_id']})
                 abandoned_order.action_cancel()
-            elif abandoned_order.id != request.session['sale_order_id']:  # abandoned cart found, user have to choose what to do
+            elif abandoned_order.id != request.session.get('sale_order_id'):  # abandoned cart found, user have to choose what to do
                 values.update({'access_token': abandoned_order.access_token})
 
         if order:
             from_currency = order.company_id.currency_id
             to_currency = order.pricelist_id.currency_id
             compute_currency = lambda price: from_currency._convert(
-                price, to_currency, request.env.company_id, fields.Date.today())
+                price, to_currency, request.env.company, fields.Date.today())
         else:
             compute_currency = lambda price: price
 
@@ -627,8 +640,12 @@ class WebsiteSale(http.Controller):
         new_values['customer'] = True
         new_values['team_id'] = request.website.salesteam_id and request.website.salesteam_id.id
         new_values['user_id'] = request.website.salesperson_id and request.website.salesperson_id.id
-        new_values['company_id'] = request.website.company_id.id
-        new_values['website_id'] = request.website.id
+
+        if request.website.specific_user_account:
+            new_values['website_id'] = request.website.id
+
+        if mode[0] == 'new':
+            new_values['company_id'] = request.website.company_id.id
 
         lang = request.lang if request.lang in request.website.mapped('language_ids.code') else None
         if lang:

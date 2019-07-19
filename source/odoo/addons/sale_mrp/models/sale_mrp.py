@@ -8,7 +8,6 @@ from odoo.tools import float_compare, float_round
 class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
-    @api.multi
     def _compute_qty_delivered(self):
         super(SaleOrderLine, self)._compute_qty_delivered()
         for order_line in self:
@@ -29,7 +28,6 @@ class SaleOrderLine(models.Model):
                     order_qty = order_line.product_uom._compute_quantity(order_line.product_uom_qty, relevant_bom.product_uom_id)
                     order_line.qty_delivered = moves._compute_kit_quantities(order_line.product_id, order_qty, relevant_bom, filters)
 
-    @api.multi
     def _get_bom_component_qty(self, bom):
         bom_quantity = self.product_uom._compute_quantity(1, bom.product_uom_id)
         boms, lines = bom.explode(self.product_id, bom_quantity)
@@ -101,36 +99,3 @@ class SaleOrderLine(models.Model):
         if bom and 'previous_product_uom_qty' in self.env.context:
             return previous_product_uom_qty and previous_product_uom_qty.get(self.id, 0.0)
         return super(SaleOrderLine, self)._get_qty_procurement(previous_product_uom_qty=previous_product_uom_qty)
-
-
-class AccountInvoiceLine(models.Model):
-    # TDE FIXME: what is this code ??
-    _inherit = "account.invoice.line"
-
-    def _get_anglo_saxon_price_unit(self):
-        price_unit = super(AccountInvoiceLine, self)._get_anglo_saxon_price_unit()
-        # in case of anglo saxon with a product configured as invoiced based on delivery, with perpetual
-        # valuation and real price costing method, we must find the real price for the cost of good sold
-        if self.product_id.invoice_policy == "delivery":
-            for s_line in self.sale_line_ids:
-                # qtys already invoiced
-                qty_done = sum([x.uom_id._compute_quantity(x.quantity, x.product_id.uom_id) for x in s_line.invoice_lines if x.invoice_id.state in ('open', 'in_payment', 'paid')])
-                quantity = self.uom_id._compute_quantity(self.quantity, self.product_id.uom_id)
-                # Put moves in fixed order by date executed
-                moves = s_line.move_ids.sorted(lambda x: x.date)
-                # Go through all the moves and do nothing until you get to qty_done
-                # Beyond qty_done we need to calculate the average of the price_unit
-                # on the moves we encounter.
-                bom = s_line.product_id.product_tmpl_id.bom_ids and s_line.product_id.product_tmpl_id.bom_ids[0]
-                if bom.type == 'phantom':
-                    average_price_unit = 0
-                    components = s_line._get_bom_component_qty(bom)
-                    for product_id in components:
-                        factor = components[product_id]['qty']
-                        prod_moves = [m for m in moves if m.product_id.id == product_id]
-                        prod_qty_done = factor * qty_done
-                        prod_quantity = factor * quantity
-                        average_price_unit += factor * self._compute_average_price(prod_qty_done, prod_quantity, prod_moves)
-                    price_unit = average_price_unit or price_unit
-                    price_unit = self.product_id.uom_id._compute_price(price_unit, self.uom_id)
-        return price_unit

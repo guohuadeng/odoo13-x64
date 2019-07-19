@@ -12,7 +12,7 @@
             <script type="text/javascript" src="/website_sale/static/src/js/website_sale_backend.js"></script>
             <link rel="stylesheet" type="text/scss" href="/website_sale/static/src/scss/website_sale_dashboard.scss"/>
             <link rel="stylesheet" type="text/scss" href="/website_sale/static/src/scss/website_sale_backend.scss"/>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_backend.js"></script>
+            <script type="text/javascript" src="/website_sale/static/src/js/tours/website_sale_shop_backend.js"></script>
         </xpath>
     </template>
 
@@ -31,16 +31,7 @@
             <script type="text/javascript" src="/website_sale/static/src/js/website_sale_utils.js"></script>
             <script type="text/javascript" src="/website_sale/static/src/js/website_sale_payment.js"></script>
             <script type="text/javascript" src="/website_sale/static/src/js/website_sale_validate.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_buy.js"></script>
             <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tracking.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_customize.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_custom_attribute_value.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_zoom.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_dynamic_variants.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_deleted_archived_variants.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_list_view_b2c.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_no_variant_attribute.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour.js"></script>
         </xpath>
     </template>
 
@@ -50,16 +41,30 @@
         </xpath>
         <xpath expr="//script[last()]" position="after">
             <script type="text/javascript" src="/website_sale/static/src/js/website_sale.editor.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_frontend.js"></script>
             <script type="text/javascript" src="/website_sale/static/src/js/website_sale_form_editor.js"></script>
+            <script type="text/javascript" src="/website_sale/static/src/js/tours/website_sale_shop_frontend.js"></script>
         </xpath>
     </template>
 
     <template id="assets_common" name="tour" inherit_id="web.assets_common">
         <xpath expr="." position="inside">
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_cart_recovery.js"></script>
-            <script type="text/javascript" src="/website_sale/static/src/js/website_sale_tour_shop_mail.js"></script>
+            <script type="text/javascript" src="/website_sale/static/src/js/tours/website_sale_shop.js"></script>
+        </xpath>
+    </template>
+
+    <template id="assets_tests" name="Website Sale Assets Tests" inherit_id="web.assets_tests">
+        <xpath expr="." position="inside">
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_buy.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_complete_flow.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_cart_recovery.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_mail.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_customize.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_custom_attribute_value.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_zoom.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_dynamic_variants.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_deleted_archived_variants.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_list_view_b2c.js"></script>
+            <script type="text/javascript" src="/website_sale/static/tests/tours/website_sale_shop_no_variant_attribute.js"></script>
         </xpath>
     </template>
 
@@ -85,7 +90,7 @@
             <attribute name="data-display-image">true</attribute>
         </xpath>
         <xpath expr="//div[hasclass('input-group')]" position="replace">
-            <form t-attf-class="o_wsale_products_searchbar_form #{_classes}" t-att-action="action if action else '/shop'" method="get">
+            <form t-attf-class="o_wsale_products_searchbar_form o_wait_lazy_js #{_classes}" t-att-action="action if action else '/shop'" method="get">
                 <t>$0</t>
                 <input name="order" type="hidden" class="o_wsale_search_order_by" value=""/>
                 <t t-raw="0"/>
@@ -104,7 +109,7 @@
         </t>
     </template>
 
-    <template id="search count" inherit_id="website.website_search_box" active="False" customize_show="True" name="Show # found">
+    <template id="search_count_box" inherit_id="website.website_search_box" active="False" customize_show="True" name="Show # found">
         <xpath expr="//button[hasclass('oe_search_button')]" position="inside">
             <span t-if='search' class='oe_search_found'> <small>(<t t-esc="search_count"/> found)</small></span>
         </xpath>
@@ -1297,7 +1302,7 @@
             <t t-if="mode == ('new', 'billing') or (mode == ('edit', 'billing') and (can_edit_vat or 'vat' in checkout and checkout['vat']))">
                 <div t-attf-class="form-group #{error.get('company_name') and 'o_has_error' or ''} col-lg-6">
                     <label class="col-form-label font-weight-normal label-optional" for="company_name">Company Name</label>
-                    <input type="text" name="company_name" t-attf-class="form-control #{error.get('company_name') and 'is-invalid' or ''}" t-att-value="'company_name' in checkout and checkout['company_name']" t-att-readonly="'1' if 'vat' in checkout and checkout['vat'] and not can_edit_vat else None" t-att-title="'Changing company name is not allowed once document(s) have been issued for your account. Please contact us directly for this operation.' if 'vat' in checkout and checkout['vat'] and not can_edit_vat else None" />
+                    <input type="text" name="company_name" t-attf-class="form-control #{error.get('company_name') and 'is-invalid' or ''}" t-att-value="'commercial_company_name' in checkout and checkout['commercial_company_name'] or 'company_name' in checkout and checkout['company_name']" t-att-readonly="'1' if 'vat' in checkout and checkout['vat'] and not can_edit_vat else None" t-att-title="'Changing company name is not allowed once document(s) have been issued for your account. Please contact us directly for this operation.' if 'vat' in checkout and checkout['vat'] and not can_edit_vat else None" />
                 </div>
                 <div t-attf-class="form-group #{error.get('vat') and 'o_has_error' or ''} col-lg-6 div_vat">
                     <label class="col-form-label font-weight-normal label-optional" for="vat">TIN / VAT </label>

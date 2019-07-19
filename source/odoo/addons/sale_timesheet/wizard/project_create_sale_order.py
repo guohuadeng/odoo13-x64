@@ -3,7 +3,6 @@
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
-from odoo.addons import decimal_precision as dp
 
 
 class ProjectCreateSalesOrder(models.TransientModel):
@@ -48,7 +47,6 @@ class ProjectCreateSalesOrder(models.TransientModel):
         else:
             self.price_unit = 0.0
 
-    @api.multi
     def action_create_sale_order(self):
         # if project linked to SO line or at least on tasks with SO line, then we consider project as billable.
         if self.project_id.sale_line_id:
@@ -77,6 +75,7 @@ class ProjectCreateSalesOrder(models.TransientModel):
             'partner_id': self.partner_id.id,
             'analytic_account_id': self.project_id.analytic_account_id.id,
             'client_order_ref': self.project_id.name,
+            'company_id': self.project_id.company_id.id,
         })
         sale_order.onchange_partner_id()
         sale_order.onchange_partner_shipping_id()

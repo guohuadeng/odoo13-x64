@@ -18,7 +18,7 @@ class MrpUnbuild(models.Model):
             stock_location.check_access_rule('read')
             return stock_location.id
         except (AttributeError, AccessError):
-            return self.env['stock.warehouse'].search([('company_id', '=', self.env.company_id.id)], limit=1).lot_stock_id.id
+            return self.env['stock.warehouse'].search([('company_id', '=', self.env.company.id)], limit=1).lot_stock_id.id
 
     def _get_default_location_dest_id(self):
         stock_location = self.env.ref('stock.stock_location_stock', raise_if_not_found=False)
@@ -26,7 +26,7 @@ class MrpUnbuild(models.Model):
             stock_location.check_access_rule('read')
             return stock_location.id
         except (AttributeError, AccessError):
-            return self.env['stock.warehouse'].search([('company_id', '=', self.env.company_id.id)], limit=1).lot_stock_id.id
+            return self.env['stock.warehouse'].search([('company_id', '=', self.env.company.id)], limit=1).lot_stock_id.id
 
     name = fields.Char('Reference', copy=False, readonly=True, default=lambda x: _('New'))
     product_id = fields.Many2one(
@@ -92,13 +92,11 @@ class MrpUnbuild(models.Model):
             vals['name'] = self.env['ir.sequence'].next_by_code('mrp.unbuild') or _('New')
         return super(MrpUnbuild, self).create(vals)
 
-    @api.multi
     def unlink(self):
         if 'done' in self.mapped('state'):
             raise UserError(_("You cannot delete an unbuild order if the state is 'Done'."))
         return super(MrpUnbuild, self).unlink()
 
-    @api.multi
     def action_unbuild(self):
         self.ensure_one()
         if self.product_id.tracking != 'none' and not self.lot_id.id:
@@ -241,7 +239,6 @@ class MrpUnbuild(models.Model):
         else:
             return {
                 'name': _('Insufficient Quantity'),
-                'view_type': 'form',
                 'view_mode': 'form',
                 'res_model': 'stock.warn.insufficient.qty.unbuild',
                 'view_id': self.env.ref('mrp.stock_warn_insufficient_qty_unbuild_form_view').id,

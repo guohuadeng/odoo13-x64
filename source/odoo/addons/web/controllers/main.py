@@ -42,8 +42,7 @@ from odoo.tools.translate import _
 from odoo.tools.misc import str2bool, xlwt, file_open
 from odoo.tools.safe_eval import safe_eval
 from odoo import http, tools
-from odoo.http import content_disposition, dispatch_rpc, request, \
-    serialize_exception as _serialize_exception, Response
+from odoo.http import content_disposition, dispatch_rpc, request, Response
 from odoo.exceptions import AccessError, UserError, AccessDenied
 from odoo.models import check_method_name
 from odoo.service import db, security
@@ -83,7 +82,7 @@ def serialize_exception(f):
             return f(*args, **kwargs)
         except Exception as e:
             _logger.exception("An exception occured during an http request")
-            se = _serialize_exception(e)
+            se = request.registry['ir.http'].serialize_exception(e)
             error = {
                 'code': 200,
                 'message': "Odoo Server Error",
@@ -485,7 +484,7 @@ class Home(http.Controller):
         :param unique: this parameters is not used, but mandatory: it is used by the HTTP stack to make a unique request
         :return: the menus (including the images in Base64)
         """
-        menus = request.env["ir.ui.menu"].load_menus(request.debug)
+        menus = request.env["ir.ui.menu"].load_menus(request.session.debug)
         body = json.dumps(menus, default=ustr)
         response = request.make_response(body, [
             # this method must specify a content-type application/json instead of using the default text/html set because
@@ -541,12 +540,6 @@ class Home(http.Controller):
 
         if not odoo.tools.config['list_db']:
             values['disable_database_manager'] = True
-
-        # otherwise no real way to test debug mode in template as ?debug =>
-        # values['debug'] = '' but that's also the fallback value when
-        # missing variables in qweb
-        if 'debug' in values:
-            values['debug'] = True
 
         response = request.render('web.login', values)
         response.headers['X-Frame-Options'] = 'DENY'
@@ -626,7 +619,7 @@ class WebClient(http.Controller):
         return {"modules": translations_per_module,
                 "lang_parameters": None}
 
-    @http.route('/web/webclient/translations/<string:unique>', type='http', auth="none")
+    @http.route('/web/webclient/translations/<string:unique>', type='http', auth="public")
     def translations(self, unique, mods=None, lang=None):
         """
         Load the translations for the specified language and modules
@@ -1015,7 +1008,7 @@ class Binary(http.Controller):
         '/web/content/<string:model>/<int:id>/<string:field>',
         '/web/content/<string:model>/<int:id>/<string:field>/<string:filename>'], type='http', auth="public")
     def content_common(self, xmlid=None, model='ir.attachment', id=None, field='datas',
-                       filename=None, filename_field='datas_fname', unique=None, mimetype=None,
+                       filename=None, filename_field='name', unique=None, mimetype=None,
                        download=None, data=None, token=None, access_token=None, **kw):
 
         status, headers, content = request.env['ir.http'].binary_content(
@@ -1059,31 +1052,32 @@ class Binary(http.Controller):
         '/web/image/<int:id>-<string:unique>/<int:width>x<int:height>',
         '/web/image/<int:id>-<string:unique>/<int:width>x<int:height>/<string:filename>'], type='http', auth="public")
     def content_image(self, xmlid=None, model='ir.attachment', id=None, field='datas',
-                      filename_field='datas_fname', unique=None, filename=None, mimetype=None,
+                      filename_field='name', unique=None, filename=None, mimetype=None,
                       download=None, width=0, height=0, crop=False, access_token=None,
                       **kwargs):
         # other kwargs are ignored on purpose
         return self._content_image(xmlid=xmlid, model=model, id=id, field=field,
             filename_field=filename_field, unique=unique, filename=filename, mimetype=mimetype,
-            download=download, width=width, height=height, crop=crop, access_token=access_token)
+            download=download, width=width, height=height, crop=crop,
+            quality=int(kwargs.get('quality', 0)), access_token=access_token)
 
     def _content_image(self, xmlid=None, model='ir.attachment', id=None, field='datas',
-                       filename_field='datas_fname', unique=None, filename=None, mimetype=None,
-                       download=None, width=0, height=0, crop=False, access_token=None,
+                       filename_field='name', unique=None, filename=None, mimetype=None,
+                       download=None, width=0, height=0, crop=False, quality=0, access_token=None,
                        placeholder='placeholder.png', **kwargs):
         status, headers, image_base64 = request.env['ir.http'].binary_content(
             xmlid=xmlid, model=model, id=id, field=field, unique=unique, filename=filename,
             filename_field=filename_field, download=download, mimetype=mimetype,
             default_mimetype='image/png', access_token=access_token)
 
-        if status == 301 or (status != 200 and download):
+        if status in [301, 304] or (status != 200 and download):
             return request.env['ir.http']._response_by_status(status, headers, image_base64)
         if not image_base64:
             image_base64 = base64.b64encode(self.placeholder(image=placeholder))
             if not (width or height):
                 width, height = odoo.tools.image_guess_size_from_field_name(field)
 
-        image_base64 = image_process(image_base64, size=(int(width), int(height)), crop=crop)
+        image_base64 = image_process(image_base64, size=(int(width), int(height)), crop=crop, quality=int(quality))
 
         content = base64.b64decode(image_base64)
         headers = http.set_safe_image_headers(headers, content)
@@ -1139,7 +1133,6 @@ class Binary(http.Controller):
                 attachment = Model.create({
                     'name': filename,
                     'datas': base64.encodestring(ufile.read()),
-                    'datas_fname': filename,
                     'res_model': model,
                     'res_id': int(id)
                 })
@@ -1589,8 +1582,7 @@ class Apps(http.Controller):
             action['views'] = [(False, u'form')]
 
         sakey = Session().save_session_action(action)
-        debug = '?debug' if req.debug else ''
-        return werkzeug.utils.redirect('/web{0}#sa={1}'.format(debug, sakey))
+        return werkzeug.utils.redirect('/web#sa={0}'.format(sakey))
 
 
 class ReportController(http.Controller):
@@ -1701,7 +1693,7 @@ class ReportController(http.Controller):
             else:
                 return
         except Exception as e:
-            se = _serialize_exception(e)
+            se = request.env['ir.http'].serialize_exception(e)
             error = {
                 'code': 200,
                 'message': "Odoo Server Error",

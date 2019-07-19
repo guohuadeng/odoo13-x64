@@ -5,16 +5,17 @@
             <field name="name">res.lang.tree</field>
             <field name="model">res.lang</field>
             <field name="arch" type="xml">
-                <tree string="Languages">
+                <tree string="Languages" limit="200">
                     <field name="name"/>
-                    <field name="code"/>
-                    <field name="iso_code"/>
-                    <field name="direction"/>
-                    <field name="translatable"/>
+                    <field name="code" groups="base.group_no_one"/>
+                    <field name="iso_code" groups="base.group_no_one"/>
+                    <field name="direction" groups="base.group_no_one"/>
+                    <field name="translatable" groups="base.group_no_one"/>
                     <field name="active"/>
                     <button name="%(base.action_view_base_language_install)d"
-                    string="Update Terms" type="action" icon="fa-refresh" help="Update Language Terms"
-                    attrs="{'invisible': [('active', '=', False)]}"/>
+                        string="Activate Language and Update Translations"
+                        type="action"
+                        icon="fa-refresh"/>
                 </tree>
             </field>
         </record>
@@ -25,9 +26,11 @@
                 <form string="Languages">
                     <sheet>
                         <div class="oe_button_box" name="button_box">
-                            <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-check">
-                                <field name="active" widget="boolean_button" options='{"terminology": "active"}'/>
-                            </button>
+                            <button string="Activate and Translate"
+                                name="%(base.action_view_base_language_install)d"
+                                type="action"
+                                class="oe_stat_button"
+                                icon="fa-refresh" />
                         </div>
                         <div class="oe_title">
                             <label for="name" class="oe_edit_only"/>
@@ -37,6 +40,7 @@
                             <group>
                                 <field name="code"/>
                                 <field name="iso_code"/>
+                                <field name="active"/>
                                 <field name="translatable"/>
                             </group>
                             <group>
@@ -99,7 +103,6 @@
         <record id="res_lang_act_window" model="ir.actions.act_window">
             <field name="name">Languages</field>
             <field name="res_model">res.lang</field>
-            <field name="view_type">form</field>
             <field name="context">{'active_test': False}</field>
             <field name="search_view_id" ref="res_lang_search"/>
         </record>

@@ -29,7 +29,6 @@ class BaseLanguageExport(models.TransientModel):
     state = fields.Selection([('choose', 'choose'), ('get', 'get')], # choose language or get the file
                              default='choose')
 
-    @api.multi
     def act_getfile(self):
         this = self[0]
         lang = this.lang if this.lang != NEW_LANG_KEY else False
@@ -53,7 +52,6 @@ class BaseLanguageExport(models.TransientModel):
             'type': 'ir.actions.act_window',
             'res_model': 'base.language.export',
             'view_mode': 'form',
-            'view_type': 'form',
             'res_id': this.id,
             'views': [(False, 'form')],
             'target': 'new',

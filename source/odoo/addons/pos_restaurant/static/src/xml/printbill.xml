@@ -11,13 +11,13 @@
                     </span>
                     <h1>Bill Printing</h1>
                     <span class='button next'>
-                        Ok 
+                        Ok
                         <i class='fa fa-angle-double-right'></i>
                     </span>
                 </div>
                 <div class="centered-content">
                     <div class="button print">
-                        <i class='fa fa-print'></i> Print 
+                        <i class='fa fa-print'></i> Print
                     </div>
                     <div class="pos-receipt-container">
                     </div>
@@ -44,9 +44,6 @@
                 <br/>
             </t>
             <div font='b'>
-                <t t-if='receipt.shop.name'>
-                    <div><t t-esc='receipt.shop.name' /></div>
-                </t>
                 <t t-if='receipt.company.contact_address'>
                     <div><t t-esc='receipt.company.contact_address' /></div>
                 </t>
@@ -78,7 +75,7 @@
 
             <div line-ratio='0.6'>
                 <t t-foreach='receipt.orderlines' t-as='line'>
-                    <t t-set='simple' t-value='line.discount === 0 and line.unit_name === "Unit(s)" and line.quantity === 1' />
+                    <t t-set='simple' t-value='line.discount === 0 and line.unit_name === "Units" and line.quantity === 1' />
                     <t t-if='simple'>
                         <line>
                             <left><t t-esc='line.product_name' /></left>
@@ -95,10 +92,10 @@
                                 <value value-decimals='3' value-autoint='on'>
                                     <t t-esc='line.quantity' />
                                 </value>
-                                <t t-if='line.unit_name !== "Unit(s)"'>
-                                    <t t-esc='line.unit_name' /> 
+                                <t t-if='line.unit_name !== "Units"'>
+                                    <t t-esc='line.unit_name' />
                                 </t>
-                                x 
+                                x
                                 <value value-decimals='2'>
                                     <t t-esc='line.price' />
                                 </value>

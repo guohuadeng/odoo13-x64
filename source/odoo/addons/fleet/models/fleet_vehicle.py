@@ -19,7 +19,7 @@ class FleetVehicle(models.Model):
 
     name = fields.Char(compute="_compute_vehicle_name", store=True)
     active = fields.Boolean('Active', default=True, tracking=True)
-    company_id = fields.Many2one('res.company', 'Company', default=lambda self: self.env.company_id)
+    company_id = fields.Many2one('res.company', 'Company', default=lambda self: self.env.company)
     currency_id = fields.Many2one('res.currency', related='company_id.currency_id')
     license_plate = fields.Char(tracking=True,
         help='License plate number of the vehicle (i = plate number for a car)')
@@ -220,7 +220,6 @@ class FleetVehicle(models.Model):
             future_driver.write({'plan_to_change_car': True})
         return res
 
-    @api.multi
     def write(self, vals):
         if 'driver_id' in vals and vals['driver_id']:
             driver_id = vals['driver_id']
@@ -276,7 +275,6 @@ class FleetVehicle(models.Model):
         rec = self._search(expression.AND([domain, args]), limit=limit, access_rights_uid=name_get_uid)
         return self.browse(rec).name_get()
 
-    @api.multi
     def return_action_to_open(self):
         """ This opens the xml view specified in xml_id for the current vehicle """
         self.ensure_one()
@@ -290,7 +288,6 @@ class FleetVehicle(models.Model):
             return res
         return False
 
-    @api.multi
     def act_show_log_cost(self):
         """ This opens log view to view and add new log for this vehicle, groupby default to only show effective costs
             @return: the costs log view
@@ -305,7 +302,6 @@ class FleetVehicle(models.Model):
         )
         return res
 
-    @api.multi
     def _track_subtype(self, init_values):
         self.ensure_one()
         if 'driver_id' in init_values:
@@ -366,7 +362,7 @@ class FleetVehicleTag(models.Model):
     _name = 'fleet.vehicle.tag'
     _description = 'Vehicle Tag'
 
-    name = fields.Char(required=True, translate=True)
+    name = fields.Char('Tag Name', required=True, translate=True)
     color = fields.Integer('Color Index')
 
     _sql_constraints = [('name_uniq', 'unique (name)', "Tag name already exists !")]

@@ -9,6 +9,7 @@ import mimetypes
 import os
 import re
 import sys
+import traceback
 
 import werkzeug
 import werkzeug.exceptions
@@ -20,9 +21,12 @@ import odoo
 from odoo import api, http, models, tools, SUPERUSER_ID
 from odoo.exceptions import AccessDenied, AccessError
 from odoo.http import request, STATIC_CACHE, content_disposition
-from odoo.tools import pycompat, consteq
+from odoo.tools import consteq, pycompat, ustr
 from odoo.tools.mimetypes import guess_mimetype
 from odoo.modules.module import get_resource_path, get_module_path
+
+from odoo.http import ALLOWED_DEBUG_MODES
+from odoo.tools.misc import str2bool
 
 _logger = logging.getLogger(__name__)
 
@@ -126,6 +130,21 @@ class IrHttp(models.AbstractModel):
         return auth_method
 
     @classmethod
+    def _handle_debug(cls):
+        # Store URL debug mode (might be empty) into session
+        if 'debug' in request.httprequest.args:
+            debug_mode = []
+            for debug in request.httprequest.args['debug'].split(','):
+                if debug not in ALLOWED_DEBUG_MODES:
+                    debug = '1' if str2bool(debug, debug) else ''
+                debug_mode.append(debug)
+            debug_mode = ','.join(debug_mode)
+
+            # Write on session only when needed
+            if debug_mode != request.session.debug:
+                request.session.debug = debug_mode
+
+    @classmethod
     def _serve_attachment(cls):
         env = api.Environment(request.cr, SUPERUSER_ID, request.context)
         attach = env['ir.attachment'].get_serve_attachment(request.httprequest.path, extra_fields=['name', 'checksum'])
@@ -161,7 +180,37 @@ class IrHttp(models.AbstractModel):
         return False
 
     @classmethod
+    def serialize_exception(self, e):
+        tmp = {
+            "name": type(e).__module__ + "." + type(e).__name__ if type(e).__module__ else type(e).__name__,
+            "debug": traceback.format_exc(),
+            "message": ustr(e),
+            "arguments": e.args,
+            "exception_type": "internal_error"
+        }
+        if isinstance(e, odoo.exceptions.UserError):
+            tmp["exception_type"] = "user_error"
+        elif isinstance(e, odoo.exceptions.Warning):
+            tmp["exception_type"] = "warning"
+        elif isinstance(e, odoo.exceptions.RedirectWarning):
+            tmp["exception_type"] = "warning"
+        elif isinstance(e, odoo.exceptions.AccessError):
+            tmp["exception_type"] = "access_error"
+        elif isinstance(e, odoo.exceptions.MissingError):
+            tmp["exception_type"] = "missing_error"
+        elif isinstance(e, odoo.exceptions.AccessDenied):
+            tmp["exception_type"] = "access_denied"
+        elif isinstance(e, odoo.exceptions.ValidationError):
+            tmp["exception_type"] = "validation_error"
+        elif isinstance(e, odoo.exceptions.except_orm):
+            tmp["exception_type"] = "except_orm"
+        return tmp
+
+    @classmethod
     def _handle_exception(cls, exception):
+        # in case of Exception, e.g. 404, we don't step into _dispatch
+        cls._handle_debug()
+
         # If handle_exception returns something different than None, it will be used as a response
 
         # This is done first as the attachment path may
@@ -182,6 +231,8 @@ class IrHttp(models.AbstractModel):
 
     @classmethod
     def _dispatch(cls):
+        cls._handle_debug()
+
         # locate the controller method
         try:
             rule, arguments = cls._find_handler(return_rule=True)
@@ -216,7 +267,7 @@ class IrHttp(models.AbstractModel):
         for key, val in list(arguments.items()):
             # Replace uid placeholder by the current request.uid
             if isinstance(val, models.BaseModel) and isinstance(val._uid, RequestUID):
-                arguments[key] = val.sudo(request.uid)
+                arguments[key] = val.with_user(request.uid)
                 if not val.exists():
                     return cls._handle_exception(werkzeug.exceptions.NotFound())
 
@@ -276,7 +327,7 @@ class IrHttp(models.AbstractModel):
 
         # check read access
         try:
-            last_update = record['__last_update']
+            record['__last_update']
         except AccessError:
             return None, 403
 
@@ -315,7 +366,7 @@ class IrHttp(models.AbstractModel):
 
     def _binary_record_content(
             self, record, field='datas', filename=None,
-            filename_field='datas_fname', default_mimetype='application/octet-stream'):
+            filename_field='name', default_mimetype='application/octet-stream'):
 
         model = record._name
         mimetype = 'mimetype' in record and record.mimetype or False
@@ -337,11 +388,18 @@ class IrHttp(models.AbstractModel):
         if not filename:
             if filename_field in record:
                 filename = record[filename_field]
-            else:
+            if not filename:
                 filename = "%s-%s-%s" % (record._name, record.id, field)
 
         if not mimetype:
             mimetype = guess_mimetype(base64.b64decode(content), default=default_mimetype)
+
+        # extension
+        _, existing_extension = os.path.splitext(filename)
+        if not existing_extension:
+            extension = mimetypes.guess_extension(mimetype)
+            if extension:
+                filename = "%s%s" % (filename, extension)
 
         if not filehash:
             filehash = '"%s"' % hashlib.md5(pycompat.to_text(content).encode('utf-8')).hexdigest()
@@ -353,9 +411,11 @@ class IrHttp(models.AbstractModel):
         headers = [('Content-Type', mimetype), ('X-Content-Type-Options', 'nosniff')]
         # cache
         etag = bool(request) and request.httprequest.headers.get('If-None-Match')
-        status = status or (304 if filehash and etag == filehash else 200)
+        status = status or 200
         if filehash:
             headers.append(('ETag', filehash))
+            if etag == filehash and status == 200:
+                status = 304
         headers.append(('Cache-Control', 'max-age=%s' % (STATIC_CACHE if unique else 0)))
         # content-disposition default name
         if download:
@@ -364,7 +424,7 @@ class IrHttp(models.AbstractModel):
         return (status, headers, content)
 
     def binary_content(self, xmlid=None, model='ir.attachment', id=None, field='datas',
-                       unique=False, filename=None, filename_field='datas_fname', download=False,
+                       unique=False, filename=None, filename_field='name', download=False,
                        mimetype=None, default_mimetype='application/octet-stream',
                        access_token=None):
         """ Get file, attachment or downloadable content
@@ -398,11 +458,11 @@ class IrHttp(models.AbstractModel):
             status, content, filename, mimetype, filehash = self._binary_ir_attachment_redirect_content(record, default_mimetype=default_mimetype)
         if not content:
             status, content, filename, mimetype, filehash = self._binary_record_content(
-                record, field=field, filename=None, filename_field=filename_field,
+                record, field=field, filename=filename, filename_field=filename_field,
                 default_mimetype='application/octet-stream')
 
         status, headers, content = self._binary_set_headers(
-            status, content, filename, mimetype, unique, filehash=False, download=download)
+            status, content, filename, mimetype, unique, filehash=filehash, download=download)
 
         return status, headers, content
 

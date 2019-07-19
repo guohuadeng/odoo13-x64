@@ -17,7 +17,6 @@ from functools import partial
 from difflib import HtmlDiff
 from operator import itemgetter
 
-import json
 import werkzeug
 from lxml import etree
 from lxml.etree import LxmlError
@@ -30,7 +29,7 @@ from odoo.modules.module import get_resource_from_path, get_resource_path
 from odoo.osv import orm
 from odoo.tools import config, graph, ConstantMapping, SKIPPED_ELEMENT_TYPES, pycompat
 from odoo.tools.convert import _fix_multiple_roots
-from odoo.tools.parse_version import parse_version
+from odoo.tools.json import scriptsafe as json_scriptsafe
 from odoo.tools.safe_eval import safe_eval
 from odoo.tools.view_validation import valid_view
 from odoo.tools.translate import xml_translate, TRANSLATED_ATTRS
@@ -91,7 +90,6 @@ class ViewCustom(models.Model):
     user_id = fields.Many2one('res.users', string='User', index=True, required=True, ondelete='cascade')
     arch = fields.Text(string='View Architecture', required=True)
 
-    @api.multi
     def name_get(self):
         return [(rec.id, rec.user_id.name) for rec in self]
 
@@ -102,7 +100,6 @@ class ViewCustom(models.Model):
             return self.browse(view_ids).name_get()
         return super(ViewCustom, self)._name_search(name, args=args, operator=operator, limit=limit, name_get_uid=name_get_uid)
 
-    @api.model_cr_context
     def _auto_init(self):
         res = super(ViewCustom, self)._auto_init()
         tools.create_index(self._cr, 'ir_ui_view_custom_user_id_ref_id',
@@ -296,7 +293,6 @@ actual arch.
         for view, view_wo_lang in zip(self, self.with_context(lang=None)):
             view_wo_lang.arch = view.arch_base
 
-    @api.multi
     def reset_arch(self, mode='soft'):
         for view in self:
             arch = False
@@ -409,7 +405,6 @@ actual arch.
          "Invalid key: QWeb view should have a key"),
     ]
 
-    @api.model_cr_context
     def _auto_init(self):
         res = super(View, self)._auto_init()
         tools.create_index(self._cr, 'ir_ui_view_model_type_inherit_id',
@@ -453,7 +448,6 @@ actual arch.
         self.clear_caches()
         return super(View, self).create(vals_list)
 
-    @api.multi
     def write(self, vals):
         # Keep track if view was modified. That will be useful for the --dev mode
         # to prefer modified arch over file arch.
@@ -477,7 +471,6 @@ actual arch.
             self.inherit_children_ids.unlink()
         super(View, self).unlink()
 
-    @api.multi
     @api.returns('self', lambda value: value.id)
     def copy(self, default=None):
         self.ensure_one()
@@ -486,7 +479,6 @@ actual arch.
             default = dict(default or {}, key=new_key)
         return super(View, self).copy(default)
 
-    @api.multi
     def toggle(self):
         """ Switches between enabled and disabled statuses
         """
@@ -761,7 +753,6 @@ actual arch.
             source = self.apply_view_inheritance(source, view_id, model, root_id=root_id)
         return source
 
-    @api.multi
     def read_combined(self, fields=None):
         """
         Utility function to get a view combined with its inherited views.
@@ -1320,12 +1311,10 @@ actual arch.
             for attr in node.attrib
         )
 
-    @api.multi
     def translate_qweb(self, arch, lang):
         # Deprecated: templates are translated once read from database
         return arch
 
-    @api.multi
     @tools.ormcache('self.id')
     def get_view_xmlid(self):
         domain = [('model', '=', 'ir.ui.view'), ('res_id', '=', self.id)]
@@ -1336,7 +1325,6 @@ actual arch.
     def render_template(self, template, values=None, engine='ir.qweb'):
         return self.browse(self.get_view_id(template)).render(values, engine)
 
-    @api.multi
     def render(self, values=None, engine='ir.qweb', minimal_qcontext=False):
         assert isinstance(self.id, int)
 
@@ -1353,11 +1341,12 @@ actual arch.
         qcontext = dict(
             env=self.env,
             user_id=self.env["res.users"].browse(self.env.user.id),
-            res_company=self.env.company_id.sudo(),
+            res_company=self.env.company.sudo(),
             keep_query=keep_query,
             request=request,  # might be unbound if we're not in an httprequest context
-            debug=request.debug if request else False,
-            json=json,
+            debug=request.session.debug if request else '',
+            test_mode_enabled=bool(config['test_enable'] or config['test_file']),
+            json=json_scriptsafe,
             quote_plus=werkzeug.url_quote_plus,
             time=time,
             datetime=datetime,
@@ -1373,7 +1362,6 @@ actual arch.
     # Misc
     #------------------------------------------------------
 
-    @api.multi
     def open_translations(self):
         """ Open a view for editing the translations of field 'arch_db'. """
         return self.env['ir.translation'].translate_fields('ir.ui.view', self.id, 'arch_db')
@@ -1521,7 +1509,6 @@ class ResetViewArchWizard(models.TransientModel):
         ('hard', 'Reset to file version (hard reset).')
     ], string='Reset Mode', default='soft', required=True, help="You might want to try a soft reset first.")
 
-    @api.one
     @api.depends('reset_mode', 'view_id')
     def _compute_arch_diff(self):
         ''' Return the differences between the current view arch and either its
@@ -1553,26 +1540,26 @@ class ResetViewArchWizard(models.TransientModel):
             '''
             return html_diff
 
-        soft = self.reset_mode == 'soft'
-        arch_to_compare = False
-        if soft:
-            arch_to_compare = self.view_id.arch_prev
-        elif not soft and self.view_id.arch_fs:
-            arch_to_compare = self.view_id.with_context(read_arch_from_file=True).arch
+        for view in self:
+            soft = view.reset_mode == 'soft'
+            arch_to_compare = False
+            if soft:
+                arch_to_compare = view.view_id.arch_prev
+            elif not soft and view.view_id.arch_fs:
+                arch_to_compare = view.view_id.with_context(read_arch_from_file=True).arch
 
-        diff = False
-        if arch_to_compare:
-            diff = HtmlDiff(tabsize=2).make_table(
-                arch_to_compare.splitlines(),
-                self.view_id.arch.splitlines(),
-                _("Previous Arch") if soft else _("File Arch"),
-                _("Current Arch"),
-                context=True,  # Show only diff lines, not all the code
-            )
-            diff = handle_style(diff)
-        self.arch_diff = diff
+            diff = False
+            if arch_to_compare:
+                diff = HtmlDiff(tabsize=2).make_table(
+                    arch_to_compare.splitlines(),
+                    view.view_id.arch.splitlines(),
+                    _("Previous Arch") if soft else _("File Arch"),
+                    _("Current Arch"),
+                    context=True,  # Show only diff lines, not all the code
+                )
+                diff = handle_style(diff)
+            view.arch_diff = diff
 
-    @api.multi
     def reset_view_button(self):
         self.ensure_one()
         self.view_id.reset_arch(self.reset_mode)

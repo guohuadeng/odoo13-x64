@@ -76,7 +76,7 @@ publicWidget.Widget.include({
         this.editableMode = this.options.editableMode || false;
         var extraEvents = this.editableMode ? this.edit_events : this.read_events;
         if (extraEvents) {
-            this.events = _.extend(this.events || {}, extraEvents);
+            this.events = _.extend({}, this.events || {}, extraEvents);
         }
     },
 });
@@ -859,6 +859,10 @@ registry.gallerySlider = publicWidget.Widget.extend({
      */
     destroy: function () {
         this._super.apply(this, arguments);
+
+        if (!this.$indicator) {
+            return;
+        }
 
         this.$prev.prependTo(this.$indicator);
         this.$next.appendTo(this.$indicator);

@@ -32,7 +32,6 @@ class Bank(models.Model):
     active = fields.Boolean(default=True)
     bic = fields.Char('Bank Identifier Code', index=True, help="Sometimes called BIC or Swift.")
 
-    @api.multi
     def name_get(self):
         result = []
         for bank in self:
@@ -86,7 +85,7 @@ class ResPartnerBank(models.Model):
     bank_bic = fields.Char(related='bank_id.bic', readonly=False)
     sequence = fields.Integer(default=10)
     currency_id = fields.Many2one('res.currency', string='Currency')
-    company_id = fields.Many2one('res.company', 'Company', default=lambda self: self.env.company_id, ondelete='cascade')
+    company_id = fields.Many2one('res.company', 'Company', default=lambda self: self.env.company, ondelete='cascade')
     qr_code_valid = fields.Boolean(string="Has all required arguments", compute="_validate_qr_code_arguments")
 
     _sql_constraints = [
@@ -135,7 +134,6 @@ class ResPartnerBank(models.Model):
         qr_code_url = '/report/barcode/?type=%s&value=%s&width=%s&height=%s&humanreadable=1' % ('QR', werkzeug.url_quote_plus(qr_code_string), 128, 128)
         return qr_code_url
 
-    @api.multi
     def _validate_qr_code_arguments(self):
         for bank in self:
             if bank.currency_id.name == False:

@@ -77,7 +77,6 @@ class SlideChannelInvite(models.TransientModel):
                 values['body'] = template.body_html
         return super(SlideChannelInvite, self).create(values)
 
-    @api.multi
     def action_invite(self):
         """ Process the wizard content and proceed with sending the related
             email(s), rendering any template patterns on the fly if needed """
@@ -123,7 +122,7 @@ class SlideChannelInvite(models.TransientModel):
                 template_ctx = {
                     'message': self.env['mail.message'].sudo().new(dict(body=mail_values['body_html'], record_name=self.channel_id.name)),
                     'model_description': self.env['ir.model']._get('website_slides.slide_channel').display_name,
-                    'company': self.env.company_id,
+                    'company': self.env.company,
                 }
                 body = template.render(template_ctx, engine='ir.qweb', minimal_qcontext=True)
                 mail_values['body_html'] = self.env['mail.thread']._replace_local_links(body)

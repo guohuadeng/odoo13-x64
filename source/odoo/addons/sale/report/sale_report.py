@@ -144,7 +144,6 @@ class SaleReport(models.Model):
 
         return '%s (SELECT %s FROM %s WHERE l.product_id IS NOT NULL GROUP BY %s)' % (with_, select_, from_, groupby_)
 
-    @api.model_cr
     def init(self):
         # self._table = sale_report
         tools.drop_view_if_exists(self.env.cr, self._table)
@@ -154,7 +153,6 @@ class SaleOrderReportProforma(models.AbstractModel):
     _name = 'report.sale.report_saleproforma'
     _description = 'Proforma Report'
 
-    @api.multi
     def _get_report_values(self, docids, data=None):
         docs = self.env['sale.order'].browse(docids)
         return {

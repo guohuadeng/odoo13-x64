@@ -3,6 +3,9 @@ odoo.define('website_slides.quiz', function (require) {
 
     var publicWidget = require('web.public.widget');
     var core = require('web.core');
+    var session = require('web.session');
+
+    var CourseJoinWidget = require('website_slides.course.join.widget').courseJoinWidget;
 
     var QWeb = core.qweb;
     var _t = core._t;
@@ -34,7 +37,7 @@ odoo.define('website_slides.quiz', function (require) {
         * @param {Object} slide_data holding all the classic slide informations
         * @param {Object} quiz_data : optional quiz data to display. If not given, will be fetched. (questions and answers).
         */
-        init: function (parent, slide_data, quiz_data) {
+        init: function (parent, slide_data, channel_data, quiz_data) {
             this.slide = _.defaults(slide_data, {
                 id: 0,
                 name: '',
@@ -44,6 +47,9 @@ odoo.define('website_slides.quiz', function (require) {
             });
             this.quiz = quiz_data || false;
             this.readonly = slide_data.readonly || false;
+            this.publicUser = session.is_website_user;
+            this.redirectURL = encodeURIComponent(document.URL);
+            this.channel = channel_data;
             return this._super.apply(this, arguments);
         },
 
@@ -51,13 +57,11 @@ odoo.define('website_slides.quiz', function (require) {
          * @override
          */
         willStart: function () {
-            var def = new Promise(function () {});
-            if (this.quiz) {
-                def.resolve();
-            } else {
-                def = this._fetchQuiz();
+            var defs = [this._super.apply(this, arguments)];
+            if (!this.quiz) {
+                defs.push(this._fetchQuiz());
             }
-            return Promise.all([this._super.apply(this, arguments), def]);
+            return Promise.all(defs);
         },
 
         /**
@@ -69,6 +73,7 @@ odoo.define('website_slides.quiz', function (require) {
                 self._renderAnswers();
                 self._renderAnswersHighlighting();
                 self._renderValidationInfo();
+                new CourseJoinWidget(self, self.channel.channelId).appendTo(self.$('.o_wslides_course_join_widget'));
             });
         },
 
@@ -285,6 +290,7 @@ odoo.define('website_slides.quiz', function (require) {
             var defs = [this._super.apply(this, arguments)];
             this.$('.o_wslides_js_lesson_quiz').each(function () {
                 var slideData = $(this).data();
+                var channelData = self._extractChannelData(slideData);
                 slideData.quizData = {
                     questions: self._extractQuestionsAndAnswers(),
                     quizKarmaMax: slideData.quizKarmaMax,
@@ -292,7 +298,7 @@ odoo.define('website_slides.quiz', function (require) {
                     quizKarmaGain: slideData.quizKarmaGain,
                     quizAttemptsCount: slideData.quizAttemptsCount,
                 };
-                defs.push(new Quiz(self, slideData, slideData.quizData).attachTo($(this)));
+                defs.push(new Quiz(self, slideData, channelData, slideData.quizData).attachTo($(this)));
             });
             return Promise.all(defs);
         },
@@ -317,6 +323,14 @@ odoo.define('website_slides.quiz', function (require) {
         //----------------------------------------------------------------------
         // Private
         //---------------------------------------------------------------------
+
+        _extractChannelData: function (slideData){
+            return {
+                id: slideData.channelId,
+                channelEnroll: slideData.channelEnroll,
+                signupAllowed: slideData.signupAllowed
+            };
+        },
 
         /**
          * Extract data from exiting DOM rendered server-side, to have the list of questions with their

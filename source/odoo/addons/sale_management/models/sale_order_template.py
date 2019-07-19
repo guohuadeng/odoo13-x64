@@ -2,7 +2,6 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, fields, models
-from odoo.addons import decimal_precision as dp
 from odoo.exceptions import UserError
 
 
@@ -11,10 +10,10 @@ class SaleOrderTemplate(models.Model):
     _description = "Quotation Template"
 
     def _get_default_require_signature(self):
-        return self.env.company_id.portal_confirmation_sign
+        return self.env.company.portal_confirmation_sign
 
     def _get_default_require_payment(self):
-        return self.env.company_id.portal_confirmation_pay
+        return self.env.company.portal_confirmation_pay
 
     name = fields.Char('Quotation Template', required=True)
     sale_order_template_line_ids = fields.One2many('sale.order.template.line', 'sale_order_template_id', 'Lines', copy=True)
@@ -30,7 +29,6 @@ class SaleOrderTemplate(models.Model):
         help="This e-mail template will be sent on confirmation. Leave empty to send nothing.")
     active = fields.Boolean(default=True, help="If unchecked, it will allow you to hide the quotation template without removing it.")
 
-    @api.multi
     def write(self, vals):
         if 'active' in vals and not vals.get('active'):
             template_id = self.env['ir.default'].get('sale.order', 'sale_order_template_id')
@@ -51,9 +49,9 @@ class SaleOrderTemplateLine(models.Model):
         ondelete='cascade', index=True)
     name = fields.Text('Description', required=True, translate=True)
     product_id = fields.Many2one('product.product', 'Product', domain=[('sale_ok', '=', True)])
-    price_unit = fields.Float('Unit Price', required=True, digits=dp.get_precision('Product Price'))
-    discount = fields.Float('Discount (%)', digits=dp.get_precision('Discount'), default=0.0)
-    product_uom_qty = fields.Float('Quantity', required=True, digits=dp.get_precision('Product UoS'), default=1)
+    price_unit = fields.Float('Unit Price', required=True, digits='Product Price')
+    discount = fields.Float('Discount (%)', digits='Discount', default=0.0)
+    product_uom_qty = fields.Float('Quantity', required=True, digits='Product UoS', default=1)
     product_uom_id = fields.Many2one('uom.uom', 'Unit of Measure')
 
     display_type = fields.Selection([
@@ -84,7 +82,6 @@ class SaleOrderTemplateLine(models.Model):
             values.update(product_id=False, price_unit=0, product_uom_qty=0, product_uom_id=False)
         return super(SaleOrderTemplateLine, self).create(values)
 
-    @api.multi
     def write(self, values):
         if 'display_type' in values and self.filtered(lambda line: line.display_type != values.get('display_type')):
             raise UserError("You cannot change the type of a sale quote line. Instead you should delete the current line and create a new line of the proper type.")
@@ -109,10 +106,10 @@ class SaleOrderTemplateOption(models.Model):
         index=True, required=True)
     name = fields.Text('Description', required=True, translate=True)
     product_id = fields.Many2one('product.product', 'Product', domain=[('sale_ok', '=', True)], required=True)
-    price_unit = fields.Float('Unit Price', required=True, digits=dp.get_precision('Product Price'))
-    discount = fields.Float('Discount (%)', digits=dp.get_precision('Discount'))
+    price_unit = fields.Float('Unit Price', required=True, digits='Product Price')
+    discount = fields.Float('Discount (%)', digits='Discount')
     uom_id = fields.Many2one('uom.uom', 'Unit of Measure ', required=True)
-    quantity = fields.Float('Quantity', required=True, digits=dp.get_precision('Product UoS'), default=1)
+    quantity = fields.Float('Quantity', required=True, digits='Product UoS', default=1)
 
     @api.onchange('product_id')
     def _onchange_product_id(self):

@@ -12,8 +12,7 @@ class test_ir_http_mimetype(common.TransactionCase):
         """ Test mimetype for attachment """
         attachment = self.env['ir.attachment'].create({
             'datas': GIF,
-            'name': 'Test mimetype gif',
-            'datas_fname': 'file.gif'})
+            'name': 'file.gif'})
 
         status, headers, content = self.env['ir.http'].binary_content(
             id=attachment.id,
@@ -27,8 +26,7 @@ class test_ir_http_mimetype(common.TransactionCase):
         """ Test mimetype for attachment with bad name"""
         attachment = self.env['ir.attachment'].create({
             'datas': GIF,
-            'name': 'Test mimetype gif with png name',
-            'datas_fname': 'file.png'})
+            'name': 'file.png'})
 
         status, headers, content = self.env['ir.http'].binary_content(
             id=attachment.id,
@@ -81,8 +79,7 @@ class test_ir_http_mimetype(common.TransactionCase):
         public_user = self.env.ref('base.public_user')
         attachment = self.env['ir.attachment'].create({
             'datas': GIF,
-            'name': 'Test valid access token with image',
-            'datas_fname': 'image.gif'
+            'name': 'image.gif'
         })
 
         defaults = {
@@ -91,7 +88,7 @@ class test_ir_http_mimetype(common.TransactionCase):
         }
 
         def test_access(**kwargs):
-            status, _, _ = self.env['ir.http'].sudo(public_user.id).binary_content(
+            status, _, _ = self.env['ir.http'].with_user(public_user).binary_content(
                 **dict(defaults, **kwargs)
             )
             return status

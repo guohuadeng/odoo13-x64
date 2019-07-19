@@ -26,7 +26,7 @@ class CrmTeam(models.Model):
             user_id = self.env.uid
         team_id = self.env['crm.team'].sudo().search([
             '|', ('user_id', '=', user_id), ('member_ids', '=', user_id),
-            '|', ('company_id', '=', False), ('company_id', '=', self.env.company_id.id)
+            '|', ('company_id', '=', False), ('company_id', '=', self.env.company.id)
         ], limit=1)
         if not team_id and 'default_team_id' in self.env.context:
             team_id = self.env['crm.team'].browse(self.env.context.get('default_team_id'))
@@ -48,7 +48,7 @@ class CrmTeam(models.Model):
     name = fields.Char('Sales Team', required=True, translate=True)
     active = fields.Boolean(default=True, help="If the active field is set to false, it will allow you to hide the Sales Team without removing it.")
     company_id = fields.Many2one('res.company', string='Company',
-                                 default=lambda self: self.env.company_id)
+                                 default=lambda self: self.env.company)
     currency_id = fields.Many2one(
         "res.currency", related='company_id.currency_id',
         string="Currency", readonly=True)
@@ -62,8 +62,6 @@ class CrmTeam(models.Model):
         string='Show on dashboard',
         compute='_compute_is_favorite', inverse='_inverse_is_favorite',
         help="Favorite teams to display them in the dashboard and access them easily.")
-    reply_to = fields.Char(string='Reply-To',
-                           help="The email address put in the 'Reply-To' of all emails sent by Odoo about cases in this Sales Team")
     color = fields.Integer(string='Color Index', help="The color of the channel")
     dashboard_button_name = fields.Char(string="Dashboard Button", compute='_compute_dashboard_button_name')
     dashboard_graph_data = fields.Text(compute='_compute_dashboard_graph')
@@ -212,14 +210,12 @@ class CrmTeam(models.Model):
             team._add_members_to_favorites()
         return team
 
-    @api.multi
     def write(self, values):
         res = super(CrmTeam, self).write(values)
         if values.get('member_ids'):
             self._add_members_to_favorites()
         return res
 
-    @api.multi
     def unlink(self):
         default_teams = [
             self.env.ref('sales_team.salesteam_website_sales'),

@@ -3,7 +3,6 @@
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
-from odoo.addons import decimal_precision as dp
 
 
 class SaleOrder(models.Model):
@@ -38,11 +37,9 @@ class SaleOrder(models.Model):
         if delivery_line:
             self.recompute_delivery_price = True
 
-    @api.multi
     def _remove_delivery_line(self):
         self.env['sale.order.line'].search([('order_id', 'in', self.ids), ('is_delivery', '=', True)]).unlink()
 
-    @api.multi
     def set_delivery_line(self, carrier, amount):
 
         # Remove delivery products from the sales order
@@ -147,7 +144,7 @@ class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
     is_delivery = fields.Boolean(string="Is a Delivery", default=False)
-    product_qty = fields.Float(compute='_compute_product_qty', string='Product Qty', digits=dp.get_precision('Product Unit of Measure'))
+    product_qty = fields.Float(compute='_compute_product_qty', string='Product Qty', digits='Product Unit of Measure')
     recompute_delivery_price = fields.Boolean(related='order_id.recompute_delivery_price')
 
     @api.depends('product_id', 'product_uom', 'product_uom_qty')
@@ -157,7 +154,6 @@ class SaleOrderLine(models.Model):
                 return 0.0
             line.product_qty = line.product_uom._compute_quantity(line.product_uom_qty, line.product_id.uom_id)
 
-    @api.multi
     def unlink(self):
         for line in self:
             if line.is_delivery:

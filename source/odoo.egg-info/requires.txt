@@ -12,6 +12,7 @@ mock
 ofxparse
 passlib
 pillow
+polib
 psutil
 psycopg2 >= 2.2
 pydot

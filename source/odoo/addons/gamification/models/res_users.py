@@ -3,6 +3,9 @@
 
 from odoo import api, fields, models
 
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class Users(models.Model):
     _inherit = 'res.users'
@@ -18,28 +21,10 @@ class Users(models.Model):
 
     @api.depends('karma')
     def _compute_karma_position(self):
-        where_query = self._where_calc([])
-        self._apply_ir_rules(where_query, 'read')
-        from_clause, where_clause, where_clause_params = where_query.get_sql()
-
-        query = """
-            SELECT sub.id, sub.karma_position
-            FROM (
-                SELECT id, row_number() OVER (ORDER BY res_users.karma DESC) AS karma_position
-                FROM {from_clause}
-                WHERE {where_clause}
-            ) sub
-            WHERE sub.id IN %s
-            """.format(from_clause=from_clause, where_clause=where_clause)
-
-        self.env.cr.execute(query, where_clause_params + [tuple(self.ids)])
-
-        position_map = {item['id']: item['karma_position'] for item in self.env.cr.dictfetchall()}
-
+        _logger.warning("The field karma_position from res.users is deprecated. Don't use it anymore.")
         for user in self:
-            user.karma_position = position_map.get(user.id, 0)
+            user.karma_position = 0
 
-    @api.multi
     @api.depends('badge_ids')
     def _get_user_badge_level(self):
         """ Return total badge per level of users
@@ -69,14 +54,12 @@ class Users(models.Model):
         res._recompute_rank()
         return res
 
-    @api.multi
     def write(self, vals):
         result = super(Users, self).write(vals)
         if 'karma' in vals:
             self._recompute_rank()
         return result
 
-    @api.multi
     def add_karma(self, karma):
         for user in self:
             user.karma += karma
@@ -109,6 +92,14 @@ class Users(models.Model):
                         break
             if old_rank != user.rank_id:
                 user._rank_changed()
+
+    def _get_next_rank(self):
+        """ For fresh users with 0 karma that don't have a rank_id and next_rank_id yet
+        this method returns the first karma rank (by karma ascending). This acts as a
+        default value in related views.
+
+        TDE FIXME in post-12.4: make next_rank_id a non-stored computed field correctly computed """
+        return self.next_rank_id or (not self.rank_id and self.env['gamification.karma.rank'].search([], order="karma_min ASC", limit=1))
 
     def get_gamification_redirection_data(self):
         """

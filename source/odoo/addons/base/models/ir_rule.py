@@ -51,7 +51,7 @@ class IrRule(models.Model):
         return {
             'user': self.env.user,
             'time': time,
-            'company_ids': self.env.company_ids.ids,
+            'company_ids': self.env.companies.ids,
         }
 
     @api.depends('groups')
@@ -106,7 +106,7 @@ class IrRule(models.Model):
                 expression.normalize_domain(dom)
             ])) < len(ids)
 
-        return all_rules.filtered(lambda r: r in group_rules or (not r.groups and is_failing(r))).sudo(self.env.user)
+        return all_rules.filtered(lambda r: r in group_rules or (not r.groups and is_failing(r))).with_user(self.env.user)
 
     def _get_rules(self, model_name, mode='read'):
         """ Returns all the rules matching the model for the mode for the
@@ -115,7 +115,7 @@ class IrRule(models.Model):
         if mode not in self._MODES:
             raise ValueError('Invalid mode: %r' % (mode,))
 
-        if self._uid == SUPERUSER_ID:
+        if self.env.su:
             return self.browse(())
 
         query = """ SELECT r.id FROM ir_rule r JOIN ir_model m ON (r.model_id=m.id)
@@ -132,8 +132,8 @@ class IrRule(models.Model):
     @api.model
     @tools.conditional(
         'xml' not in config['dev_mode'],
-        tools.ormcache('self._uid', 'model_name', 'mode',
-                       'tuple(self._context.get(k) for k in self._compute_domain_keys())'),
+        tools.ormcache('self.env.uid', 'self.env.su', 'model_name', 'mode',
+                       'tuple(self._compute_domain_context_values())'),
     )
     def _compute_domain(self, model_name, mode="read"):
         rules = self._get_rules(model_name, mode=mode)
@@ -159,6 +159,16 @@ class IrRule(models.Model):
             return expression.AND(global_domains)
         return expression.AND(global_domains + [expression.OR(group_domains)])
 
+    def _compute_domain_context_values(self):
+        for k in self._compute_domain_keys():
+            v = self._context.get(k)
+            if isinstance(v, list):
+                # currently this could be a frozenset (to avoid depending on
+                # the order of allowed_company_ids) but it seems safer if
+                # possibly slightly more miss-y to use a tuple
+                v = tuple(v)
+            yield v
+
     @api.model
     def clear_cache(self):
         """ Deprecated, use `clear_caches` instead. """
@@ -176,7 +186,6 @@ class IrRule(models.Model):
             return query.where_clause, query.where_clause_params, query.tables
         return [], [], ['"%s"' % self.env[model_name]._table]
 
-    @api.multi
     def unlink(self):
         res = super(IrRule, self).unlink()
         self.clear_caches()
@@ -188,7 +197,6 @@ class IrRule(models.Model):
         self.clear_caches()
         return res
 
-    @api.multi
     def write(self, vals):
         res = super(IrRule, self).write(vals)
         self.clear_caches()
@@ -221,7 +229,7 @@ class IrRule(models.Model):
             'document_model': model,
             'rules_list': '\n'.join('- %s' % rule.name for rule in rules),
             'multi_company_warning': ('\n' + _('Note: this might be a multi-company issue.') + '\n') if any(
-                'company_id' in r.domain_force for r in rules) else '',
+                'company_id' in (r.domain_force or []) for r in rules) else '',
             'example_records': ' - '.join(['%s (id=%s)' % (rec.display_name, rec.id) for rec in records[:6].sudo()]),
             'user_id': '%s (id=%s)' % (self.env.user.name, self.env.user.id),
         })

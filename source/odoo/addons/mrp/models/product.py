@@ -22,24 +22,21 @@ class ProductTemplate(models.Model):
         for product in self:
             product.bom_count = self.env['mrp.bom'].search_count([('product_tmpl_id', '=', product.id)])
 
-    @api.multi
     def _compute_used_in_bom_count(self):
         for template in self:
             template.used_in_bom_count = self.env['mrp.bom'].search_count(
                 [('bom_line_ids.product_id', 'in', template.product_variant_ids.ids)])
 
-    @api.multi
     def action_used_in_bom(self):
         self.ensure_one()
         action = self.env.ref('mrp.mrp_bom_form_action').read()[0]
         action['domain'] = [('bom_line_ids.product_id', 'in', self.product_variant_ids.ids)]
         return action
 
-    @api.one
     def _compute_mrp_product_qty(self):
-        self.mrp_product_qty = float_round(sum(self.mapped('product_variant_ids').mapped('mrp_product_qty')), precision_rounding=self.uom_id.rounding)
+        for template in self:
+            template.mrp_product_qty = float_round(sum(template.mapped('product_variant_ids').mapped('mrp_product_qty')), precision_rounding=template.uom_id.rounding)
 
-    @api.multi
     def action_view_mos(self):
         action = self.env.ref('mrp.mrp_production_report').read()[0]
         action['domain'] = [('state', '=', 'done'), ('product_tmpl_id', 'in', self.ids)]
@@ -63,12 +60,10 @@ class ProductProduct(models.Model):
         for product in self:
             product.bom_count = self.env['mrp.bom'].search_count(['|', ('product_id', '=', product.id), '&', ('product_id', '=', False), ('product_tmpl_id', '=', product.product_tmpl_id.id)])
 
-    @api.multi
     def _compute_used_in_bom_count(self):
         for product in self:
             product.used_in_bom_count = self.env['mrp.bom'].search_count([('bom_line_ids.product_id', '=', product.id)])
 
-    @api.multi
     def action_used_in_bom(self):
         self.ensure_one()
         action = self.env.ref('mrp.mrp_bom_form_action').read()[0]
@@ -82,6 +77,9 @@ class ProductProduct(models.Model):
         read_group_res = self.env['mrp.production'].read_group(domain, ['product_id', 'product_uom_qty'], ['product_id'])
         mapped_data = dict([(data['product_id'][0], data['product_uom_qty']) for data in read_group_res])
         for product in self:
+            if not product.id:
+                product.mrp_product_qty = 0.0
+                continue
             product.mrp_product_qty = float_round(mapped_data.get(product.id, 0), precision_rounding=product.uom_id.rounding)
 
     def _compute_quantities(self):
@@ -115,7 +113,6 @@ class ProductProduct(models.Model):
             else:
                 super(ProductProduct, self)._compute_quantities()
 
-    @api.multi
     def action_view_bom(self):
         action = self.env.ref('mrp.product_open_bom').read()[0]
         template_ids = self.mapped('product_tmpl_id').ids
@@ -127,7 +124,6 @@ class ProductProduct(models.Model):
         action['domain'] = ['|', ('product_id', 'in', self.ids), '&', ('product_id', '=', False), ('product_tmpl_id', 'in', template_ids)]
         return action
 
-    @api.multi
     def action_view_mos(self):
         action = self.env.ref('mrp.mrp_production_report').read()[0]
         action['domain'] = [('state', '=', 'done'), ('product_id', 'in', self.ids)]

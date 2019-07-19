@@ -45,23 +45,19 @@ class BaseGengoTranslations(models.TransientModel):
     sync_limit = fields.Integer("No. of terms to sync", default=20)
     authorized_credentials = fields.Boolean('The private and public keys are valid')
 
-    @api.model_cr
     def init(self):
         icp = self.env['ir.config_parameter'].sudo()
         if not icp.get_param(self.GENGO_KEY):
             icp.set_param(self.GENGO_KEY, str(uuid.uuid4()))
 
-    @api.model_cr
-    def get_gengo_key(self):
+    def _get_gengo_key(self):
         icp = self.env['ir.config_parameter'].sudo()
         return icp.get_param(self.GENGO_KEY, default="Undefined")
 
-    @api.multi
     def open_company(self):
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'res.config.settings',
             'target': 'inline',
@@ -95,7 +91,6 @@ class BaseGengoTranslations(models.TransientModel):
             _logger.exception('Gengo connection failed')
             return (False, _("Gengo connection failed with this message:\n``%s``") % e)
 
-    @api.multi
     def act_update(self):
         '''
         Function called by the wizard.
@@ -227,7 +222,7 @@ class BaseGengoTranslations(models.TransientModel):
                     'lc_tgt': IrTranslation._get_gengo_corresponding_language(term.lang),
                     'auto_approve': auto_approve,
                     'comment': comment,
-                    'callback_url': "%s/website/gengo_callback?pgk=%s&db=%s" % (base_url, self.get_gengo_key(), self.env.cr.dbname)
+                    'callback_url': "%s/website/gengo_callback?pgk=%s&db=%s" % (base_url, self._get_gengo_key(), self.env.cr.dbname)
                 }
         return {'jobs': jobs, 'as_group': 0}
 

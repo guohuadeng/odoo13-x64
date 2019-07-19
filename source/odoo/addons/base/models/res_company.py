@@ -22,7 +22,6 @@ class Company(models.Model):
     _description = 'Companies'
     _order = 'sequence, name'
 
-    @api.multi
     def copy(self, default=None):
         raise UserError(_('Duplicating a company is not allowed. Please create a new company instead.'))
 
@@ -43,20 +42,23 @@ class Company(models.Model):
         with tools.file_open(img_path, 'rb') as f:
             if original:
                 return base64.b64encode(f.read())
-            # Modify the source image to change the color of the 'O'.
+            # Modify the source image to add a colored bar on the bottom
             # This could seem overkill to modify the pixels 1 by 1, but
             # Pillow doesn't provide an easy way to do it, and this 
             # is acceptable for a 16x16 image.
             color = (randrange(32, 224, 24), randrange(32, 224, 24), randrange(32, 224, 24))
             original = Image.open(f)
             new_image = Image.new('RGBA', original.size)
-            for y in range(original.size[1]):
-                for x in range(original.size[0]):
+            height = original.size[1]
+            width = original.size[0]
+            bar_size = 1
+            for y in range(height):
+                for x in range(width):
                     pixel = original.getpixel((x, y))
-                    if pixel[0] == 0 and pixel[1] == 0 and pixel[2] == 0:
-                        new_image.putpixel((x, y), (0, 0, 0, 0))
+                    if height - bar_size <= y + 1 <= height:
+                        new_image.putpixel((x, y), (color[0], color[1], color[2], 255))
                     else:
-                        new_image.putpixel((x, y), (color[0], color[1], color[2], pixel[3]))
+                        new_image.putpixel((x, y), (pixel[0], pixel[1], pixel[2], pixel[3]))
             stream = io.BytesIO()
             new_image.save(stream, format="ICO")
             return base64.b64encode(stream.getvalue())
@@ -99,7 +101,6 @@ class Company(models.Model):
     ]
 
 
-    @api.model_cr
     def init(self):
         for company in self.search([('paperformat_id', '=', False)]):
             paperformat_euro = self.env.ref('base.paperformat_euro', False)
@@ -161,7 +162,6 @@ class Company(models.Model):
     def _onchange_state(self):
         self.country_id = self.state_id.country_id
 
-    @api.multi
     def on_change_country(self, country_id):
         # This function is called from account/models/chart_template.py, hence decorated with `multi`.
         self.ensure_one()
@@ -201,7 +201,7 @@ class Company(models.Model):
             - Deprecated
         """
         _logger.warning(_("The method '_company_default_get' on res.company is deprecated and shouldn't be used anymore"))
-        return self.env.company_id
+        return self.env.company
 
     # deprecated, use clear_caches() instead
     def cache_restart(self):
@@ -238,7 +238,6 @@ class Company(models.Model):
                 currency.write({'active': True})
         return company
 
-    @api.multi
     def write(self, values):
         self.clear_caches()
         # Make sure that the selected currency is enabled
@@ -254,31 +253,25 @@ class Company(models.Model):
         if not self._check_recursion():
             raise ValidationError(_('You cannot create recursive companies.'))
 
-    @api.multi
     def open_company_edit_report(self):
         self.ensure_one()
         return self.env['res.config.settings'].open_company()
 
-    @api.multi
-    def write_company_and_print_report(self, values):
-        res = self.write(values)
-
-        report_name = values.get('default_report_name')
-        active_ids = values.get('active_ids')
-        active_model = values.get('active_model')
+    def write_company_and_print_report(self):
+        context = self.env.context
+        report_name = context.get('default_report_name')
+        active_ids = context.get('active_ids')
+        active_model = context.get('active_model')
         if report_name and active_ids and active_model:
             docids = self.env[active_model].browse(active_ids)
             return (self.env['ir.actions.report'].search([('report_name', '=', report_name)], limit=1)
-                        .with_context(values)
                         .report_action(docids))
-        else:
-            return res
 
     @api.model
     def action_open_base_onboarding_company(self):
         """ Onboarding step for company basic information. """
         action = self.env.ref('base.action_open_base_onboarding_company').read()[0]
-        action['res_id'] = self.env.company_id.id
+        action['res_id'] = self.env.company.id
         return action
 
     def set_onboarding_step_done(self, step_name):
@@ -304,7 +297,6 @@ class Company(models.Model):
             self[onboarding_state] = 'done'
         return old_values
 
-    @api.multi
     def action_save_onboarding_company_step(self):
         if bool(self.street):
             self.set_onboarding_step_done('base_onboarding_company_state')

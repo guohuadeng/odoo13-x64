@@ -23,7 +23,7 @@ class HrExpenseSheetRegisterPaymentWizard(models.TransientModel):
     company_id = fields.Many2one('res.company', related='journal_id.company_id', string='Company', readonly=True, required=True)
     payment_method_id = fields.Many2one('account.payment.method', string='Payment Type', required=True)
     amount = fields.Monetary(string='Payment Amount', required=True)
-    currency_id = fields.Many2one('res.currency', string='Currency', required=True, default=lambda self: self.env.company_id.currency_id)
+    currency_id = fields.Many2one('res.currency', string='Currency', required=True, default=lambda self: self.env.company.currency_id)
     payment_date = fields.Date(string='Payment Date', default=fields.Date.context_today, required=True)
     communication = fields.Char(string='Memo')
     hide_payment_method = fields.Boolean(compute='_compute_hide_payment_method',
@@ -42,11 +42,11 @@ class HrExpenseSheetRegisterPaymentWizard(models.TransientModel):
         else:
             self.partner_bank_account_id = False
 
-    @api.one
     @api.constrains('amount')
     def _check_amount(self):
-        if not self.amount > 0.0:
-            raise ValidationError(_('The payment amount must be strictly positive.'))
+        for wizard in self:
+            if not wizard.amount > 0.0:
+                raise ValidationError(_('The payment amount must be strictly positive.'))
 
     @api.depends('payment_method_id')
     def _compute_show_partner_bank(self):
@@ -56,14 +56,15 @@ class HrExpenseSheetRegisterPaymentWizard(models.TransientModel):
             payment.show_partner_bank_account = payment.payment_method_id.code in self.env['account.payment']._get_method_codes_using_bank_account()
             payment.require_partner_bank_account = payment.payment_method_id.code in self.env['account.payment']._get_method_codes_needing_bank_account()
 
-    @api.one
     @api.depends('journal_id')
     def _compute_hide_payment_method(self):
-        if not self.journal_id:
-            self.hide_payment_method = True
-            return
-        journal_payment_methods = self.journal_id.outbound_payment_method_ids
-        self.hide_payment_method = len(journal_payment_methods) == 1 and journal_payment_methods[0].code == 'manual'
+        for wizard in self:
+            if not wizard.journal_id:
+                wizard.hide_payment_method = True
+            else:
+                journal_payment_methods = wizard.journal_id.outbound_payment_method_ids
+                wizard.hide_payment_method = (len(journal_payment_methods) == 1
+                    and journal_payment_methods[0].code == 'manual')
 
     @api.onchange('journal_id')
     def _onchange_journal(self):
@@ -91,7 +92,6 @@ class HrExpenseSheetRegisterPaymentWizard(models.TransientModel):
             'communication': self.communication
         }
 
-    @api.multi
     def expense_post_payment(self):
         self.ensure_one()
         context = dict(self._context or {})

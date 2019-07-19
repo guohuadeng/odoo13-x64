@@ -22,7 +22,6 @@ except ImportError:
 
 import psycopg2
 
-from .sql_db import LazyCursor
 from .tools import float_repr, float_round, frozendict, html_sanitize, human_size, pg_varchar, \
     ustr, OrderedSet, pycompat, sql, date_utils, unique, IterableGenerator
 from .tools import DEFAULT_SERVER_DATE_FORMAT as DATE_FORMAT
@@ -116,8 +115,8 @@ class Field(MetaField('DummyField', (object,), {})):
         :param required: whether the value of the field is required (boolean, by
             default ``False``)
 
-        :param index: whether the field is indexed in database (boolean, by
-            default ``False``)
+        :param index: whether the field is indexed in database. Note: no effect
+            on non-stored and virtual fields. (boolean, by default ``False``)
 
         :param default: the default value for the field; this is either a static
             value, or a function taking a recordset and returning a value; use
@@ -640,6 +639,7 @@ class Field(MetaField('DummyField', (object,), {})):
     _related_help = property(attrgetter('help'))
     _related_groups = property(attrgetter('groups'))
     _related_group_operator = property(attrgetter('group_operator'))
+    _related_context_dependent = property(attrgetter('context_dependent'))
 
     @property
     def base_field(self):
@@ -657,9 +657,9 @@ class Field(MetaField('DummyField', (object,), {})):
         # read property as superuser, as the current user may not have access
         context = records.env.context
         if 'force_company' not in context:
-            company = records.env.company_id
+            company = records.env.company
             context = dict(context, force_company=company.id)
-        Property = records.env(user=SUPERUSER_ID, context=context)['ir.property']
+        Property = records.env(context=context, su=True)['ir.property']
         values = Property.get_multi(self.name, self.model_name, records.ids)
         for record in records:
             record[self.name] = values.get(record.id)
@@ -668,9 +668,9 @@ class Field(MetaField('DummyField', (object,), {})):
         # update property as superuser, as the current user may not have access
         context = records.env.context
         if 'force_company' not in context:
-            company = records.env.company_id
+            company = records.env.company
             context = dict(context, force_company=company.id)
-        Property = records.env(user=SUPERUSER_ID, context=context)['ir.property']
+        Property = records.env(context=context, su=True)['ir.property']
         values = {
             record.id: self.convert_to_write(record[self.name], record)
             for record in records
@@ -1029,8 +1029,6 @@ class Field(MetaField('DummyField', (object,), {})):
                     if inv_recs:
                         for invf in record._field_inverses[self]:
                             invf._update(inv_recs, record)
-                # mark field as dirty
-                env.dirty[record].add(self.name)
 
             # determine more dependent fields, and invalidate them
             if self.relational:
@@ -1090,6 +1088,8 @@ class Field(MetaField('DummyField', (object,), {})):
                 recs = record._recompute_check(self)
                 if recs:
                     # recompute the value (only in cache)
+                    if self.recursive:
+                        recs = record
                     self.compute_value(recs)
                     # HACK: if result is in the wrong cache, copy values
                     if recs.env != env:
@@ -1097,7 +1097,7 @@ class Field(MetaField('DummyField', (object,), {})):
                         for source, target in zip(recs, recs.with_env(env)):
                             try:
                                 values = {f.name: source[f.name] for f in computed}
-                                target._cache.update(target._convert_to_cache(values, validate=False))
+                                target._update_cache(values, validate=False)
                             except MissingError as exc:
                                 target._cache.set_failed(target._fields, exc)
                     # the result is saved to database by BaseModel.recompute()
@@ -1122,7 +1122,7 @@ class Field(MetaField('DummyField', (object,), {})):
     def determine_draft_value(self, record):
         """ Determine the value of ``self`` for the given draft ``record``. """
         if self.compute:
-            if self.compute_sudo and record.env.uid != SUPERUSER_ID:
+            if self.compute_sudo and not record.env.su:
                 record_sudo = record.sudo()
                 copy_cache(record, record_sudo.env)
                 self.compute_value(record_sudo)
@@ -1277,23 +1277,24 @@ class Float(Field):
         # with all significant digits.
         # FLOAT8 type is still the default when there is no precision because it
         # is faster for most operations (sums, etc.)
-        return ('numeric', 'numeric') if self.digits is not None else \
+        return ('numeric', 'numeric') if self._digits is not None else \
                ('float8', 'double precision')
 
-    @property
-    def digits(self):
-        if callable(self._digits):
-            with LazyCursor() as cr:
-                return self._digits(cr)
+    def get_digits(self, env):
+        if isinstance(self._digits, str):
+            precision = env['decimal.precision'].precision_get(self._digits)
+            return 16, precision
         else:
             return self._digits
 
     _related__digits = property(attrgetter('_digits'))
-    _description_digits = property(attrgetter('digits'))
+
+    def _description_digits(self, env):
+        return self.get_digits(env)
 
     def convert_to_column(self, value, record, values=None, validate=True):
         result = float(value or 0.0)
-        digits = self.digits
+        digits = self.get_digits(record.env)
         if digits:
             precision, scale = digits
             result = float_repr(float_round(result, precision_digits=scale), precision_digits=scale)
@@ -1304,7 +1305,7 @@ class Float(Field):
         value = float(value or 0.0)
         if not validate:
             return value
-        digits = self.digits
+        digits = self.get_digits(record.env)
         return float_round(value, precision_digits=digits[1]) if digits else value
 
     def convert_to_export(self, value, record):
@@ -1817,11 +1818,11 @@ class Binary(Field):
             return None
         # Detect if the binary content is an SVG for restricting its upload
         # only to system users.
-        if value[:1] == b'P':  # Fast detection of first 6 bits of '<' (0x3C)
+        if value[:1] in (b'P', 'P'):  # Fast detection of first 6 bits of '<' (0x3C)
             decoded_value = base64.b64decode(value)
             # Full mimetype detection
             if (guess_mimetype(decoded_value).startswith('image/svg') and
-                    not record.env.user._is_system()):
+                    not record.env.is_system()):
                 raise UserError(_("Only admins can upload SVG files."))
         if isinstance(value, bytes):
             return psycopg2.Binary(value)
@@ -2070,6 +2071,13 @@ class _Relational(Field):
             _logger.warning("Field %s with unknown comodel_name %r", self, self.comodel_name)
             self.comodel_name = '_unknown'
 
+    def get_domain_list(self, model):
+        """ Return a list domain from the domain parameter. """
+        domain = self.domain
+        if callable(domain):
+            domain = domain(model)
+        return domain if isinstance(domain, list) else []
+
     @property
     def _related_domain(self):
         if callable(self.domain):
@@ -2311,7 +2319,7 @@ class _RelationalMulti(_Relational):
             else:
                 browse = comodel.browse
             # determine the value ids
-            ids = OrderedSet(record[self.name]._ids)
+            ids = OrderedSet(record[self.name]._ids if validate else ())
             # modify ids with the commands
             for command in value:
                 if isinstance(command, (tuple, list)):
@@ -2319,7 +2327,10 @@ class _RelationalMulti(_Relational):
                         ids.add(comodel.new(command[2], ref=command[1]).id)
                     elif command[0] == 1:
                         line = browse(command[1])
-                        line.update(command[2])
+                        if validate:
+                            line.update(command[2])
+                        else:
+                            line._update_cache(command[2], validate=False)
                         ids.add(line.id)
                     elif command[0] in (2, 3):
                         ids.discard(browse(command[1]).id)
@@ -2350,6 +2361,7 @@ class _RelationalMulti(_Relational):
         return value.ids
 
     def convert_to_write(self, value, record):
+        inv_names = {field.name for field in record._field_inverses[self]}
         # make result with new and existing records
         result = [(6, 0, [])]
         for record in value:
@@ -2358,6 +2370,7 @@ class _RelationalMulti(_Relational):
                 values = record._convert_to_write({
                     name: record[name]
                     for name in record._cache
+                    if name not in inv_names
                 })
                 result.append((0, 0, values))
             else:
@@ -2366,7 +2379,7 @@ class _RelationalMulti(_Relational):
                     values = record._convert_to_write({
                         name: record[name]
                         for name in record._cache
-                        if record[name] != origin[name]
+                        if name not in inv_names and record[name] != origin[name]
                     })
                     if values:
                         result.append((1, origin.id, values))
@@ -2493,8 +2506,7 @@ class One2many(_RelationalMulti):
         comodel = records.env[self.comodel_name].with_context(**self.context)
         inverse = self.inverse_name
         get_id = (lambda rec: rec.id) if comodel._fields[inverse].type == 'many2one' else int
-        domain = self.domain(records) if callable(self.domain) else self.domain
-        domain = domain + [(inverse, 'in', records.ids)]
+        domain = self.get_domain_list(records) + [(inverse, 'in', records.ids)]
         lines = comodel.search(domain, limit=self.limit)
 
         # group lines by inverse field (without prefetching other fields)
@@ -2568,8 +2580,7 @@ class One2many(_RelationalMulti):
                     elif act[0] in (5, 6):
                         flush()
                         ids = act[2] if act[0] == 6 else []
-                        domain = self.domain(model) if callable(self.domain) else self.domain
-                        domain = domain + [(inverse, 'in', records.ids)]
+                        domain = self.get_domain_list(model) + [(inverse, 'in', records.ids)]
                         if ids:
                             domain = domain + [('id', 'not in', ids)]
                         unlink(comodel.search(domain)._ids)
@@ -2726,11 +2737,7 @@ class Many2many(_RelationalMulti):
 
     def read(self, records):
         comodel = records.env[self.comodel_name].with_context(**self.context)
-
-        # String domains are supposed to be dynamic and evaluated on client-side
-        # only (thus ignored here).
-        domain = self.domain if isinstance(self.domain, list) else []
-
+        domain = self.get_domain_list(records)
         wquery = comodel._where_calc(domain)
         comodel._apply_ir_rules(wquery, 'read')
         order_by = comodel._generate_order_by(None, wquery)
@@ -2920,6 +2927,5 @@ def prefetch_value_ids(record, field):
 
 
 # imported here to avoid dependency cycle issues
-from odoo import SUPERUSER_ID
 from .exceptions import AccessError, MissingError, UserError
 from .models import check_pg_name, BaseModel, NewId, IdType

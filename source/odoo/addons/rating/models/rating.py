@@ -22,11 +22,11 @@ class Rating(models.Model):
         ('rating_range', 'check(rating >= 0 and rating <= 10)', 'Rating should be between 0 to 10'),
     ]
 
-    @api.one
     @api.depends('res_model', 'res_id')
     def _compute_res_name(self):
-        name = self.env[self.res_model].sudo().browse(self.res_id).name_get()
-        self.res_name = name and name[0][1] or ('%s/%s') % (self.res_model, self.res_id)
+        for rating in self:
+            name = self.env[rating.res_model].sudo().browse(rating.res_id).name_get()
+            rating.res_name = name and name[0][1] or ('%s/%s') % (rating.res_model, rating.res_id)
 
     @api.model
     def _default_access_token(self):
@@ -63,7 +63,6 @@ class Rating(models.Model):
                 name = name and name[0][1] or ('%s/%s') % (rating.parent_res_model, rating.parent_res_id)
             rating.parent_res_name = name
 
-    @api.multi
     @api.depends('rating')
     def _compute_rating_image(self):
         for rating in self:
@@ -91,7 +90,6 @@ class Rating(models.Model):
             values.update(self._find_parent_data(values))
         return super(Rating, self).create(values)
 
-    @api.multi
     def write(self, values):
         if values.get('res_model_id') and values.get('res_id'):
             values.update(self._find_parent_data(values))
@@ -113,7 +111,6 @@ class Rating(models.Model):
                 data['parent_res_id'] = parent_res_model.id
         return data
 
-    @api.multi
     def reset(self):
         for record in self:
             record.write({

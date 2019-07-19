@@ -30,14 +30,12 @@ class SaleOrder(models.Model):
             lines = self.order_line.filtered(lambda l: l.product_id == self.code_promo_program_id.discount_line_product_id)
         return lines
 
-    @api.multi
     def recompute_coupon_lines(self):
         for order in self:
             order._remove_invalid_reward_lines()
             order._create_new_no_code_promo_reward_lines()
             order._update_existing_reward_lines()
 
-    @api.multi
     @api.returns('self', lambda value: value.id)
     def copy(self, default=None):
         order = super(SaleOrder, self).copy(default)
@@ -79,7 +77,7 @@ class SaleOrder(models.Model):
         return applied_programs.filtered(lambda program: program._is_global_discount_program())
 
     def _get_reward_values_product(self, program):
-        price_unit = self.order_line.filtered(lambda line: program.reward_product_id == line.product_id)[0].price_unit
+        price_unit = self.order_line.filtered(lambda line: program.reward_product_id == line.product_id)[0].price_reduce
 
         order_lines = (self.order_line - self._get_reward_lines()).filtered(lambda x: program._is_valid_product(x.product_id))
         max_product_qty = sum(order_lines.mapped('product_uom_qty')) or 1
@@ -120,10 +118,10 @@ class SaleOrder(models.Model):
 
     def _get_cheapest_line(self):
         # Unit prices tax included
-        return min(self.order_line.filtered(lambda x: not x.is_reward_line and x.price_unit > 0), key=lambda x: x['price_unit'])
+        return min(self.order_line.filtered(lambda x: not x.is_reward_line and x.price_reduce > 0), key=lambda x: x['price_reduce'])
 
     def _get_reward_values_discount_percentage_per_line(self, program, line):
-        discount_amount = line.product_uom_qty * line.price_unit * (program.discount_percentage / 100)
+        discount_amount = line.product_uom_qty * line.price_reduce * (program.discount_percentage / 100)
         return discount_amount
 
     def _get_reward_values_discount(self, program):
@@ -142,7 +140,7 @@ class SaleOrder(models.Model):
         if program.discount_apply_on == 'cheapest_product':
             line = self._get_cheapest_line()
             if line:
-                discount_line_amount = line.price_unit * (program.discount_percentage / 100)
+                discount_line_amount = line.price_reduce * (program.discount_percentage / 100)
                 if discount_line_amount:
                     taxes = line.tax_id
                     if self.fiscal_position_id:
@@ -209,9 +207,9 @@ class SaleOrder(models.Model):
     def _get_reward_line_values(self, program):
         self.ensure_one()
         if program.reward_type == 'discount':
-            return self._get_reward_values_discount(program)
+            return self._get_reward_values_discount(program.with_context(lang=self.partner_id.lang))
         elif program.reward_type == 'product':
-            return [self._get_reward_values_product(program)]
+            return [self._get_reward_values_product(program.with_context(lang=self.partner_id.lang))]
 
     def _create_reward_line(self, program):
         self.write({'order_line': [(0, False, value) for value in self._get_reward_line_values(program)]})
@@ -246,7 +244,7 @@ class SaleOrder(models.Model):
                 self.message_post_with_template(
                     template.id, composition_mode='comment',
                     model='sale.coupon', res_id=coupon.id,
-                    notif_layout='mail.mail_notification_light',
+                    email_layout_xmlid='mail.mail_notification_light',
                 )
 
     def _get_applicable_programs(self):
@@ -416,7 +414,6 @@ class SaleOrderLine(models.Model):
                 related_program_lines |= line.order_id.order_line.filtered(lambda l: l.product_id.id == related_program.discount_line_product_id.id) - line
         return super(SaleOrderLine, self | related_program_lines).unlink()
 
-    @api.multi
     def _compute_tax_id(self):
         reward_lines = self.filtered('is_reward_line')
         super(SaleOrderLine, self - reward_lines)._compute_tax_id()

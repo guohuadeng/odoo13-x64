@@ -189,8 +189,9 @@ class MetaCase(type):
         super(MetaCase, cls).__init__(name, bases, attrs)
         # assign default test tags
         if cls.__module__.startswith('odoo.addons.'):
-            module = cls.__module__.split('.')[2]
-            cls.test_tags = {'standard', 'at_install', module}
+            cls.test_tags = {'standard', 'at_install'}
+            cls.test_module = cls.__module__.split('.')[2]
+            cls.test_class = cls.__name__
 
 
 class BaseCase(TreeCase, MetaCase('DummyCase', (object,), {})):
@@ -244,7 +245,10 @@ class BaseCase(TreeCase, MetaCase('DummyCase', (object,), {})):
     def _assertRaises(self, exception):
         """ Context manager that clears the environment upon failure. """
         with super(BaseCase, self).assertRaises(exception) as cm:
-            with self.env.clear_upon_failure():
+            if hasattr(self, 'env'):
+                with self.env.clear_upon_failure():
+                    yield cm
+            else:
                 yield cm
 
     def assertRaises(self, exception, func=None, *args, **kwargs):
@@ -333,9 +337,23 @@ class BaseCase(TreeCase, MetaCase('DummyCase', (object,), {})):
                     return False
             return True
 
+        def _repr_field_value(record, field_name):
+            record_value = record[field_name]
+            field_type = record._fields[field_name].type
+            if field_type == 'monetary':
+                currency_field_name = record._fields[field_name].currency_field
+                record_currency = record[currency_field_name]
+                return record_currency and record_currency.round(record_value) or record_value
+            elif field_type in ('one2many', 'many2many'):
+                return set(record_value.ids)
+            elif field_type == 'many2one':
+                return record_value.id
+            else:
+                return record_value
+
         def _format_message(records, expected_values):
             ''' Return a formatted representation of records/expected_values. '''
-            all_records_values = records.read(list(expected_values[0].keys()), load=False)
+            all_records_values = [{key: _repr_field_value(record, key) for key in expected_values[0]} for record in records]
             msg1 = '\n'.join(pprint.pformat(dic) for dic in all_records_values)
             msg2 = '\n'.join(pprint.pformat(dic) for dic in expected_values)
             return 'Current values:\n\n%s\n\nExpected values:\n\n%s' % (msg1, msg2)
@@ -351,8 +369,7 @@ class BaseCase(TreeCase, MetaCase('DummyCase', (object,), {})):
                 self.fail(msg + _format_message(records, expected_values))
 
     def shortDescription(self):
-        doc = self._testMethodDoc
-        return doc and ' '.join(l.strip() for l in doc.splitlines() if not l.isspace()) or None
+        return None
 
     # turns out this thing may not be quite as useful as we thought...
     def assertItemsEqual(self, a, b, msg=None):
@@ -487,7 +504,7 @@ class ChromeBrowser():
                 self.chrome_process.wait()
         if self.user_data_dir and os.path.isdir(self.user_data_dir) and self.user_data_dir != '/':
             self._logger.info('Removing chrome user profile "%s"', self.user_data_dir)
-            shutil.rmtree(self.user_data_dir)
+            shutil.rmtree(self.user_data_dir, ignore_errors=True)
         # Restore previous signal handler
         if self.sigxcpu_handler and os.name == 'posix':
             signal.signal(signal.SIGXCPU, self.sigxcpu_handler)
@@ -707,7 +724,7 @@ class ChromeBrowser():
             if res and res.get('id') == ready_id:
                 if res.get('result') == awaited_result:
                     if has_exceeded:
-                        self._logger.warning('The ready code tooks too much time : %s', tdiff)
+                        self._logger.info('The ready code tooks too much time : %s', tdiff)
                     return True
                 else:
                     last_bad_res = res
@@ -829,12 +846,12 @@ class HttpCase(TransactionCase):
         self.opener = requests.Session()
         self.opener.cookies['session_id'] = self.session_id
 
-    def url_open(self, url, data=None, timeout=10):
+    def url_open(self, url, data=None, timeout=10, headers=None):
         if url.startswith('/'):
             url = "http://%s:%s%s" % (HOST, PORT, url)
         if data:
-            return self.opener.post(url, data=data, timeout=timeout)
-        return self.opener.get(url, timeout=timeout)
+            return self.opener.post(url, data=data, timeout=timeout, headers=headers)
+        return self.opener.get(url, timeout=timeout, headers=headers)
 
     def _wait_remaining_requests(self):
         t0 = int(time.time())
@@ -1426,7 +1443,8 @@ class Form(object):
         if not any(spec[f] for f in fields):
             return
 
-        result = self._model.onchange(self._onchange_values(), fields, spec)
+        record = self._model.browse(self._values.get('id'))
+        result = record.onchange(self._onchange_values(), fields, spec)
         if result.get('warning'):
             _logger.getChild('onchange').warn("%(title)s %(message)s" % result.get('warning'))
         values = result.get('value', {})
@@ -1540,6 +1558,12 @@ class O2MForm(Form):
             self._init_from_defaults(m)
         else:
             self._values.update(proxy._records[index])
+
+    def _get_modifier(self, field, modifier, default=False, modmap=None, vals=None):
+        if vals is None:
+            vals = {**self._values, '•parent•': self._proxy._parent._values}
+
+        return super()._get_modifier(field, modifier, default=default, modmap=modmap, vals=vals)
 
     def _onchange_values(self):
         values = super(O2MForm, self)._onchange_values()
@@ -1810,7 +1834,7 @@ def _get_node(view, f, *arg):
 
 def tagged(*tags):
     """
-    A decorator to tag TestCase objects
+    A decorator to tag BaseCase objects
     Tags are stored in a set that can be accessed from a 'test_tags' attribute
     A tag prefixed by '-' will remove the tag e.g. to remove the 'standard' tag
     By default, all Test classes from odoo.tests.common have a test_tags
@@ -1820,33 +1844,75 @@ def tagged(*tags):
     def tags_decorator(obj):
         include = {t for t in tags if not t.startswith('-')}
         exclude = {t[1:] for t in tags if t.startswith('-')}
-        obj.test_tags = (getattr(obj, 'test_tags', set()) | include) - exclude
+        obj.test_tags = (getattr(obj, 'test_tags', set()) | include) - exclude # todo remove getattr in master since we want to limmit tagged to BaseCase and always have +standard tag
         return obj
     return tags_decorator
 
 
 class TagsSelector(object):
     """ Test selector based on tags. """
+    filter_spec_re = re.compile(r'^([+-]?)(\*|\w*)(?:/(\w*))?(?::(\w*))?(?:\.(\w*))?$')  # [-][tag][/module][:class][.method]
 
     def __init__(self, spec):
         """ Parse the spec to determine tags to include and exclude. """
-        clean_tags = {t.strip() for t in spec.split(',') if t.strip() != ''}
-        self.exclude = {t[1:] for t in clean_tags if t.startswith('-')}
-        self.include = {t.replace('+', '') for t in clean_tags if not t.startswith('-')}
+        filter_specs = {t.strip() for t in spec.split(',') if t.strip()}
+        self.exclude = set()
+        self.include = set()
 
-    def check(self, arg):
+        for filter_spec in filter_specs:
+            match = self.filter_spec_re.match(filter_spec)
+            if not match:
+                _logger.error('Invalid tag %s', filter_spec)
+                continue
+
+            sign, tag, module, klass, method = match.groups()
+            is_include = sign != '-'
+
+            if not tag and is_include:
+                # including /module:class.method implicitly requires 'standard'
+                tag = 'standard'
+            elif not tag or tag == '*':
+                # '*' indicates all tests (instead of 'standard' tests only)
+                tag = None
+            test_filter = (tag, module, klass, method)
+
+            if is_include:
+                self.include.add(test_filter)
+            else:
+                self.exclude.add(test_filter)
+
+        if self.exclude and not self.include:
+            self.include.add(('standard', None, None, None))
+
+    def check(self, test):
         """ Return whether ``arg`` matches the specification: it must have at
-            least one tag in ``self.include`` and none in ``self.exclude``.
+            least one tag in ``self.include`` and none in ``self.exclude`` for each tag category.
         """
-        # handle the case where the Test does not inherit from TransactionCase
-        tags = getattr(arg, 'test_tags', set())
-        inter_no_test = self.exclude.intersection(tags)
-        if inter_no_test:
-            _logger.debug("Test '%s' not selected because it is tagged with : %s (exclusions: %s)", arg, inter_no_test, self.exclude)
+        if not hasattr(test, 'test_tags'): # handle the case where the Test does not inherit from BaseCase and has no test_tags
+            _logger.debug("Skipping test '%s' because no test_tag found.", test)
             return False
-        inter_to_test = self.include.intersection(tags)
-        if not inter_to_test:
-            _logger.debug("Test '%s' not selected because it was not tagged with %s", arg, self.include)
+
+        test_module = getattr(test, 'test_module', None)
+        test_class = getattr(test, 'test_class', None)
+        test_tags = test.test_tags | {test_module}  # module as test_tags deprecated, keep for retrocompatibility, 
+        test_method = getattr(test, '_testMethodName', None)
+
+        def _is_matching(test_filter):
+            (tag, module, klass, method) = test_filter
+            if tag and tag not in test_tags:
+                return False
+            elif module and module != test_module:
+                return False
+            elif klass and klass != test_class:
+                return False
+            elif method and test_method and method != test_method:
+                return False
+            return True
+
+        if any(_is_matching(test_filter) for test_filter in self.exclude):
             return False
-        _logger.debug("Test '%s' selected: tagged with %s, exclusions: %s, inclusions: %s", arg, tags, self.exclude, self.include)
-        return True
+
+        if any(_is_matching(test_filter) for test_filter in self.include):
+            return True
+
+        return False

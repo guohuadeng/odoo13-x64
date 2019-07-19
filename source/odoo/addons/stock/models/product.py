@@ -2,7 +2,6 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, fields, models, _
-from odoo.addons import decimal_precision as dp
 from odoo.exceptions import UserError
 from odoo.osv import expression
 from odoo.tools.float_utils import float_round
@@ -25,7 +24,7 @@ class Product(models.Model):
     stock_move_ids = fields.One2many('stock.move', 'product_id', help='Technical: used to compute quantities.')
     qty_available = fields.Float(
         'Quantity On Hand', compute='_compute_quantities', search='_search_qty_available',
-        digits=dp.get_precision('Product Unit of Measure'),
+        digits='Product Unit of Measure',
         help="Current quantity of products.\n"
              "In a context with a single Stock Location, this includes "
              "goods stored at this Location, or any of its children.\n"
@@ -38,7 +37,7 @@ class Product(models.Model):
              "with 'internal' type.")
     virtual_available = fields.Float(
         'Forecast Quantity', compute='_compute_quantities', search='_search_virtual_available',
-        digits=dp.get_precision('Product Unit of Measure'),
+        digits='Product Unit of Measure',
         help="Forecast quantity (computed as Quantity On Hand "
              "- Outgoing + Incoming)\n"
              "In a context with a single Stock Location, this includes "
@@ -50,7 +49,7 @@ class Product(models.Model):
              "with 'internal' type.")
     incoming_qty = fields.Float(
         'Incoming', compute='_compute_quantities', search='_search_incoming_qty',
-        digits=dp.get_precision('Product Unit of Measure'),
+        digits='Product Unit of Measure',
         help="Quantity of planned incoming products.\n"
              "In a context with a single Stock Location, this includes "
              "goods arriving to this Location, or any of its children.\n"
@@ -61,7 +60,7 @@ class Product(models.Model):
              "Location with 'internal' type.")
     outgoing_qty = fields.Float(
         'Outgoing', compute='_compute_quantities', search='_search_outgoing_qty',
-        digits=dp.get_precision('Product Unit of Measure'),
+        digits='Product Unit of Measure',
         help="Quantity of planned outgoing products.\n"
              "In a context with a single Stock Location, this includes "
              "goods leaving this Location, or any of its children.\n"
@@ -136,6 +135,12 @@ class Product(models.Model):
         res = dict()
         for product in self.with_context(prefetch_fields=False):
             product_id = product.id
+            if not product_id:
+                res[product_id] = dict.fromkeys(
+                    ['qty_available', 'incoming_qty', 'outgoing_qty', 'virtual_available'],
+                    0.0,
+                )
+                continue
             rounding = product.uom_id.rounding
             res[product_id] = {}
             if dates_in_the_past:
@@ -174,7 +179,7 @@ class Product(models.Model):
         Warehouse = self.env['stock.warehouse']
 
         if self.env.context.get('company_owned', False):
-            company_id = self.env.company_id.id
+            company_id = self.env.company.id
             return (
                 [('location_id.company_id', '=', company_id), ('location_id.usage', 'in', ['internal', 'transit'])],
                 [('location_id.company_id', '=', False), ('location_dest_id.company_id', '=', company_id)],
@@ -325,9 +330,10 @@ class Product(models.Model):
             res[data['product_id'][0]]['reordering_min_qty'] = data['product_min_qty']
             res[data['product_id'][0]]['reordering_max_qty'] = data['product_max_qty']
         for product in self:
-            product.nbr_reordering_rules = res[product.id].get('nbr_reordering_rules', 0)
-            product.reordering_min_qty = res[product.id].get('reordering_min_qty', 0)
-            product.reordering_max_qty = res[product.id].get('reordering_max_qty', 0)
+            product_res = res.get(product.id) or {}
+            product.nbr_reordering_rules = product_res.get('nbr_reordering_rules', 0)
+            product.reordering_min_qty = product_res.get('reordering_min_qty', 0)
+            product.reordering_max_qty = product_res.get('reordering_max_qty', 0)
 
     @api.onchange('tracking')
     def onchange_tracking(self):
@@ -379,9 +385,6 @@ class Product(models.Model):
                         res['fields']['qty_available']['string'] = _('Produced Qty')
         return res
 
-    def action_update_quantity_on_hand(self):
-        return self.product_tmpl_id.with_context({'default_product_id': self.id}).action_update_quantity_on_hand()
-
     def action_view_routes(self):
         return self.mapped('product_tmpl_id').action_view_routes()
 
@@ -408,12 +411,35 @@ class Product(models.Model):
         return action
 
     def action_open_quants(self):
-        self.ensure_one()
-        self.env['stock.quant']._quant_tasks()
-        action = self.env.ref('stock.product_open_quants').read()[0]
         location_domain = self._get_domain_locations()[0]
-        action['domain'] = expression.AND([[('product_id', '=', self.id)], location_domain])
-        return action
+        domain = expression.AND([[('product_id', 'in', self.ids)], location_domain])
+        hide_location = not self.user_has_groups('stock.group_stock_multi_locations')
+        hide_lot = all([product.tracking == 'none' for product in self])
+        self = self.with_context(hide_location=hide_location, hide_lot=hide_lot)
+
+        # If user have rights to write on quant, we define the view as editable.
+        if self.user_has_groups('stock.group_stock_manager'):
+            self = self.with_context(inventory_mode=True)
+            # Set default location id if multilocations is inactive
+            if not self.user_has_groups('stock.group_stock_multi_locations'):
+                user_company = self.env.user.company_id
+                warehouse = self.env['stock.warehouse'].search(
+                    [('company_id', '=', user_company.id)], limit=1
+                )
+                if warehouse:
+                    self = self.with_context(default_location_id=warehouse.lot_stock_id.id)
+        # Set default product id if quants concern only one product
+        if len(self) == 1:
+            self = self.with_context(
+                default_product_id=self.id,
+                single_product=True
+            )
+        else:
+            self = self.with_context(product_tmpl_id=self.product_tmpl_id.id)
+        return self.env['stock.quant']._get_quants_action(domain)
+
+    def action_update_quantity_on_hand(self):
+        return self.product_tmpl_id.with_context({'default_product_id': self.id}).action_update_quantity_on_hand()
 
     @api.model
     def get_theoretical_quantity(self, product_id, location_id, lot_id=None, package_id=None, owner_id=None, to_uom=None):
@@ -471,16 +497,16 @@ class ProductTemplate(models.Model):
     description_pickingin = fields.Text('Description on Receptions', translate=True)
     qty_available = fields.Float(
         'Quantity On Hand', compute='_compute_quantities', search='_search_qty_available',
-        digits=dp.get_precision('Product Unit of Measure'))
+        digits='Product Unit of Measure')
     virtual_available = fields.Float(
         'Forecasted Quantity', compute='_compute_quantities', search='_search_virtual_available',
-        digits=dp.get_precision('Product Unit of Measure'))
+        digits='Product Unit of Measure')
     incoming_qty = fields.Float(
         'Incoming', compute='_compute_quantities', search='_search_incoming_qty',
-        digits=dp.get_precision('Product Unit of Measure'))
+        digits='Product Unit of Measure')
     outgoing_qty = fields.Float(
         'Outgoing', compute='_compute_quantities', search='_search_outgoing_qty',
-        digits=dp.get_precision('Product Unit of Measure'))
+        digits='Product Unit of Measure')
     # The goal of these fields is not to be able to search a location_id/warehouse_id but
     # to properly make these fields "dummy": only used to put some keys in context from
     # the search view in order to influence computed field
@@ -502,6 +528,11 @@ class ProductTemplate(models.Model):
     def _is_cost_method_standard(self):
         return True
 
+    @api.depends(
+        'product_variant_ids',
+        'product_variant_ids.stock_move_ids.product_qty',
+        'product_variant_ids.stock_move_ids.state',
+    )
     def _compute_quantities(self):
         res = self._compute_quantities_dict()
         for template in self:
@@ -541,7 +572,6 @@ class ProductTemplate(models.Model):
             'name': _('Putaway Rules'),
             'type': 'ir.actions.act_window',
             'res_model': 'stock.putaway.rule',
-            'view_type': 'list',
             'view_mode': 'list',
             'domain': domain,
         }
@@ -576,6 +606,11 @@ class ProductTemplate(models.Model):
             res[product_tmpl_id]['reordering_min_qty'] = data['product_min_qty']
             res[product_tmpl_id]['reordering_max_qty'] = data['product_max_qty']
         for template in self:
+            if not template.id:
+                template.nbr_reordering_rules = 0
+                template.reordering_min_qty = 0
+                template.reordering_max_qty = 0
+                continue
             template.nbr_reordering_rules = res[template.id]['nbr_reordering_rules']
             template.reordering_min_qty = res[template.id]['reordering_min_qty']
             template.reordering_max_qty = res[template.id]['reordering_max_qty']
@@ -609,37 +644,27 @@ class ProductTemplate(models.Model):
                 raise UserError(_("You can not change the type of a product that is currently reserved on a stock move. If you need to change the type, you should first unreserve the stock move."))
         return super(ProductTemplate, self).write(vals)
 
-    def action_update_quantity_on_hand(self):
-        default_product_id = self.env.context.get('default_product_id', self.product_variant_id.id)
-        if self.env.user.user_has_groups('stock.group_stock_multi_locations') or (self.env.user.user_has_groups('stock.group_production_lot') and self.tracking != 'none'):
-            product_ref_name = self.name + ' - ' + datetime.today().strftime('%m/%d/%y')
-            ctx = {'default_filter': 'product', 'default_product_id': default_product_id, 'default_name': product_ref_name}
-            return {
-                'type': 'ir.actions.act_window',
-                'view_type': 'form',
-                'view_mode': 'form',
-                'res_model': 'stock.inventory',
-                'context': ctx,
-            }
-        else:
-            wiz = self.env['stock.change.product.qty'].create({'product_id': default_product_id})
-            return {
-                    'name': _('Update quantity on hand'),
-                    'type': 'ir.actions.act_window',
-                    'view_mode': 'form',
-                    'res_model': 'stock.change.product.qty',
-                    'target': 'new',
-                    'res_id': wiz.id,
-                    'context': {'default_product_id': self.env.context.get('default_product_id')}
-                }
-
     def action_open_quants(self):
-        self.env['stock.quant']._quant_tasks()
-        products = self.mapped('product_variant_ids')
-        action = self.env.ref('stock.product_open_quants').read()[0]
-        location_domain = products._get_domain_locations()[0]
-        action['domain'] = expression.AND([[('product_id', 'in', products.ids)], location_domain])
-        return action
+        return self.product_variant_ids.action_open_quants()
+
+    def action_update_quantity_on_hand(self):
+        advanced_option_groups = [
+            'stock.group_stock_multi_locations',
+            'stock.group_production_lot',
+            'stock.group_tracking_owner',
+            'product.group_stock_packaging'
+        ]
+        if (self.env.user.user_has_groups(','.join(advanced_option_groups))):
+            return self.action_open_quants()
+        else:
+            default_product_id = len(self.product_variant_ids) == 1 and self.product_variant_id.id
+            action = self.env.ref('stock.action_change_product_quantity').read()[0]
+            action['context'] = dict(
+                self.env.context,
+                default_product_id=default_product_id,
+                default_product_tmpl_id=self.id
+            )
+            return action
 
     def action_view_related_putaway_rules(self):
         self.ensure_one()
@@ -691,14 +716,14 @@ class ProductCategory(models.Model):
         readonly=True)
     putaway_rule_ids = fields.One2many('stock.putaway.rule', 'category_id', 'Putaway Rules')
 
-    @api.one
     def _compute_total_route_ids(self):
-        category = self
-        routes = self.route_ids
-        while category.parent_id:
-            category = category.parent_id
-            routes |= category.route_ids
-        self.total_route_ids = routes
+        for category in self:
+            base_cat = category
+            routes = category.route_ids
+            while base_cat.parent_id:
+                base_cat = base_cat.parent_id
+                routes |= base_cat.route_ids
+            category.total_route_ids = routes
 
 
 class UoM(models.Model):

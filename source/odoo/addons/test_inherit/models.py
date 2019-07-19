@@ -12,10 +12,10 @@ class mother(models.Model):
     state = fields.Selection([('a', 'A'), ('b', 'B')], default='a')
     surname = fields.Char(compute='_compute_surname')
 
-    @api.one
     @api.depends('name')
     def _compute_surname(self):
-        self.surname = self.name or ''
+        for rec in self:
+            rec.surname = rec.name or ''
 
 
 # We inherit from the parent model, and we add some fields in the child model
@@ -43,13 +43,13 @@ class mother(models.Model):
     state = fields.Selection(selection_add=[('c', 'C')], default=None)
 
     # override the computed field, and extend its dependencies
-    @api.one
     @api.depends('field_in_mother')
     def _compute_surname(self):
-        if self.field_in_mother:
-            self.surname = self.field_in_mother
-        else:
-            super(mother, self)._compute_surname()
+        for rec in self:
+            if rec.field_in_mother:
+                rec.surname = rec.field_in_mother
+            else:
+                super(mother, rec)._compute_surname()
 
 
 class mother(models.Model):
@@ -96,7 +96,6 @@ class test_inherit_property(models.Model):
     # override property_bar with a new-api computed field
     property_bar = fields.Integer(compute='_compute_bar', company_dependent=False)
 
-    @api.multi
     def _compute_bar(self):
         for record in self:
             record.property_bar = 42

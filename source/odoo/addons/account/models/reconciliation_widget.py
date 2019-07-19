@@ -83,28 +83,43 @@ class AccountReconciliation(models.AbstractModel):
 
     @api.model
     def _get_bank_statement_line_partners(self, st_lines):
+        params = []
+
+        # Add the res.partner.ban's IR rules. In case partners are not shared between companies,
+        # identical bank accounts may exist in a company we don't have access to.
+        ir_rules_query = self.env['res.partner.bank']._where_calc([])
+        self.env['res.partner.bank']._apply_ir_rules(ir_rules_query, 'read')
+        from_clause, where_clause, where_clause_params = ir_rules_query.get_sql()
+        if where_clause:
+            where_bank = ('AND %s' % where_clause).replace('res_partner_bank', 'bank')
+            params += where_clause_params
+        else:
+            where_bank = ''
+
+        # Add the res.partner's IR rules. In case partners are not shared between companies,
+        # identical partners may exist in a company we don't have access to.
+        ir_rules_query = self.env['res.partner']._where_calc([])
+        self.env['res.partner']._apply_ir_rules(ir_rules_query, 'read')
+        from_clause, where_clause, where_clause_params = ir_rules_query.get_sql()
+        if where_clause:
+            where_partner = ('AND %s' % where_clause).replace('res_partner', 'p3')
+            params += where_clause_params
+        else:
+            where_partner = ''
+
         query = '''
             SELECT
                 st_line.id                          AS id,
                 COALESCE(p1.id,p2.id,p3.id)         AS partner_id
             FROM account_bank_statement_line st_line
-            LEFT JOIN res_partner_bank bank         ON bank.id = st_line.bank_account_id OR bank.acc_number = st_line.account_number
-            LEFT JOIN res_partner p1 ON st_line.partner_id=p1.id
-            LEFT JOIN res_partner p2 ON bank.partner_id=p2.id
-            LEFT JOIN res_partner p3 ON p3.name ILIKE st_line.partner_name
-            WHERE st_line.id IN %s
         '''
-        params = [tuple(st_lines.ids)]
+        query += 'LEFT JOIN res_partner_bank bank ON bank.id = st_line.bank_account_id OR bank.acc_number = st_line.account_number %s\n' % (where_bank)
+        query += 'LEFT JOIN res_partner p1 ON st_line.partner_id=p1.id \n'
+        query += 'LEFT JOIN res_partner p2 ON bank.partner_id=p2.id \n'
+        query += 'LEFT JOIN res_partner p3 ON p3.name ILIKE st_line.partner_name %s\n' % (where_partner)
+        query += 'WHERE st_line.id IN %s'
 
-        # Add the res.partner's IR rules to the WHERE clause. In case partners are not shared
-        # between companies, identical partners may exist in a company we don't have access to.
-        ir_rules_query = self.env['res.partner']._where_calc([])
-        self.env['res.partner']._apply_ir_rules(ir_rules_query, 'read')
-        from_clause, where_clause, where_clause_params = ir_rules_query.get_sql()
-        where_p3 = (" AND %s" % where_clause).replace('res_partner', 'p3') if where_clause else ''
-        if where_p3:
-            query += where_p3
-            params += where_clause_params
+        params += [tuple(st_lines.ids)]
 
         self._cr.execute(query, params)
 
@@ -185,7 +200,7 @@ class AccountReconciliation(models.AbstractModel):
         """
         if not bank_statement_line_ids:
             return {}
-        edition_mode = self._context.get('edition_mode')
+        suspense_moves_mode = self._context.get('suspense_moves_mode')
         bank_statements = self.env['account.bank.statement.line'].browse(bank_statement_line_ids).mapped('statement_id')
 
         search_sql = '''
@@ -205,7 +220,7 @@ class AccountReconciliation(models.AbstractModel):
              {srch}
              GROUP BY line.id
         '''.format(
-            cond=not edition_mode and "AND NOT EXISTS (SELECT 1 from account_move_line aml WHERE aml.statement_line_id = line.id)" or "",
+            cond=not suspense_moves_mode and "AND NOT EXISTS (SELECT 1 from account_move_line aml WHERE aml.statement_line_id = line.id)" or "",
             srch=search_str and search_sql or "",
         )
         self.env.cr.execute(query, {'ids':tuple(bank_statement_line_ids), 'search_str':search_str})
@@ -361,7 +376,7 @@ class AccountReconciliation(models.AbstractModel):
                 is_partner and ' ' or "AND at.type <> 'payable' AND at.type <> 'receivable'",
                 account_type and "AND at.type = %(account_type)s" or '',
                 res_ids and 'AND ' + res_alias + '.id in %(res_ids)s' or '',
-                self.env.company_id.id,
+                self.env.company.id,
                 is_partner and 'AND l.partner_id = p.id' or ' ',
                 aml_ids and 'AND l.id IN %(aml_ids)s' or '',
                 is_partner and 'l.partner_id, p.id,' or ' ',
@@ -488,7 +503,7 @@ class AccountReconciliation(models.AbstractModel):
         AccountMoveLine = self.env['account.move.line']
 
         #Always exclude the journal items that have been marked as 'to be checked' in a former bank statement reconciliation
-        to_check_excluded = AccountMoveLine.search(AccountMoveLine._get_domain_for_edition_mode()).ids
+        to_check_excluded = AccountMoveLine.search(AccountMoveLine._get_suspense_moves_domain()).ids
         excluded_ids.extend(to_check_excluded)
 
         domain_reconciliation = [

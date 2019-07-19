@@ -78,7 +78,6 @@ class AccountAccountTemplate(models.Model):
     tag_ids = fields.Many2many('account.account.tag', 'account_account_template_account_tag', string='Account tag', help="Optional tags you may want to assign for custom reporting")
     group_id = fields.Many2one('account.group')
 
-    @api.multi
     @api.depends('name', 'code')
     def name_get(self):
         res = []
@@ -161,20 +160,19 @@ class AccountChartTemplate(models.Model):
             'chart_template_id': self.id,
         }
 
-    @api.one
     def try_loading_for_current_company(self):
         """ Installs this chart of accounts for the current company if not chart
         of accounts had been created for it yet.
         """
-        self.ensure_one()
         # do not use `request.env` here, it can cause deadlocks
-        if request and 'allowed_company_ids' in dir(request):
+        if request and hasattr(request, 'allowed_company_ids'):
             company = self.env['res.company'].browse(request.allowed_company_ids[0])
         else:
-            company = self.env.company_id
+            company = self.env.company
         # If we don't have any chart of account on this company, install this chart of account
         if not company.chart_template_id and not self.existing_accounting(company):
-            self.load_for_current_company(15.0, 15.0)
+            for template in self:
+                template.load_for_current_company(15.0, 15.0)
 
     def load_for_current_company(self, sale_tax_rate, purchase_tax_rate):
         """ Installs this chart of accounts on the current company, replacing
@@ -186,13 +184,13 @@ class AccountChartTemplate(models.Model):
         """
         self.ensure_one()
         # do not use `request.env` here, it can cause deadlocks
-        if request and 'allowed_company_ids' in dir(request):
+        if request and hasattr(request, 'allowed_company_ids'):
             company = self.env['res.company'].browse(request.allowed_company_ids[0])
         else:
-            company = self.env.company_id
+            company = self.env.company
         # Ensure everything is translated to the company's language, not the user's one.
         self = self.with_context(lang=company.partner_id.lang)
-        if not self.env.user._is_admin():
+        if not self.env.is_admin():
             raise AccessError(_("Only administrators can load a charf of accounts"))
 
         existing_accounts = self.env['account.account'].search([('company_id', '=', company.id)])
@@ -264,7 +262,7 @@ class AccountChartTemplate(models.Model):
         the provided company (meaning hence that its chart of accounts cannot
         be changed anymore).
         """
-        model_to_check = ['account.move.line', 'account.invoice', 'account.payment', 'account.bank.statement']
+        model_to_check = ['account.move', 'account.payment', 'account.bank.statement']
         for model in model_to_check:
             if len(self.env[model].search([('company_id', '=', company_id.id)])) > 0:
                 return True
@@ -347,7 +345,6 @@ class AccountChartTemplate(models.Model):
         """
         return [{'acc_name': _('Cash'), 'account_type': 'cash'}, {'acc_name': _('Bank'), 'account_type': 'bank'}]
 
-    @api.multi
     def open_select_template_wizard(self):
         # Add action to open wizard to select between several templates
         if not self.company_id.chart_template_id:
@@ -398,7 +395,6 @@ class AccountChartTemplate(models.Model):
                 company.write({'tax_cash_basis_journal_id': journal.id})
         return True
 
-    @api.multi
     def _prepare_all_journals(self, acc_template_ref, company, journals_dict=None):
         def _get_default_account(journal_vals, type='debit'):
             # Get the default accounts
@@ -439,7 +435,6 @@ class AccountChartTemplate(models.Model):
             journal_data.append(vals)
         return journal_data
 
-    @api.multi
     def generate_properties(self, acc_template_ref, company):
         """
         This method used for creating properties.
@@ -491,7 +486,6 @@ class AccountChartTemplate(models.Model):
                 company.write({stock_property: value})
         return True
 
-    @api.multi
     def _install_template(self, company, code_digits=None, obj_wizard=None, acc_ref=None, taxes_ref=None):
         """ Recursively load the template objects and create the real objects from them.
 
@@ -521,7 +515,6 @@ class AccountChartTemplate(models.Model):
         taxes_ref.update(tmp2)
         return acc_ref, taxes_ref
 
-    @api.multi
     def _load_template(self, company, code_digits=None, account_ref=None, taxes_ref=None):
         """ Generate all the objects from the templates
 
@@ -582,7 +575,6 @@ class AccountChartTemplate(models.Model):
 
         return account_ref, taxes_ref
 
-    @api.multi
     def create_record_with_xmlid(self, company, template, model, vals):
         return self._create_records_with_xmlid(model, [(template, vals)], company).id
 
@@ -648,7 +640,6 @@ class AccountChartTemplate(models.Model):
             }
         return val
 
-    @api.multi
     def generate_account(self, tax_template_ref, acc_template_ref, code_digits, company):
         """ This method generates accounts from account templates.
 
@@ -714,7 +705,6 @@ class AccountChartTemplate(models.Model):
                 'second_tax_ids': [[4, tax_template_ref[tax.id], 0] for tax in account_reconcile_model.second_tax_ids],
             }
 
-    @api.multi
     def generate_account_reconcile_model(self, tax_template_ref, acc_template_ref, company):
         """ This method creates account reconcile models
 
@@ -733,7 +723,6 @@ class AccountChartTemplate(models.Model):
             self.create_record_with_xmlid(company, account_reconcile_model, 'account.reconcile.model', vals)
         return True
 
-    @api.multi
     def _get_fp_vals(self, company, position):
         return {
             'company_id': company.id,
@@ -749,7 +738,6 @@ class AccountChartTemplate(models.Model):
             'zip_to': position.zip_to,
         }
 
-    @api.multi
     def generate_fiscal_position(self, tax_template_ref, acc_template_ref, company):
         """ This method generates Fiscal Position, Fiscal Position Accounts
         and Fiscal Position Taxes from templates.
@@ -799,8 +787,8 @@ class AccountTaxTemplate(models.Model):
     chart_template_id = fields.Many2one('account.chart.template', string='Chart Template', required=True)
 
     name = fields.Char(string='Tax Name', required=True)
-    type_tax_use = fields.Selection([('sale', 'Sales'), ('purchase', 'Purchases'), ('none', 'None'), ('adjustment', 'Adjustment')], string='Tax Scope', required=True, default="sale",
-        help="Determines where the tax is selectable. Note : 'None' means a tax can't be used by itself, however it can still be used in a group. 'adjustment' is used to perform tax adjustment.")
+    type_tax_use = fields.Selection([('sale', 'Sales'), ('purchase', 'Purchases'), ('none', 'None')], string='Tax Scope', required=True, default="sale",
+        help="Determines where the tax is selectable. Note : 'None' means a tax can't be used by itself, however it can still be used in a group.")
     amount_type = fields.Selection(default='percent', string="Tax Computation", required=True,
         selection=[('group', 'Group of Taxes'), ('fixed', 'Fixed'), ('percent', 'Percentage of Price'), ('division', 'Percentage of Price Tax Included')])
     active = fields.Boolean(default=True, help="Set active to false to hide the tax without removing it.")
@@ -839,7 +827,6 @@ class AccountTaxTemplate(models.Model):
         ('name_company_uniq', 'unique(name, type_tax_use, chart_template_id)', 'Tax names must be unique !'),
     ]
 
-    @api.multi
     @api.depends('name', 'description')
     def name_get(self):
         res = []
@@ -884,7 +871,6 @@ class AccountTaxTemplate(models.Model):
             val['tax_group_id'] = self.tax_group_id.id
         return val
 
-    @api.multi
     def _generate_tax(self, company):
         """ This method generate taxes from templates.
 
@@ -894,7 +880,9 @@ class AccountTaxTemplate(models.Model):
                 'account_dict': dictionary containing a to-do list with all the accounts to assign on new taxes
             }
         """
-        ChartTemplate = self.env['account.chart.template']
+        # default_company_id is needed in context to allow creation of default
+        # repartition lines on taxes
+        ChartTemplate = self.env['account.chart.template'].with_context(default_company_id=company.id)
         todo_dict = {'account.tax': {}, 'account.tax.repartition.line': {}}
         tax_template_to_tax = {}
 
@@ -926,7 +914,7 @@ class AccountTaxTemplate(models.Model):
                 # We also have to delay the assignation of accounts to repartition lines
                 all_tax_rep_lines = tax.invoice_repartition_line_ids + tax.refund_repartition_line_ids
                 all_template_rep_lines = template.invoice_repartition_line_ids + template.refund_repartition_line_ids
-                for i in range(0, len(all_tax_rep_lines)):
+                for i in range(0, len(all_template_rep_lines)):
                     # We assume template and tax repartition lines are in the same order
                     template_account = all_template_rep_lines[i].account_id
                     if template_account:

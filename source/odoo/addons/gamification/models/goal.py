@@ -66,7 +66,7 @@ class GoalDefinition(models.Model):
             items = []
 
             if goal.monetary:
-                items.append(self.env.company_id.currency_id.symbol or u'¤')
+                items.append(self.env.company.currency_id.symbol or u'¤')
             if goal.suffix:
                 items.append(goal.suffix)
 
@@ -81,7 +81,7 @@ class GoalDefinition(models.Model):
             Obj = self.env[definition.model_id.model]
             try:
                 domain = safe_eval(definition.domain, {
-                    'user': self.env.user.sudo(self.env.user)
+                    'user': self.env.user.with_user(self.env.user)
                 })
                 # dummy search to make sure the domain is valid
                 Obj.search_count(domain)
@@ -117,7 +117,6 @@ class GoalDefinition(models.Model):
             definition._check_model_validity()
         return definition
 
-    @api.multi
     def write(self, vals):
         res = super(GoalDefinition, self).write(vals)
         if vals.get('computation_mode', 'count') in ('count', 'sum') and (vals.get('domain') or vals.get('model_id')):
@@ -222,12 +221,11 @@ class Goal(models.Model):
                            .get_email_template(self.id)
         body_html = self.env['mail.template'].with_context(template._context)\
             ._render_template(template.body_html, 'gamification.goal', self.id)
-        # TDE NOTE: should be a notification (see with xdo)
-        self.env['mail.thread'].message_post(
+        self.message_notify(
             body=body_html,
             partner_ids=[self.user_id.partner_id.id],
             subtype='mail.mt_comment',
-            notif_layout='mail.mail_notification_light',
+            email_layout_xmlid='mail.mail_notification_light',
         )
 
         return {'to_update': True}
@@ -251,7 +249,6 @@ class Goal(models.Model):
 
         return {self: result}
 
-    @api.multi
     def update_goal(self):
         """Update the goals to recomputes values and change of states
 
@@ -363,7 +360,6 @@ class Goal(models.Model):
                 self.env.cr.commit()
         return True
 
-    @api.multi
     def action_start(self):
         """Mark a goal as started.
 
@@ -371,7 +367,6 @@ class Goal(models.Model):
         self.write({'state': 'inprogress'})
         return self.update_goal()
 
-    @api.multi
     def action_reach(self):
         """Mark a goal as reached.
 
@@ -379,14 +374,12 @@ class Goal(models.Model):
         Progress at the next goal update until the end date."""
         return self.write({'state': 'reached'})
 
-    @api.multi
     def action_fail(self):
         """Set the state of the goal to failed.
 
         A failed goal will be ignored in future checks."""
         return self.write({'state': 'failed'})
 
-    @api.multi
     def action_cancel(self):
         """Reset the completion after setting a goal as reached or failed.
 
@@ -399,7 +392,6 @@ class Goal(models.Model):
     def create(self, vals):
         return super(Goal, self.with_context(no_remind_goal=True)).create(vals)
 
-    @api.multi
     def write(self, vals):
         """Overwrite the write method to update the last_update field to today
 
@@ -418,7 +410,6 @@ class Goal(models.Model):
                     goal.challenge_id.sudo().report_progress(users=goal.user_id)
         return result
 
-    @api.multi
     def get_action(self):
         """Get the ir.action related to update the goal
 
@@ -430,7 +421,7 @@ class Goal(models.Model):
             action = self.definition_id.action_id.read()[0]
 
             if self.definition_id.res_id_field:
-                current_user = self.env.user.sudo(self.env.user)
+                current_user = self.env.user.with_user(self.env.user)
                 action['res_id'] = safe_eval(self.definition_id.res_id_field, {
                     'user': current_user
                 })

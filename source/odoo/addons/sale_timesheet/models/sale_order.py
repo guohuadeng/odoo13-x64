@@ -24,7 +24,6 @@ class SaleOrder(models.Model):
         help='Select a non billable project on which tasks can be created.')
     project_ids = fields.Many2many('project.project', compute="_compute_project_ids", string='Projects', copy=False, groups="project.group_project_user", help="Projects used in this sales order.")
 
-    @api.multi
     @api.depends('analytic_account_id.line_ids')
     def _compute_timesheet_ids(self):
         for order in self:
@@ -37,14 +36,12 @@ class SaleOrder(models.Model):
                 order.timesheet_ids = []
             order.timesheet_count = len(order.timesheet_ids)
 
-    @api.multi
     @api.depends('order_line.product_id.project_id')
     def _compute_tasks_ids(self):
         for order in self:
             order.tasks_ids = self.env['project.task'].search([('sale_line_id', 'in', order.order_line.ids)])
             order.tasks_count = len(order.tasks_ids)
 
-    @api.multi
     @api.depends('order_line.product_id.service_tracking')
     def _compute_visible_project(self):
         """ Users should be able to select a project_id on the SO if at least one SO line has a product with its service tracking
@@ -54,7 +51,6 @@ class SaleOrder(models.Model):
                 service_tracking == 'task_in_project' for service_tracking in order.order_line.mapped('product_id.service_tracking')
             )
 
-    @api.multi
     @api.depends('order_line.product_id', 'order_line.project_id')
     def _compute_project_ids(self):
         for order in self:
@@ -69,7 +65,6 @@ class SaleOrder(models.Model):
         if self.project_id.analytic_account_id:
             self.analytic_account_id = self.project_id.analytic_account_id
 
-    @api.multi
     def _action_confirm(self):
         """ On SO confirmation, some lines should generate a task or a project. """
         result = super(SaleOrder, self)._action_confirm()
@@ -79,7 +74,6 @@ class SaleOrder(models.Model):
         )._timesheet_service_generation()
         return result
 
-    @api.multi
     def action_view_task(self):
         self.ensure_one()
 
@@ -108,7 +102,6 @@ class SaleOrder(models.Model):
         action['context'].update({'search_default_sale_order_id': self.id})
         return action
 
-    @api.multi
     def action_view_project_ids(self):
         self.ensure_one()
         # redirect to form or kanban view
@@ -128,7 +121,6 @@ class SaleOrder(models.Model):
             }
         return action
 
-    @api.multi
     def action_view_timesheet(self):
         self.ensure_one()
         action = self.env.ref('hr_timesheet.timesheet_action_all').read()[0]
@@ -150,7 +142,6 @@ class SaleOrderLine(models.Model):
     is_service = fields.Boolean("Is a Service", compute='_compute_is_service', store=True, compute_sudo=True, help="Sales Order item should generate a task and/or a project, depending on the product settings.")
     analytic_line_ids = fields.One2many(domain=[('project_id', '=', False)])  # only analytic lines, not timesheets (since this field determine if SO line came from expense)
 
-    @api.multi
     @api.depends('product_id')
     def _compute_qty_delivered_method(self):
         """ Sale Timesheet module compute delivered qty for product [('type', 'in', ['service']), ('service_type', '=', 'timesheet')] """
@@ -159,7 +150,6 @@ class SaleOrderLine(models.Model):
             if not line.is_expense and line.product_id.type == 'service' and line.product_id.service_type == 'timesheet':
                 line.qty_delivered_method = 'timesheet'
 
-    @api.multi
     @api.depends('analytic_line_ids.project_id')
     def _compute_qty_delivered(self):
         super(SaleOrderLine, self)._compute_qty_delivered()
@@ -170,12 +160,10 @@ class SaleOrderLine(models.Model):
         for line in lines_by_timesheet:
             line.qty_delivered = mapping.get(line.id, 0.0)
 
-    @api.multi
     def _timesheet_compute_delivered_quantity_domain(self):
         """ Hook for validated timesheet in addionnal module """
         return [('project_id', '!=', False)]
 
-    @api.multi
     @api.depends('product_id')
     def _compute_is_service(self):
         for so_line in self:
@@ -203,7 +191,6 @@ class SaleOrderLine(models.Model):
                     line.order_id.message_post(body=msg_body)
         return lines
 
-    @api.multi
     def write(self, values):
         result = super(SaleOrderLine, self).write(values)
         # changing the ordered quantity should change the planned hours on the
@@ -212,7 +199,7 @@ class SaleOrderLine(models.Model):
         if 'product_uom_qty' in values:
             for line in self:
                 if line.task_id:
-                    planned_hours = line._convert_qty_company_hours()
+                    planned_hours = line._convert_qty_company_hours(line.task_id.company_id)
                     line.task_id.write({'planned_hours': planned_hours})
         return result
 
@@ -220,15 +207,14 @@ class SaleOrderLine(models.Model):
     # Service : Project and task generation
     ###########################################
 
-    def _convert_qty_company_hours(self):
-        company_time_uom_id = self.env.company_id.project_time_mode_id
+    def _convert_qty_company_hours(self, dest_company):
+        company_time_uom_id = dest_company.project_time_mode_id
         if self.product_uom.id != company_time_uom_id.id and self.product_uom.category_id.id == company_time_uom_id.category_id.id:
             planned_hours = self.product_uom._compute_quantity(self.product_uom_qty, company_time_uom_id)
         else:
             planned_hours = self.product_uom_qty
         return planned_hours
 
-    @api.multi
     def _timesheet_create_project(self):
         """ Generate project for the given so line, and link it.
             :param project: record of project.project in which the task should be created
@@ -249,6 +235,7 @@ class SaleOrderLine(models.Model):
             'sale_line_id': self.id,
             'sale_order_id': self.order_id.id,
             'active': True,
+            'company_id': self.company_id.id,
         }
         if self.product_id.project_template_id:
             values['name'] = "%s - %s" % (values['name'], self.product_id.project_template_id.name)
@@ -258,6 +245,10 @@ class SaleOrderLine(models.Model):
                 'partner_id': self.order_id.partner_id.id,
                 'email_from': self.order_id.partner_id.email,
             })
+            # duplicating a project doesn't set the SO on sub-tasks
+            project.tasks.filtered(lambda task: task.parent_id != False).write({
+                'sale_line_id': self.id,
+            })
         else:
             project = self.env['project.project'].create(values)
         # link project as generated by current so line
@@ -266,7 +257,7 @@ class SaleOrderLine(models.Model):
 
     def _timesheet_create_task_prepare_values(self, project):
         self.ensure_one()
-        planned_hours = self._convert_qty_company_hours()
+        planned_hours = self._convert_qty_company_hours(self.company_id)
         sale_line_name_parts = self.name.split('\n')
         title = sale_line_name_parts[0] or self.product_id.name
         description = '<br/>'.join(sale_line_name_parts[1:])
@@ -282,7 +273,6 @@ class SaleOrderLine(models.Model):
             'user_id': False,  # force non assigned task, as created as sudo()
         }
 
-    @api.multi
     def _timesheet_create_task(self, project):
         """ Generate task for the given so line, and link it.
             :param project: record of project.project in which the task should be created
@@ -296,7 +286,6 @@ class SaleOrderLine(models.Model):
         task.message_post(body=task_msg)
         return task
 
-    @api.multi
     def _timesheet_service_generation(self):
         """ For service lines, create the task or the project. If already exists, it simply links
             the existing one to the line.
@@ -361,6 +350,12 @@ class SaleOrderLine(models.Model):
                     map_so_project_templates[(so_line.order_id.id, so_line.product_id.project_template_id.id)] = project
                 else:
                     map_so_project[so_line.order_id.id] = project
+            elif not project:
+                # Attach subsequent SO lines to the created project
+                so_line.project_id = (
+                    map_so_project_templates.get((so_line.order_id.id, so_line.product_id.project_template_id.id))
+                    or map_so_project.get(so_line.order_id.id)
+                )
             if so_line.product_id.service_tracking == 'task_in_project':
                 if not project:
                     if so_line.product_id.project_template_id:

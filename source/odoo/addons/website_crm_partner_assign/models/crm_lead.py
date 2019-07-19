@@ -20,7 +20,6 @@ class CrmLead(models.Model):
         string='Partner not interested')
     date_assign = fields.Date('Partner Assignation Date', help="Last date this case was forwarded/assigned to a partner")
 
-    @api.multi
     def _merge_data(self, fields):
         fields += ['partner_latitude', 'partner_longitude', 'partner_assigned_id', 'date_assign']
         return super(CrmLead, self)._merge_data(fields)
@@ -36,11 +35,10 @@ class CrmLead(models.Model):
             self.date_assign = fields.Date.context_today(self)
             self.user_id = partner_assigned.user_id
 
-    @api.multi
     def assign_salesman_of_assigned_partner(self):
         salesmans_leads = {}
         for lead in self:
-            if (lead.stage_id.probability > 0 and lead.stage_id.probability < 100) or lead.stage_id.sequence == 1:
+            if (lead.probability > 0 and lead.probability < 100) or lead.stage_id.sequence == 1:
                 if lead.partner_assigned_id and lead.partner_assigned_id.user_id != lead.user_id:
                     salesmans_leads.setdefault(lead.partner_assigned_id.user_id.id, []).append(lead.id)
 
@@ -48,11 +46,9 @@ class CrmLead(models.Model):
             leads = self.browse(leads_ids)
             leads.write({'user_id': salesman_id})
 
-    @api.multi
     def action_assign_partner(self):
         return self.assign_partner(partner_id=False)
 
-    @api.multi
     def assign_partner(self, partner_id=False):
         partner_dict = {}
         res = False
@@ -73,7 +69,6 @@ class CrmLead(models.Model):
             lead.write(values)
         return res
 
-    @api.multi
     def assign_geo_localize(self, latitude=False, longitude=False):
         if latitude and longitude:
             self.write({
@@ -97,7 +92,6 @@ class CrmLead(models.Model):
                     })
         return True
 
-    @api.multi
     def search_geo_partner(self):
         Partner = self.env['res.partner']
         res_partner_ids = {}
@@ -177,16 +171,14 @@ class CrmLead(models.Model):
                         break
         return res_partner_ids
 
-    @api.multi
     def partner_interested(self, comment=False):
         message = _('<p>I am interested by this lead.</p>')
         if comment:
             message += '<p>%s</p>' % comment
         for lead in self:
-            lead.message_post(body=message, subtype="mail.mt_note")
+            lead.message_post(body=message)
             lead.sudo().convert_opportunity(lead.partner_id.id)  # sudo required to convert partner data
 
-    @api.multi
     def partner_desinterested(self, comment=False, contacted=False, spam=False):
         if contacted:
             message = '<p>%s</p>' % _('I am not interested by this lead. I contacted the lead.')
@@ -197,7 +189,7 @@ class CrmLead(models.Model):
         self.message_unsubscribe(partner_ids=partner_ids.ids)
         if comment:
             message += '<p>%s</p>' % comment
-        self.message_post(body=message, subtype="mail.mt_note")
+        self.message_post(body=message)
         values = {
             'partner_assigned_id': False,
         }
@@ -210,7 +202,6 @@ class CrmLead(models.Model):
             values['partner_declined_ids'] = [(4, p, 0) for p in partner_ids.ids]
         self.sudo().write(values)
 
-    @api.multi
     def update_lead_portal(self, values):
         self.check_access_rights('write')
         for lead in self:
@@ -275,7 +266,6 @@ class CrmLead(models.Model):
     #   DO NOT FORWARD PORT IN MASTER
     #   instead, crm.lead should implement portal.mixin
     #
-    @api.multi
     def get_access_action(self, access_uid=None):
         """ Instead of the classic form view, redirect to the online document for
         portal users or if force_website=True in the context. """
@@ -289,7 +279,7 @@ class CrmLead(models.Model):
             except AccessError:
                 return super(CrmLead, self).get_access_action(access_uid)
             user = self.env['res.users'].sudo().browse(access_uid)
-            record = self.sudo(user)
+            record = self.with_user(user)
         if user.share or self.env.context.get('force_website'):
             try:
                 record.check_access_rights('read')

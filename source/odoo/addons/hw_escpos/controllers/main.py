@@ -183,13 +183,14 @@ class EscposDriver(Thread):
             except NoStatusError as e:
                 print("Impossible to get the status of the printer %s" % e)
             except Exception as e:
-                self.set_status('error', e)
-                _logger.exception()
+                self.set_status('error')
+                _logger.exception(e)
             finally:
                 if error:
                     self.queue.put((timestamp, task, data))
                 if printer:
                     printer.close()
+                    printer = None
 
     def push_task(self,task, data = None):
         self.lockedstart()
@@ -307,13 +308,13 @@ class EscposDriver(Thread):
         eprint.set(align='center')
         for line in receipt['orderlines']:
             pricestr = price(line['price_display'])
-            if line['discount'] == 0 and line['unit_name'] == 'Unit(s)' and line['quantity'] == 1:
+            if line['discount'] == 0 and line['unit_name'] == 'Units' and line['quantity'] == 1:
                 eprint.text(printline(line['product_name'],pricestr,ratio=0.6))
             else:
                 eprint.text(printline(line['product_name'],ratio=0.6))
                 if line['discount'] != 0:
                     eprint.text(printline('Discount: '+str(line['discount'])+'%', ratio=0.6, indent=2))
-                if line['unit_name'] == 'Unit(s)':
+                if line['unit_name'] == 'Units':
                     eprint.text( printline( quantity(line['quantity']) + ' x ' + price(line['price']), pricestr, ratio=0.6, indent=2))
                 else:
                     eprint.text( printline( quantity(line['quantity']) + line['unit_name'] + ' x ' + price(line['price']), pricestr, ratio=0.6, indent=2))

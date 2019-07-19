@@ -95,6 +95,7 @@
                         <button name="%(portal.portal_share_action)d" string="Share" type="action" class="oe_highlight oe_read_only"/>
                     </header>
                 <sheet string="Project">
+                    <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                     <div class="oe_button_box" name="button_box" groups="base.group_user">
                         <button  class="oe_stat_button" name="attachment_tree_view" type="object" icon="fa-files-o">
                             <field string="Documents" name="doc_count" widget="statinfo"/>
@@ -113,12 +114,6 @@
                                 </span>
                             </div>
                         </button>
-                        <button name="toggle_active" type="object"
-                                confirm="(Un)archiving a project automatically (un)archives its tasks. Do you want to proceed?"
-                                class="oe_stat_button" icon="fa-archive">
-                            <field name="active" widget="boolean_button"
-                                options='{"terminology": "archive"}'/>
-                        </button>
                     </div>
                     <div class="oe_title">
                         <h1>
@@ -135,6 +130,7 @@
                         <page name="settings" string="Settings">
                             <group>
                                 <group>
+                                    <field name="active" invisible="1"/>
                                     <field name="user_id" string="Project Manager" attrs="{'readonly':[('active','=',False)]}"/>
                                     <field name="privacy_visibility" widget="radio"/>
                                 </group>
@@ -151,15 +147,12 @@
                                     <field name="rating_status_period"  class="oe_inline" attrs="{'required': [('rating_status','=','periodic')], 'invisible': [('rating_status','!=','periodic')]}" groups="project.group_project_rating"/>
                                     <field name="portal_show_rating" attrs="{'invisible': [('rating_status','==','no')]}" groups="project.group_project_rating"/>
                                     <field name="subtask_project_id" groups="project.group_subtask_project"/>
+                                    <field name="company_id" groups="base.group_multi_company"/>
                                 </group>
                                 <group name="extra_settings">
                                 </group>
                             </group>
                             <group name="misc">
-                                <group string="Configuration" groups="base.group_no_one" name="configuration">
-                                    <field name="sequence" groups="base.group_no_one"/>
-                                    <field name="company_id" groups="base.group_multi_company"/>
-                                </group>
                                 <group string="Time Scheduling">
                                     <field name="resource_calendar_id"/>
                                 </group>
@@ -220,6 +213,7 @@
                     <field name="name" string="Project Name"/>
                     <field name="user_id" string="Project Manager"/>
                     <field name="partner_id" string="Contact"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
                 </tree>
             </field>
         </record>
@@ -271,20 +265,30 @@
                             </div>
                         </group>
                     </group>
+                </form>
+            </field>
+        </record>
+
+        <record id="project_project_view_form_simplified_footer" model="ir.ui.view">
+            <field name="name">project.project.view.form.simplified</field>
+            <field name="model">project.project</field>
+            <field name="inherit_id" ref="project.project_project_view_form_simplified"/>
+            <field name="mode">primary</field>
+            <field name="arch" type="xml">
+                <xpath expr="//group" position="after">
                     <footer>
                         <button string="Create" name="open_tasks" type="object" class="btn-primary o_open_tasks"/>
                         <button string="Discard" class="btn-secondary" special="cancel"/>
                     </footer>
-                </form>
+                </xpath>
             </field>
         </record>
 
         <record id="open_create_project" model="ir.actions.act_window">
             <field name="name">Create a Project</field>
             <field name="res_model">project.project</field>
-            <field name="view_type">form</field>
             <field name="view_mode">form</field>
-            <field name="view_id" ref="project_project_view_form_simplified"/>
+            <field name="view_id" ref="project_project_view_form_simplified_footer"/>
             <field name="target">new</field>
         </record>
 
@@ -384,7 +388,6 @@
         <record id="open_view_project_all" model="ir.actions.act_window">
             <field name="name">Projects</field>
             <field name="res_model">project.project</field>
-            <field name="view_type">form</field>
             <field name="domain">[]</field>
             <field name="view_mode">kanban,form</field>
             <field name="view_id" ref="view_project_kanban"/>
@@ -402,7 +405,6 @@
         <record id="open_view_project_all_config" model="ir.actions.act_window">
             <field name="name">Projects</field>
             <field name="res_model">project.project</field>
-            <field name="view_type">form</field>
             <field name="domain">[]</field>
             <field name="view_mode">tree,kanban,form</field>
             <field name="view_ids" eval="[(5, 0, 0),
@@ -432,6 +434,7 @@
                         <field name="stage_id" widget="statusbar" options="{'clickable': '1', 'fold_field': 'fold'}"/>
                     </header>
                     <sheet string="Task">
+                    <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-tasks" type="object" name="action_open_parent_task" string="Parent Task" attrs="{'invisible' : [('parent_id', '=', False)]}" groups="project.group_subtask_project"/>
                         <button name="action_subtask" type="object" class="oe_stat_button" icon="fa-tasks"
@@ -441,11 +444,6 @@
                         </button>
                         <button name="%(rating_rating_action_task)d" type="action" attrs="{'invisible': [('rating_count', '=', 0)]}" class="oe_stat_button" icon="fa-smile-o" groups="project.group_project_rating">
                             <field name="rating_count" string="Rating" widget="statinfo"/>
-                        </button>
-                        <button name="toggle_active" type="object" groups="base.group_user"
-                                class="oe_stat_button" icon="fa-archive">
-                            <field name="active" widget="boolean_button"
-                                options='{"terminology": "archive"}'/>
                         </button>
                     </div>
                     <div class="oe_title pr-0">
@@ -458,6 +456,7 @@
                     <group>
                         <group>
                             <field name="project_id" domain="[('active', '=', True)]" options="{'no_create': True}"/>
+                            <field name="active" invisible="1"/>
                             <field name="user_id"
                                 class="o_task_user_field"
                                 options='{"no_open": True}'/>
@@ -518,8 +517,7 @@
             name="Share"
             res_model="portal.share"
             binding_model="project.task"
-            binding_views="form"
-            view_type="form"
+            view_mode="form"
             target="new"
         />
 
@@ -545,7 +543,7 @@
                 <kanban default_group_by="stage_id" class="o_kanban_small_column o_kanban_project_tasks" on_create="quick_create" quick_create_view="project.quick_create_task_form" examples="project">
                     <field name="color"/>
                     <field name="priority"/>
-                    <field name="stage_id" options='{"group_by_tooltip": {"legend_priority": "Use of stars"}}'/>
+                    <field name="stage_id"/>
                     <field name="user_id"/>
                     <field name="user_email"/>
                     <field name="partner_id"/>
@@ -635,6 +633,7 @@
                     <field name="name"/>
                     <field name="project_id" invisible="context.get('user_invisible', False)"/>
                     <field name="user_id" invisible="context.get('user_invisible', False)"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
                     <field name="date_deadline" invisible="context.get('deadline_visible',True)"/>
                     <field name="stage_id" invisible="context.get('set_visible',False)"/>
                 </tree>
@@ -747,7 +746,6 @@
         <record id="action_view_task_overpassed_draft" model="ir.actions.act_window">
             <field name="name">Overpassed Tasks</field>
             <field name="res_model">project.task</field>
-            <field name="view_type">form</field>
             <field name="view_mode">tree,form,calendar,graph,kanban</field>
             <field name="domain">[('date_deadline','&lt;',time.strftime('%Y-%m-%d'))]</field>
             <field name="filter" eval="True"/>
@@ -758,7 +756,6 @@
         <record id="dblc_proj" model="ir.actions.act_window">
             <field name="res_model">project.task</field>
             <field name="name">Project's tasks</field>
-            <field name="view_type">form</field>
             <field name="view_mode">tree,form,calendar,graph,kanban</field>
             <field name="domain">[('project_id', '=', active_id)]</field>
             <field name="context">{'project_id':active_id}</field>
@@ -814,12 +811,6 @@
                             <field name="legend_done" nolabel="1"/>
 
                             <p class="text-muted" colspan="2">
-                                You can also give a tooltip about the use of the stars available in the kanban and form views.
-                            </p>
-                            <label for="legend_priority" string=" " class="fa fa-star fa-lg o_star_on oe_project_kanban_legend" aria-label="Legend priority" title="Legend priority" role="img"/>
-                            <field name="legend_priority" nolabel="1"/>
-
-                            <p class="text-muted" colspan="2">
                                 You can also add a description to help your coworkers understand the meaning and purpose of the stage.
                             </p>
                             <field name="description" placeholder="Add a description..." nolabel="1" colspan="2"/>
@@ -872,7 +863,6 @@
         <record id="open_task_type_form" model="ir.actions.act_window">
             <field name="name">Stages</field>
             <field name="res_model">project.task.type</field>
-            <field name="view_type">form</field>
             <field name="view_mode">tree,kanban,form</field>
             <field name="view_id" ref="task_type_tree"/>
             <field name="help" type="html">
@@ -897,7 +887,7 @@
         <!-- User Form -->
         <act_window context="{'search_default_user_id': [active_id], 'default_user_id': active_id}"
                     id="act_res_users_2_project_task_opened" name="Assigned Tasks"
-                    res_model="project.task" view_mode="tree,form,calendar,graph" view_type="form"
+                    res_model="project.task" view_mode="tree,form,calendar,graph"
                     binding_model="res.users" binding_views="form"/>
 
         <!-- Tags -->
@@ -925,10 +915,19 @@
             </field>
         </record>
 
+        <record model="ir.ui.view" id="project_tags_tree_view">
+            <field name="name">Tags</field>
+            <field name="model">project.tags</field>
+            <field name="arch" type="xml">
+                <tree string="Tags" editable="bottom">
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
         <record id="project_tags_action" model="ir.actions.act_window">
             <field name="name">Tags</field>
             <field name="res_model">project.tags</field>
-            <field name="view_type">form</field>
             <field name="help" type="html">
               <p class="o_view_nocontent_smiling_face">
                 Create a new tag

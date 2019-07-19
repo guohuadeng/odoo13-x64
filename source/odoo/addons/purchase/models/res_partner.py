@@ -9,7 +9,6 @@ class res_partner(models.Model):
     _name = 'res.partner'
     _inherit = 'res.partner'
 
-    @api.multi
     def _compute_purchase_order_count(self):
         # retrieve all children partners and prefetch 'parent_id' on them
         all_partners = self.search([('id', 'child_of', self.ids)])
@@ -26,13 +25,12 @@ class res_partner(models.Model):
                     partner.purchase_order_count += group['partner_id_count']
                 partner = partner.parent_id
 
-    @api.multi
     def _compute_supplier_invoice_count(self):
         # retrieve all children partners and prefetch 'parent_id' on them
         all_partners = self.search([('id', 'child_of', self.ids)])
         all_partners.read(['parent_id'])
 
-        supplier_invoice_groups = self.env['account.invoice'].read_group(
+        supplier_invoice_groups = self.env['account.move'].read_group(
             domain=[('partner_id', 'in', all_partners.ids),
                     ('type', 'in', ('in_invoice', 'in_refund'))],
             fields=['partner_id'], groupby=['partner_id']

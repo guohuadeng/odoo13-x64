@@ -143,7 +143,6 @@ class GamificationBadge(models.Model):
             tools.image_resize_images(vals)
         return super(GamificationBadge, self).create(values_list)
 
-    @api.multi
     def write(self, vals):
         tools.image_resize_images(vals)
         return super(GamificationBadge, self).write(vals)
@@ -251,7 +250,7 @@ class GamificationBadge(models.Model):
         :param badge_id: the granted badge id
         :return: integer representing the permission.
         """
-        if self.env.user._is_admin():
+        if self.env.is_admin():
             return self.CAN_GRANT
 
         if self.rule_auth == 'nobody':

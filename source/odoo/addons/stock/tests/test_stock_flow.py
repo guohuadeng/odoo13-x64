@@ -6,6 +6,17 @@ from odoo.tools import mute_logger, float_round
 from odoo.exceptions import UserError
 
 class TestStockFlow(TestStockCommon):
+    def setUp(cls):
+        super(TestStockFlow, cls).setUp()
+        cls.partner_company2 = cls.env['res.partner'].create({
+            'name': 'My Company (Chicago)-demo',
+            'email': 'chicago@yourcompany.com',
+            })
+        cls.company = cls.env['res.company'].create({
+            'currency_id': cls.env.ref('base.USD').id,
+            'partner_id': cls.partner_company2.id,
+            'name': 'My Company (Chicago)-demo',
+            })
 
     @mute_logger('odoo.addons.base.models.ir_model', 'odoo.models')
     def test_00_picking_create_and_transfer_quantity(self):
@@ -1067,8 +1078,7 @@ class TestStockFlow(TestStockCommon):
         # ------------------------------------------------
 
         inventory = self.InvObj.create({'name': 'Test',
-                                        'product_id': self.UnitA.id,
-                                        'filter': 'product'})
+                                        'product_ids': [(4, self.UnitA.id)]})
         inventory.action_start()
         self.assertFalse(inventory.line_ids, "Inventory line should not created.")
         inventory_line = self.InvLineObj.create({
@@ -1085,8 +1095,7 @@ class TestStockFlow(TestStockCommon):
         self.assertEqual(self.UnitA.qty_available, 120, 'Expecting 120 Units , got %.4f Units of quantity available!' % (self.UnitA.qty_available))
         # Create Inventory again for product UnitA.
         inventory = self.InvObj.create({'name': 'Test',
-                                        'product_id': self.UnitA.id,
-                                        'filter': 'product'})
+                                        'product_ids': [(4, self.UnitA.id)]})
         inventory.action_start()
         self.assertEqual(len(inventory.line_ids), 1, "One inventory line should be created.")
         inventory_line = self.InvLineObj.search([('product_id', '=', self.UnitA.id), ('inventory_id', '=', inventory.id)], limit=1)
@@ -1109,8 +1118,7 @@ class TestStockFlow(TestStockCommon):
 
         productKG = self.ProductObj.create({'name': 'Product KG', 'uom_id': self.uom_kg.id, 'uom_po_id': self.uom_kg.id, 'type': 'product'})
         inventory = self.InvObj.create({'name': 'Inventory Product KG',
-                                        'product_id': productKG.id,
-                                        'filter': 'product'})
+                                        'product_ids': [(4, productKG.id)]})
         inventory.action_start()
         self.assertFalse(inventory.line_ids, "Inventory line should not created.")
         inventory_line = self.InvLineObj.create({
@@ -1126,8 +1134,7 @@ class TestStockFlow(TestStockCommon):
         self.assertEqual(productKG.qty_available, 5000, 'Expecting 5000 kg , got %.4f kg of quantity available!' % (productKG.qty_available))
         # Create Inventory again.
         inventory = self.InvObj.create({'name': 'Test',
-                                        'product_id': productKG.id,
-                                        'filter': 'product'})
+                                        'product_ids': [(4, productKG.id)]})
         inventory.action_start()
         self.assertEqual(len(inventory.line_ids), 1, "One inventory line should be created.")
         inventory_line = self.InvLineObj.search([('product_id', '=', productKG.id), ('inventory_id', '=', inventory.id)], limit=1)
@@ -1146,14 +1153,14 @@ class TestStockFlow(TestStockCommon):
         self.assertEqual(productKG.qty_available, 4000, 'Expecting 4000 kg , got %.4f of quantity available!' % (productKG.qty_available))
 
         # --------------------------------------------------------
-        # TEST PARTIAL INVENTORY WITH PACKS and LOTS
+        # TEST EMPTY INVENTORY WITH PACKS and LOTS
         # ---------------------------------------------------------
 
         packproduct = self.ProductObj.create({'name': 'Pack Product', 'uom_id': self.uom_unit.id, 'uom_po_id': self.uom_unit.id, 'type': 'product'})
         lotproduct = self.ProductObj.create({'name': 'Lot Product', 'uom_id': self.uom_unit.id, 'uom_po_id': self.uom_unit.id, 'type': 'product'})
         inventory = self.InvObj.create({'name': 'Test Partial and Pack',
-                                        'filter': 'partial',
-                                        'location_id': self.stock_location})
+                                        'start_empty': True,
+                                        'location_ids': [(4, self.stock_location)]})
         inventory.action_start()
         pack_obj = self.env['stock.quant.package']
         lot_obj = self.env['stock.production.lot']
@@ -1178,8 +1185,8 @@ class TestStockFlow(TestStockCommon):
 
         # Create an inventory that will put the lots without lot to 0 and check that taking without pack will not take it from the pack
         inventory2 = self.InvObj.create({'name': 'Test Partial Lot and Pack2',
-                                         'filter': 'partial',
-                                         'location_id': self.stock_location})
+                                         'start_empty': True,
+                                         'location_ids': [(4, self.stock_location)]})
         inventory2.action_start()
         line_vals = []
         line_vals += [{'location_id': self.stock_location, 'product_id': packproduct.id, 'product_qty': 20, 'product_uom_id': packproduct.uom_id.id}]
@@ -1195,49 +1202,6 @@ class TestStockFlow(TestStockCommon):
         quants = self.StockQuantObj.search([('product_id', '=', lotproduct.id), ('location_id', '=', self.stock_location), ('lot_id', '=', False)])
         total_qty = sum([quant.quantity for quant in quants])
         self.assertEqual(total_qty, 0, 'Expecting 0 units lot of lotproduct, but we got %.4f on location stock!' % (total_qty))
-
-        # check product available of saleable category in stock location
-        category_id = self.ref('product.product_category_5')
-        inventory3 = self.InvObj.create({
-                                    'name': 'Test Category',
-                                    'filter': 'category',
-                                    'location_id': self.stock_location,
-                                    'category_id': category_id
-                                })
-        # Start Inventory
-        inventory3.action_start()
-        # check all products have given category id
-        products_category = inventory3.line_ids.mapped('product_id.categ_id')
-        self.assertEqual(len(products_category), 1, "Inventory line should have only one category")
-        inventory3.action_validate()
-        # check category with exhausted in stock location
-        inventory4 = self.InvObj.create({
-                                    'name': 'Test Exhausted Product',
-                                    'filter': 'category',
-                                    'location_id': self.stock_location,
-                                    'category_id': category_id,
-                                    'exhausted': True,
-                                })
-        inventory4.action_start()
-        inventory4._get_inventory_lines_values()
-        inventory4_lines_count = len(inventory4.line_ids)
-        inventory4.action_validate()
-        # Add one product in this product category
-        product = self.ProductObj.create({'name': 'Product A', 'type': 'product', 'categ_id': category_id})
-        # Check that this exhausted product is in the product category inventory adjustment
-        inventory5 = self.InvObj.create({
-                                    'name': 'Test Exhausted Product',
-                                    'filter': 'category',
-                                    'location_id': self.stock_location,
-                                    'category_id': category_id,
-                                    'exhausted': True,
-                                })
-        inventory5.action_start()
-        inventory5._get_inventory_lines_values()
-        inventory5_lines_count = len(inventory5.line_ids)
-        inventory5.action_validate()
-        self.assertEqual(inventory5_lines_count, inventory4_lines_count + 1, "The new product is not taken into account in the inventory valuation.")
-        self.assertTrue(product.id in inventory5.line_ids.mapped('product_id').ids, "The new product is not take into account in the inventory valuation.")
 
     def test_30_check_with_no_incoming_lot(self):
         """ Picking in without lots and picking out with"""
@@ -1565,7 +1529,6 @@ class TestStockFlow(TestStockCommon):
         # get one product in stock
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product Table',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': self.productA.id,
                 'product_uom_id': self.productA.uom_id.id,
@@ -1573,6 +1536,7 @@ class TestStockFlow(TestStockCommon):
                 'location_id': self.stock_location
             })]
         })
+        inventory.action_start()
         inventory.action_validate()
 
         # create a "all at once" delivery order for two products
@@ -1598,7 +1562,6 @@ class TestStockFlow(TestStockCommon):
         # receive one product in stock
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product Table',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': self.productA.id,
                 'product_uom_id': self.productA.uom_id.id,
@@ -1606,6 +1569,7 @@ class TestStockFlow(TestStockCommon):
                 'location_id': self.stock_location
             })]
         })
+        inventory.action_start()
         inventory.action_validate()
         # recheck availability of the delivery order, it should be assigned
         picking_out.action_assign()
@@ -1657,7 +1621,6 @@ class TestStockFlow(TestStockCommon):
         # get one product in stock
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product Table',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': self.productA.id,
                 'product_uom_id': self.productA.uom_id.id,
@@ -1665,6 +1628,7 @@ class TestStockFlow(TestStockCommon):
                 'location_id': self.stock_location
             })]
         })
+        inventory.action_start()
         inventory.action_validate()
 
         # create a "partial" delivery order for two products
@@ -1691,7 +1655,6 @@ class TestStockFlow(TestStockCommon):
         # receive one product in stock
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product Table',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': self.productA.id,
                 'product_uom_id': self.productA.uom_id.id,
@@ -1699,6 +1662,7 @@ class TestStockFlow(TestStockCommon):
                 'location_id': self.stock_location
             })]
         })
+        inventory.action_start()
         inventory.action_validate()
 
         # recheck availability of the delivery order, it should be assigned
@@ -1853,15 +1817,15 @@ class TestStockFlow(TestStockCommon):
         self.env.user.write({'groups_id': [(4, grp_multi_routes.id)]})
         self.env.user.write({'groups_id': [(4, grp_multi_companies.id)]})
 
-        company_2 = self.env.ref('stock.res_company_1')
+        company_2 = self.company
         # Need to add a new company on user.
         self.env.user.write({'company_ids': [(4, company_2.id)]})
 
-        warehouse_company_1 = self.env['stock.warehouse'].search([('company_id', '=', self.env.company_id.id)], limit=1)
+        warehouse_company_1 = self.env['stock.warehouse'].search([('company_id', '=', self.env.company.id)], limit=1)
 
         f = Form(self.env['stock.location.route'])
         f.name = 'From Company 1 to InterCompany'
-        f.company_id = self.env.company_id
+        f.company_id = self.env.company
         with f.rule_ids.new() as rule:
             rule.name = 'From Company 1 to InterCompany'
             rule.action = 'pull'
@@ -1898,8 +1862,8 @@ class TestStockFlow(TestStockCommon):
         incoming_picking = self.env['stock.picking'].search([('product_id', '=', product.id), ('picking_type_id', '=', warehouse_company_1.in_type_id.id)])
         outgoing_picking = self.env['stock.picking'].search([('product_id', '=', product.id), ('picking_type_id', '=', warehouse_company_2.out_type_id.id)])
 
-        self.assertEqual(incoming_picking.company_id, self.env.company_id)
-        self.assertEqual(incoming_picking.move_lines.company_id, self.env.company_id)
+        self.assertEqual(incoming_picking.company_id, self.env.company)
+        self.assertEqual(incoming_picking.move_lines.company_id, self.env.company)
         self.assertEqual(outgoing_picking.company_id, company_2)
         self.assertEqual(outgoing_picking.move_lines.company_id, company_2)
 
@@ -1917,15 +1881,15 @@ class TestStockFlow(TestStockCommon):
         self.env.user.write({'groups_id': [(4, grp_multi_routes.id)]})
         self.env.user.write({'groups_id': [(4, grp_multi_companies.id)]})
 
-        company_2 = self.env.ref('stock.res_company_1')
+        company_2 = self.company
         # Need to add a new company on user.
         self.env.user.write({'company_ids': [(4, company_2.id)]})
 
-        warehouse_company_1 = self.env['stock.warehouse'].search([('company_id', '=', self.env.company_id.id)], limit=1)
+        warehouse_company_1 = self.env['stock.warehouse'].search([('company_id', '=', self.env.company.id)], limit=1)
 
         f = Form(self.env['stock.location.route'])
         f.name = 'From Company 1 to InterCompany'
-        f.company_id = self.env.company_id
+        f.company_id = self.env.company
         with f.rule_ids.new() as rule:
             rule.name = 'From Company 1 to InterCompany'
             rule.action = 'pull'
@@ -1990,15 +1954,15 @@ class TestStockFlow(TestStockCommon):
         incoming_picking = self.env['stock.picking'].search([('product_id', '=', product_from_company_2.id), ('picking_type_id', '=', warehouse_company_1.in_type_id.id)])
         outgoing_picking = self.env['stock.picking'].search([('product_id', '=', product_from_company_2.id), ('picking_type_id', '=', warehouse_company_2.out_type_id.id)])
 
-        self.assertEqual(incoming_picking.company_id, self.env.company_id)
-        self.assertEqual(incoming_picking.move_lines.mapped('company_id'), self.env.company_id)
+        self.assertEqual(incoming_picking.company_id, self.env.company)
+        self.assertEqual(incoming_picking.move_lines.mapped('company_id'), self.env.company)
         self.assertEqual(outgoing_picking.company_id, company_2)
         self.assertEqual(outgoing_picking.move_lines.company_id, company_2)
 
         incoming_picking = self.env['stock.picking'].search([('product_id', '=', product_from_company_3.id), ('picking_type_id', '=', warehouse_company_1.in_type_id.id)])
         outgoing_picking = self.env['stock.picking'].search([('product_id', '=', product_from_company_3.id), ('picking_type_id', '=', warehouse_company_3.out_type_id.id)])
 
-        self.assertEqual(incoming_picking.company_id, self.env.company_id)
-        self.assertEqual(incoming_picking.move_lines.mapped('company_id'), self.env.company_id)
+        self.assertEqual(incoming_picking.company_id, self.env.company)
+        self.assertEqual(incoming_picking.move_lines.mapped('company_id'), self.env.company)
         self.assertEqual(outgoing_picking.company_id, company_3)
         self.assertEqual(outgoing_picking.move_lines.company_id, company_3)

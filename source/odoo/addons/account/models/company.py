@@ -2,7 +2,6 @@
 
 from datetime import timedelta, datetime
 import calendar
-import time
 from dateutil.relativedelta import relativedelta
 
 from odoo import fields, models, api, _
@@ -10,6 +9,7 @@ from odoo.exceptions import ValidationError, UserError, RedirectWarning
 from odoo.tools.misc import DEFAULT_SERVER_DATE_FORMAT
 from odoo.tools.float_utils import float_round, float_is_zero
 from odoo.tools import date_utils
+from odoo.tests.common import Form
 
 
 MONTH_SELECTION = [
@@ -102,7 +102,7 @@ Best Regards,'''))
     account_dashboard_onboarding_state = fields.Selection([('not_done', "Not done"), ('just_done', "Just done"), ('done', "Done"), ('closed', "Closed")], string="State of the account dashboard onboarding panel", default='not_done')
     invoice_terms = fields.Text(string='Default Terms and Conditions', translate=True)
 
-    @api.constrains('account_opening_date', 'fiscalyear_last_day', 'fiscalyear_last_month')
+    @api.constrains('account_opening_move_id', 'fiscalyear_last_day', 'fiscalyear_last_month')
     def _check_fiscalyear_last_day(self):
         # if the user explicitly chooses the 29th of February we allow it:
         # there is no "fiscalyear_last_year" so we do not know his intentions.
@@ -145,7 +145,6 @@ Best Regards,'''))
             'account_setup_coa_state',
         ])
 
-    @api.multi
     def _check_lock_dates(self, vals):
         '''Check the lock dates for the current companies. This can't be done in a api.constrains because we need
         to perform some comparison between new/old values. This method forces the lock dates to be irreversible.
@@ -199,7 +198,6 @@ Best Regards,'''))
             if period_lock_date < fiscalyear_lock_date:
                 raise ValidationError(_('You cannot define stricter conditions on advisors than on users. Please make sure that the lock date on advisor is set before the lock date for users.'))
 
-    @api.multi
     def compute_fiscalyear_dates(self, current_date):
         '''Computes the start and end dates of the fiscal year where the given 'date' belongs to.
 
@@ -266,7 +264,6 @@ Best Regards,'''))
             if account.code.startswith(old_code):
                 account.write({'code': self.get_new_account_code(account.code, old_code, new_code)})
 
-    @api.multi
     def _validate_fiscalyear_lock(self, values):
         if values.get('fiscalyear_lock_date'):
             nb_draft_entries = self.env['account.move'].search([
@@ -276,7 +273,6 @@ Best Regards,'''))
             if nb_draft_entries:
                 raise ValidationError(_('There are still unposted entries in the period you want to lock. You should either post or delete them.'))
 
-    @api.multi
     def write(self, values):
         #restrict the closing of FY if there are still unposted entries
         self._validate_fiscalyear_lock(values)
@@ -306,14 +302,13 @@ Best Regards,'''))
                 'res_model': 'account.setup.bank.manual.config',
                 'target': 'new',
                 'view_mode': 'form',
-                'view_type': 'form',
                 'views': [[view_id, 'form']],
         }
 
     @api.model
     def setting_init_fiscal_year_action(self):
         """ Called by the 'Fiscal Year Opening' button of the setup bar."""
-        company = self.env.company_id
+        company = self.env.company
         company.create_op_move_if_non_existant()
         new_wizard = self.env['account.financial.year.op'].create({'company_id': company.id})
         view_id = self.env.ref('account.setup_financial_year_opening_form').id
@@ -331,7 +326,7 @@ Best Regards,'''))
     @api.model
     def setting_chart_of_accounts_action(self):
         """ Called by the 'Chart of Accounts' button of the setup bar."""
-        company = self.env.company_id
+        company = self.env.company
         company.set_onboarding_step_done('account_setup_coa_state')
 
         # If an opening move has already been posted, we open the tree view showing all the accounts
@@ -455,25 +450,25 @@ Best Regards,'''))
     @api.model
     def action_close_account_invoice_onboarding(self):
         """ Mark the invoice onboarding panel as closed. """
-        self.env.company_id.account_invoice_onboarding_state = 'closed'
+        self.env.company.account_invoice_onboarding_state = 'closed'
 
     @api.model
     def action_close_account_dashboard_onboarding(self):
         """ Mark the dashboard onboarding panel as closed. """
-        self.env.company_id.account_dashboard_onboarding_state = 'closed'
+        self.env.company.account_dashboard_onboarding_state = 'closed'
 
     @api.model
     def action_open_account_onboarding_invoice_layout(self):
         """ Onboarding step for the invoice layout. """
         action = self.env.ref('account.action_open_account_onboarding_invoice_layout').read()[0]
-        action['res_id'] = self.env.company_id.id
+        action['res_id'] = self.env.company.id
         return action
 
     @api.model
     def action_open_account_onboarding_sale_tax(self):
         """ Onboarding step for the invoice layout. """
         action = self.env.ref('account.action_open_account_onboarding_sale_tax').read()[0]
-        action['res_id'] = self.env.company_id.id
+        action['res_id'] = self.env.company.id
         return action
 
     @api.model
@@ -482,15 +477,15 @@ Best Regards,'''))
         # use current user as partner
         partner = self.env.user.partner_id
 
-        company_id = self.env.company_id.id
+        company_id = self.env.company.id
         # try to find an existing sample invoice
-        sample_invoice = self.env['account.invoice'].search(
+        sample_invoice = self.env['account.move'].search(
             [('company_id', '=', company_id),
              ('partner_id', '=', partner.id)], limit=1)
 
         if len(sample_invoice) == 0:
             # If there are no existing accounts or no journal, fail
-            account = self.env.company_id.get_chart_of_accounts_or_fail()
+            account = self.env.company.get_chart_of_accounts_or_fail()
 
             journal = self.env['account.journal'].search([('company_id', '=', company_id)], limit=1)
             if len(journal) == 0:
@@ -499,25 +494,23 @@ Best Regards,'''))
                         "\nPlease go to Configuration > Journals.")
                 raise RedirectWarning(msg, action.id, _("Go to the journal configuration"))
 
-            sample_invoice = self.env['account.invoice'].create({
-                'name': _("Sample invoice"),
-                'journal_id': journal.id,
+            sample_invoice = self.env['account.move'].with_context(default_type='out_invoice', default_journal_id=journal.id).create({
+                'invoice_payment_ref': _('Sample invoice'),
                 'partner_id': partner.id,
-            })
-            # sample invoice lines
-            self.env['account.invoice.line'].create({
-                'name': _("Sample invoice line name"),
-                'invoice_id': sample_invoice.id,
-                'account_id': account.id,
-                'price_unit': 199.99,
-                'quantity': 2,
-            })
-            self.env['account.invoice.line'].create({
-                'name': _("Sample invoice line name 2"),
-                'invoice_id': sample_invoice.id,
-                'account_id': account.id,
-                'price_unit': 25,
-                'quantity': 1,
+                'invoice_line_ids': [
+                    (0, 0, {
+                        'name': _('Sample invoice line name'),
+                        'account_id': account.id,
+                        'quantity': 2,
+                        'price_unit': 199.99,
+                    }),
+                    (0, 0, {
+                        'name': _('Sample invoice line name 2'),
+                        'account_id': account.id,
+                        'quantity': 1,
+                        'price_unit': 25.0,
+                    }),
+                ],
             })
         return sample_invoice
 
@@ -532,7 +525,7 @@ Best Regards,'''))
             'default_res_id': sample_invoice.id,
             'default_use_template': bool(template),
             'default_template_id': template and template.id or False,
-            'default_model': 'account.invoice',
+            'default_model': 'account.move',
             'default_composition_mode': 'comment',
             'mark_invoice_as_sent': True,
             'custom_layout': 'mail.mail_notification_borders',
@@ -541,13 +534,11 @@ Best Regards,'''))
         }
         return action
 
-    @api.multi
     def action_save_onboarding_invoice_layout(self):
         """ Set the onboarding step as done """
         if bool(self.logo) and self.logo != self._get_logo():
             self.set_onboarding_step_done('account_onboarding_invoice_layout_state')
 
-    @api.multi
     def action_save_onboarding_sale_tax(self):
         """ Set the onboarding step as done """
         self.set_onboarding_step_done('account_onboarding_sale_tax_state')

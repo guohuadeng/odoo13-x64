@@ -32,7 +32,6 @@
         <record id="action_ir_slide_category" model="ir.actions.act_window">
             <field name="name">Categories</field>
             <field name="res_model">slide.category</field>
-            <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_smiling_face">
@@ -51,6 +50,7 @@
                         <button name="action_channel_invite" string="Invite" type="object" class="oe_highlight"  attrs="{'invisible': [('enroll', '!=', 'invite')]}"/>
                     </header>
                     <sheet>
+                        <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                         <div class="oe_button_box" name="button_box">
                             <button name="action_redirect_to_members"
                                 type="object"
@@ -63,9 +63,6 @@
                                     type="object" icon="fa-globe">
                                 <field name="is_published" widget="website_button"/>
                             </button>
-                            <button name="toggle_active" type="object" confirm="(Un)archiving a channel automatically (un)archives its slides. Do you want to proceed?" class="oe_stat_button" icon="fa-archive">
-                                <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
-                            </button>
                         </div>
                         <field name="image" widget="image" class="oe_avatar" options="{'preview_image': 'image_medium'}"/>
                         <div class="oe_title">
@@ -74,6 +71,7 @@
                         </div>
                         <group>
                             <group>
+                                <field name="active" invisible="1"/>
                                 <field name="enroll" widget="radio" options="{'horizontal': true}"/>
                                 <field name="category_ids" widget="many2many_tags" placeholder="Categories"
                                     context="{'default_channel_id': active_id}"
@@ -181,7 +179,6 @@
         <record id="action_slide_channels" model="ir.actions.act_window">
             <field name="name">Channels</field>
             <field name="res_model">slide.channel</field>
-            <field name="view_type">form</field>
             <field name="view_mode">tree,form</field>
             <field name="search_view_id" ref="website_slides.slide_channel_view_search"/>
             <field name="help" type="html">

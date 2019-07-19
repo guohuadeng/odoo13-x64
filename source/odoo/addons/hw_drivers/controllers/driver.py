@@ -18,6 +18,8 @@ from cups import Connection as cups_connection
 from glob import glob
 from base64 import b64decode
 from pathlib import Path
+from serial.tools.list_ports import comports
+import socket
 
 from odoo import http, _
 from odoo.modules.module import get_resource_path
@@ -55,7 +57,7 @@ def get_token():
     return read_file_first_line('token')
 
 def get_version():
-    return '19_04'
+    return '19_07'
 
 #----------------------------------------------------------
 # Controllers
@@ -117,12 +119,24 @@ class StatusController(http.Controller):
 
 drivers = []
 bt_devices = {}
+socket_devices = {}
 iot_devices = {}
 
 class DriverMetaClass(type):
     def __new__(cls, clsname, bases, attrs):
         newclass = super(DriverMetaClass, cls).__new__(cls, clsname, bases, attrs)
-        drivers.append(newclass)
+        #  We only add concrete classes to `drivers`.
+        try:
+            newclass.supported('test')
+        except NotImplementedError:
+            return newclass
+        except Exception:
+            pass
+        # Some drivers must be tried only when all the others have been ruled out. These are kept at the bottom of the list.
+        if newclass.is_tested_last:
+            drivers.append(newclass)
+        else:
+            drivers.insert(0, newclass)
         return newclass
 
 class Driver(Thread, metaclass=DriverMetaClass):
@@ -130,6 +144,7 @@ class Driver(Thread, metaclass=DriverMetaClass):
     Hook to register the driver into the drivers list
     """
     connection_type = ""
+    is_tested_last = False
 
     def __init__(self, device):
         super(Driver, self).__init__()
@@ -143,7 +158,7 @@ class Driver(Thread, metaclass=DriverMetaClass):
 
     @property
     def device_identifier(self):
-        return self._device_identifier
+        return self.dev.identifier
 
     @property
     def device_connection(self):
@@ -169,7 +184,7 @@ class Driver(Thread, metaclass=DriverMetaClass):
         On specific driver override this method to check if device is supported or not
         return True or False
         """
-        pass
+        raise NotImplementedError
 
     def get_message(self):
         return ''
@@ -299,13 +314,37 @@ class Manager(Thread):
         else:
             _logger.warning('Odoo server not set')
 
+    def serial_loop(self):
+        serial_devices = {}
+        for dev in comports():
+            dev.identifier = dev.location
+            iot_device = IoTDevice(dev, 'serial')
+            serial_devices[dev.identifier] = iot_device
+        return serial_devices
+
     def usb_loop(self):
+        """
+        Loops over the connected usb devices, assign them an identifier, instantiate
+        an `IoTDevice` for them.
+
+        USB devices are identified by a combination of their `idVendor` and
+        `idProduct`. We can't be sure this combination in unique per equipment.
+        To still allow connecting multiple similar equipments, we complete the
+        identifier by a counter. The drawbacks are we can't be sure the equipments
+        will get the same identifiers after a reboot or a disconnect/reconnect.
+
+        :return: a dict of the `IoTDevices` instances indexed by their identifier.
+        """
         usb_devices = {}
         devs = core.find(find_all=True)
+        cpt = 2
         for dev in devs:
-            path =  "usb_%04x:%04x_%03d_%03d_" % (dev.idVendor, dev.idProduct, dev.bus, dev.address)
+            dev.identifier =  "usb_%04x:%04x" % (dev.idVendor, dev.idProduct)
+            if dev.identifier in usb_devices:
+                dev.identifier += '_%s' % cpt
+                cpt += 1
             iot_device = IoTDevice(dev, 'usb')
-            usb_devices[path] = iot_device
+            usb_devices[dev.identifier] = iot_device
         return usb_devices
 
     def video_loop(self):
@@ -316,8 +355,9 @@ class Manager(Thread):
                 dev = v4l2.v4l2_capability()
                 ioctl(path, v4l2.VIDIOC_QUERYCAP, dev)
                 dev.interface = video
+                dev.identifier = dev.bus_info.decode('utf-8')
                 iot_device = IoTDevice(dev, 'video')
-                camera_devices[dev.bus_info.decode('utf-8')] = iot_device
+                camera_devices[dev.identifier] = iot_device
         return camera_devices
 
     def printer_loop(self):
@@ -348,6 +388,8 @@ class Manager(Thread):
             updated_devices = self.usb_loop()
             updated_devices.update(self.video_loop())
             updated_devices.update(bt_devices)
+            updated_devices.update(socket_devices)
+            updated_devices.update(self.serial_loop())
             if cpt % 40 == 0:
                 printer_devices = self.printer_loop()
                 cpt = 0
@@ -356,18 +398,23 @@ class Manager(Thread):
             added = updated_devices.keys() - devices.keys()
             removed = devices.keys() - updated_devices.keys()
             devices = updated_devices
+            send_devices = False
             for path in [device_rm for device_rm in removed if device_rm in iot_devices]:
                 iot_devices[path].disconnect()
+                _logger.info('Device %s is now disconnected', path)
+                send_devices = True
             for path in [device_add for device_add in added if device_add not in iot_devices]:
                 for driverclass in [d for d in drivers if d.connection_type == devices[path].connection_type]:
                     if driverclass.supported(device = updated_devices[path].dev):
-                        _logger.info('For device %s will be driven', path)
+                        _logger.info('Device %s is now connected', path)
                         d = driverclass(device = updated_devices[path].dev)
                         d.daemon = True
                         d.start()
                         iot_devices[path] = d
-                        self.send_alldevices()
+                        send_devices = True
                         break
+            if send_devices:
+                self.send_alldevices()
             time.sleep(3)
 
 class GattBtManager(Gatt_DeviceManager):
@@ -376,6 +423,7 @@ class GattBtManager(Gatt_DeviceManager):
         path = "bt_%s" % (device.mac_address,)
         if path not in bt_devices:
             device.manager = self
+            device.identifier = path
             iot_device = IoTDevice(device, 'bluetooth')
             bt_devices[path] = iot_device
 
@@ -388,6 +436,19 @@ class BtManager(Thread):
         dm.start_discovery()
         dm.run()
 
+class SocketManager(Thread):
+
+    def run(self):
+        while True:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind(('', 9000))
+            sock.listen(1)
+            dev, addr = sock.accept()
+            if addr and addr[0] not in socket_devices:
+                iot_device = IoTDevice(type('', (), {'dev': dev}), 'socket')
+                socket_devices[addr[0]] = iot_device
+
 conn = cups_connection()
 PPDs = conn.getPPDs()
 printers = conn.getPrinters()
@@ -399,3 +460,7 @@ m.start()
 bm = BtManager()
 bm.daemon = True
 bm.start()
+
+sm = SocketManager()
+sm.daemon = True
+sm.start()

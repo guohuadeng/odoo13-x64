@@ -17,7 +17,7 @@ class StockMoveInvoice(AccountingTestCase):
         self.pricelist_id = self.env.ref('product.list0')
         self.product_11 = self.env.ref('product.product_product_11')
         self.product_cable_management_box = self.env.ref('stock.product_cable_management_box')
-        self.product_uom_kgm = self.env.ref('uom.product_uom_kgm')
+        self.product_uom_unit = self.env.ref('uom.product_uom_unit')
         self.normal_delivery = self.env.ref('delivery.normal_delivery_carrier')
 
     def test_01_delivery_stock_move(self):
@@ -32,10 +32,10 @@ class StockMoveInvoice(AccountingTestCase):
             'partner_shipping_id': self.partner_18.id,
             'pricelist_id': self.pricelist_id.id,
             'order_line': [(0, 0, {
-                'name': 'Ice Cream',
+                'name': 'Cable Management Box',
                 'product_id': self.product_cable_management_box.id,
                 'product_uom_qty': 2,
-                'product_uom': self.product_uom_kgm.id,
+                'product_uom': self.product_uom_unit.id,
                 'price_unit': 750.00,
             })],
         })
@@ -58,13 +58,17 @@ class StockMoveInvoice(AccountingTestCase):
         # I confirm the invoice
 
         self.invoice = self.sale_prepaid.invoice_ids
-        self.invoice.action_invoice_open()
+        self.invoice.post()
 
         # I pay the invoice.
         self.invoice = self.sale_prepaid.invoice_ids
-        self.invoice.action_invoice_open()
+        self.invoice.post()
         self.journal = self.AccountJournal.search([('type', '=', 'cash'), ('company_id', '=', self.sale_prepaid.company_id.id)], limit=1)
-        self.invoice.pay_and_reconcile(self.journal, self.invoice.amount_total)
+
+        register_payments = self.env['account.payment.register'].with_context(active_ids=self.invoice.ids).create({
+            'journal_id': self.journal.id,
+        })
+        register_payments.create_payments()
 
         # Check the SO after paying the invoice
         self.assertNotEqual(self.sale_prepaid.invoice_count, 0, 'order not invoiced')

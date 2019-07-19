@@ -190,6 +190,7 @@
                 <field name="user_id"/>
                 <field name="category_id" groups="maintenance.group_equipment_manager"/>
                 <field name="stage_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
             </tree>
         </field>
     </record>
@@ -332,15 +333,13 @@
         <field name="arch" type="xml">
             <form string="Equipments">
                 <sheet>
+                    <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                     <div class="oe_button_box" name="button_box">
                         <button name="%(hr_equipment_request_action_from_equipment)d"
                             type="action"
                             class="oe_stat_button"
                             icon="fa-ticket">
                             <field string="Maintenance" name="maintenance_count" widget="statinfo"/>
-                        </button>
-                        <button class="oe_stat_button" type="object" name="toggle_active" icon="fa-archive">
-                            <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
                         </button>
                     </div>
                     <div class="oe_title">
@@ -349,6 +348,7 @@
                     </div>
                     <group>
                         <group>
+                            <field name="active" invisible="1"/>
                             <field name="category_id" options="{&quot;no_open&quot;: True}"/>
                             <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                             <field name="owner_user_id" string="Owner"/>
@@ -492,6 +492,7 @@
                 <field name="technician_user_id"/>
                 <field name="category_id"/>
                 <field name="partner_id" invisible="1"/>
+                <field name="company_id" groups="base.group_multi_company"/>
             </tree>
         </field>
     </record>
@@ -629,6 +630,7 @@
             <tree string="Assign To User">
                 <field name="name" string="Name"/>
                 <field name="technician_user_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
             </tree>
         </field>
     </record>
@@ -738,7 +740,6 @@
         <field name="name">Stages</field>
         <field name="res_model">maintenance.stage</field>
         <field name="view_mode">tree,kanban,form</field>
-        <field name="view_type">form</field>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">
             Add a new stage in the maintenance request
@@ -753,11 +754,7 @@
         <field name="arch" type="xml">
             <form string="Maintenance Team">
                 <sheet>
-                <div class="oe_button_box" name="button_box">
-                    <button class="oe_stat_button" type="object" name="toggle_active" icon="fa-archive">
-                        <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
-                    </button>
-                </div>
+                <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                 <div class="oe_title">
                     <label for="name" class="oe_edit_only" string="Team Name"/>
                     <h1>
@@ -766,6 +763,7 @@
                 </div>
                 <group>
                     <group>
+                        <field name="active" invisible="1"/>
                         <field name="member_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create': True}"/>
                     </group>
                     <group>
@@ -781,8 +779,10 @@
         <field name="name">maintenance.team.tree</field>
         <field name="model">maintenance.team</field>
         <field name="arch" type="xml">
-            <tree string="Maintenance Team">
+            <tree string="Maintenance Team" editable="bottom">
                 <field name="name"/>
+                <field name="member_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create': True}"/>
+                <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
             </tree>
         </field>
     </record>
@@ -944,7 +944,6 @@
     <record id="maintenance_team_action_settings" model="ir.actions.act_window">
         <field name="name">Teams</field>
         <field name="res_model">maintenance.team</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form</field>
         <field name="search_view_id" ref="maintenance_team_view_search"/>
         <field name="view_ids" eval="[(5, 0, 0),
@@ -961,7 +960,6 @@
         <field name="name">Maintenance Teams</field>
         <field name="res_model">maintenance.team</field>
         <field name="view_mode">kanban,form</field>
-        <field name="view_type">form</field>
         <field name="view_id" ref="maintenance_team_kanban"/>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">

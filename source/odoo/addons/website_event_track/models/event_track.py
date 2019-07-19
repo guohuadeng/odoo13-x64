@@ -11,7 +11,7 @@ class TrackTag(models.Model):
     _description = 'Event Track Tag'
     _order = 'name'
 
-    name = fields.Char('Tag')
+    name = fields.Char('Tag Name', required=True)
     track_ids = fields.Many2many('event.track', string='Tracks')
     color = fields.Integer(string='Color Index')
 
@@ -24,7 +24,7 @@ class TrackLocation(models.Model):
     _name = "event.track.location"
     _description = 'Event Track Location'
 
-    name = fields.Char('Room')
+    name = fields.Char('Location')
 
 
 class TrackStage(models.Model):
@@ -90,7 +90,6 @@ class Track(models.Model):
         'Priority', required=True, default='1')
     image = fields.Binary('Image', related='partner_id.image_medium', store=True, readonly=False)
 
-    @api.multi
     @api.depends('name')
     def _compute_website_url(self):
         super(Track, self)._compute_website_url()
@@ -119,7 +118,6 @@ class Track(models.Model):
 
         return track
 
-    @api.multi
     def write(self, vals):
         if 'stage_id' in vals and 'kanban_state' not in vals:
             vals['kanban_state'] = 'normal'
@@ -133,7 +131,6 @@ class Track(models.Model):
         """ Always display all stages """
         return stages.search([], order=order)
 
-    @api.multi
     def _track_template(self, changes):
         res = super(Track, self)._track_template(changes)
         track = self[0]
@@ -142,11 +139,10 @@ class Track(models.Model):
                 'composition_mode': 'comment',
                 'auto_delete_message': True,
                 'subtype_id': self.env['ir.model.data'].xmlid_to_res_id('mail.mt_note'),
-                'notif_layout': 'mail.mail_notification_light'
+                'email_layout_xmlid': 'mail.mail_notification_light'
             })
         return res
 
-    @api.multi
     def _track_subtype(self, init_values):
         self.ensure_one()
         if 'kanban_state' in init_values and self.kanban_state == 'blocked':
@@ -155,7 +151,6 @@ class Track(models.Model):
             return self.env.ref('website_event_track.mt_track_ready')
         return super(Track, self)._track_subtype(init_values)
 
-    @api.multi
     def _message_get_suggested_recipients(self):
         recipients = super(Track, self)._message_get_suggested_recipients()
         for track in self:
@@ -163,7 +158,7 @@ class Track(models.Model):
                 track._message_add_suggested_recipient(recipients, email=track.partner_email, reason=_('Speaker Email'))
         return recipients
 
-    def _message_post_after_hook(self, message, *args, **kwargs):
+    def _message_post_after_hook(self, message, msg_vals):
         if self.partner_email and not self.partner_id:
             # we consider that posting a message with a specified recipient (not a follower, a specific one)
             # on a document without customer means that it was created through the chatter using
@@ -175,14 +170,12 @@ class Track(models.Model):
                     ('partner_email', '=', new_partner.email),
                     ('stage_id.is_cancel', '=', False),
                 ]).write({'partner_id': new_partner.id})
-        return super(Track, self)._message_post_after_hook(message, *args, **kwargs)
+        return super(Track, self)._message_post_after_hook(message, msg_vals)
 
-    @api.multi
     def open_track_speakers_list(self):
         return {
             'name': _('Speakers'),
             'domain': [('id', 'in', self.mapped('partner_id').ids)],
-            'view_type': 'form',
             'view_mode': 'kanban,form',
             'res_model': 'res.partner',
             'view_id': False,

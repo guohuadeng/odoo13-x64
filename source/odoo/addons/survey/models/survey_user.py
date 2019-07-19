@@ -33,6 +33,8 @@ class SurveyUserInput(models.Model):
     # description
     survey_id = fields.Many2one('survey.survey', string='Survey', required=True, readonly=True, ondelete='cascade')
     scoring_type = fields.Selection(string="Scoring", related="survey_id.scoring_type")
+    is_attempts_limited = fields.Boolean("Limited number of attempts", related='survey_id.is_attempts_limited')
+    attempts_limit = fields.Integer("Number of attempts", related='survey_id.attempts_limit')
     start_datetime = fields.Datetime('Start date and time', readonly=True)
     is_time_limit_reached = fields.Boolean("Is time limit reached?", compute='_compute_is_time_limit_reached')
     input_type = fields.Selection([
@@ -50,6 +52,7 @@ class SurveyUserInput(models.Model):
     invite_token = fields.Char('Invite token', readonly=True, copy=False)
     partner_id = fields.Many2one('res.partner', string='Partner', readonly=True)
     email = fields.Char('E-mail', readonly=True)
+    attempt_number = fields.Integer("Attempt n°", compute='_compute_attempt_number')
 
     # Displaying data
     last_displayed_page_id = fields.Many2one('survey.question', string='Last displayed question/page')
@@ -63,7 +66,6 @@ class SurveyUserInput(models.Model):
     # Stored for performance reasons while displaying results page
     quizz_passed = fields.Boolean('Quizz Passed', compute='_compute_quizz_passed', store=True, compute_sudo=True)
 
-    @api.multi
     @api.depends('user_input_line_ids.answer_score', 'user_input_line_ids.question_id')
     def _compute_quizz_score(self):
         for user_input in self:
@@ -78,7 +80,6 @@ class SurveyUserInput(models.Model):
                 score = (sum(user_input.user_input_line_ids.mapped('answer_score')) / total_possible_score) * 100
                 user_input.quizz_score = round(score, 2) if score > 0 else 0
 
-    @api.multi
     @api.depends('quizz_score', 'survey_id.passing_score')
     def _compute_quizz_passed(self):
         for user_input in self:
@@ -102,7 +103,6 @@ class SurveyUserInput(models.Model):
     def _generate_invite_token(self):
         return str(uuid.uuid4())
 
-    @api.multi
     def action_resend(self):
         partners = self.env['res.partner']
         emails = []
@@ -118,7 +118,6 @@ class SurveyUserInput(models.Model):
             default_emails=','.join(emails)
         ).action_send_survey()
 
-    @api.multi
     def action_print_answers(self):
         """ Open the website page with the survey form """
         self.ensure_one()
@@ -136,20 +135,63 @@ class SurveyUserInput(models.Model):
             user_input.is_time_limit_reached = user_input.survey_id.is_time_limited and fields.Datetime.now() \
                 > user_input.start_datetime + relativedelta(minutes=user_input.survey_id.time_limit)
 
-    @api.multi
+    @api.depends('state', 'test_entry', 'survey_id.is_attempts_limited', 'partner_id', 'email', 'invite_token')
+    def _compute_attempt_number(self):
+        attempts_to_compute = self.filtered(
+            lambda user_input: user_input.state == 'done' and not user_input.test_entry and user_input.survey_id.is_attempts_limited
+        )
+
+        for user_input in (self - attempts_to_compute):
+            user_input.attempt_number = 1
+
+        if attempts_to_compute:
+            self.env.cr.execute("""SELECT user_input.id, (COUNT(previous_user_input.id) + 1) AS attempt_number
+                FROM survey_user_input user_input
+                LEFT OUTER JOIN survey_user_input previous_user_input
+                ON user_input.survey_id = previous_user_input.survey_id
+                AND previous_user_input.state = 'done'
+                AND previous_user_input.test_entry = False
+                AND previous_user_input.id < user_input.id
+                AND (user_input.invite_token IS NULL OR user_input.invite_token = previous_user_input.invite_token)
+                AND (user_input.partner_id = previous_user_input.partner_id OR user_input.email = previous_user_input.email)
+                WHERE user_input.id IN %s
+                GROUP BY user_input.id;
+            """, (tuple(attempts_to_compute.ids),))
+
+            attempts_count_results = self.env.cr.dictfetchall()
+
+            for user_input in attempts_to_compute:
+                attempt_number = 1
+                for attempts_count_result in attempts_count_results:
+                    if attempts_count_result['id'] == user_input.id:
+                        attempt_number = attempts_count_result['attempt_number']
+                        break
+
+                user_input.attempt_number = attempt_number
+
     def _mark_done(self):
         """ This method will:
         1. mark the state as 'done'
         2. send the certification email with attached document if
         - The survey is a certification
         - It has a certification_mail_template_id set
-        - The user succeeded the test """
+        - The user succeeded the test
+        Will also run challenge Cron to give the certification badge if any."""
         self.write({'state': 'done'})
+        Challenge = self.env['gamification.challenge'].sudo()
+        badge_ids = []
         for user_input in self:
-            if user_input.survey_id.certificate and user_input.quizz_passed and user_input.survey_id.certification_mail_template_id:
-                user_input.survey_id.certification_mail_template_id.send_mail(user_input.id, notif_layout="mail.mail_notification_light")
+            if user_input.survey_id.certificate and user_input.quizz_passed:
+                if user_input.survey_id.certification_mail_template_id:
+                    user_input.survey_id.certification_mail_template_id.send_mail(user_input.id, notif_layout="mail.mail_notification_light")
+                if user_input.survey_id.certification_give_badge:
+                    badge_ids.append(user_input.survey_id.certification_badge_id.id)
 
-    @api.multi
+        if badge_ids:
+            challenges = Challenge.search([('reward_id', 'in', badge_ids)])
+            if challenges:
+                Challenge._cron_update(ids=challenges.ids, commit=False)
+
     def _get_survey_url(self):
         self.ensure_one()
         return '/survey/start/%s?answer_token=%s' % (self.survey_id.access_token, self.token)
@@ -213,7 +255,6 @@ class SurveyUserInputLine(models.Model):
                 vals.update({'answer_score': self._get_mark(value_suggested)})
         return super(SurveyUserInputLine, self).create(vals_list)
 
-    @api.multi
     def write(self, vals):
         value_suggested = vals.get('value_suggested')
         if value_suggested:

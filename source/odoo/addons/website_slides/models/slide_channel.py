@@ -22,12 +22,13 @@ class ChannelUsersRelation(models.Model):
     partner_id = fields.Many2one('res.partner', index=True, required=True)
     partner_email = fields.Char(related='partner_id.email', readonly=True)
 
-    @api.depends('channel_id.slide_partner_ids.partner_id', 'channel_id.slide_partner_ids.completed', 'partner_id')
+    @api.depends('channel_id.slide_partner_ids.partner_id', 'channel_id.slide_partner_ids.completed', 'partner_id', 'channel_id.slide_partner_ids.slide_id.is_published')
     def _compute_completion(self):
         read_group_res = self.env['slide.slide.partner'].sudo().read_group(
             ['&', '&', ('channel_id', 'in', self.mapped('channel_id').ids),
              ('partner_id', 'in', self.mapped('partner_id').ids),
-             ('completed', '=', True)],
+             ('completed', '=', True),
+             ('slide_id.is_published', '=', True)],
             ['channel_id', 'partner_id'],
             groupby=['channel_id', 'partner_id'], lazy=False)
         mapped_data = dict()
@@ -259,7 +260,7 @@ class Channel(models.Model):
         for record in self:
             if not record.can_upload:
                 record.can_publish = False
-            elif record.user_id == self.env.user or self.env.user._is_superuser():
+            elif record.user_id == self.env.user or self.env.is_superuser():
                 record.can_publish = True
             else:
                 record.can_publish = self.env.user.has_group('website.group_website_publisher')
@@ -268,16 +269,19 @@ class Channel(models.Model):
     def _get_can_publish_error_message(self):
         return _("Publishing is restricted to the responsible of training courses or members of the publisher group for documentation courses")
 
-    @api.multi
-    @api.depends('name')
+    def get_base_url(self):
+        self.ensure_one()
+        icp = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        return self.website_id and self.website_id._get_http_domain() or icp
+
+    @api.depends('name', 'website_id.domain')
     def _compute_website_url(self):
         super(Channel, self)._compute_website_url()
-        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         for channel in self:
             if channel.id:  # avoid to perform a slug on a not yet saved record in case of an onchange.
+                base_url = channel.get_base_url()
                 channel.website_url = '%s/slides/%s' % (base_url, slug(channel))
 
-    @api.multi
     def _compute_action_rights(self):
         user_karma = self.env.user.karma
         for channel in self:
@@ -294,7 +298,6 @@ class Channel(models.Model):
     # ORM Overrides
     # ---------------------------------------------------------
 
-    @api.model_cr_context
     def _init_column(self, column_name):
         """ Initialize the value of the given column for existing rows.
             Overridden here because we need to generate different access tokens
@@ -314,7 +317,7 @@ class Channel(models.Model):
     @api.model
     def create(self, vals):
         # Ensure creator is member of its channel it is easier for him to manage it (unless it is odoobot)
-        if not vals.get('channel_partner_ids') and not self.env.user._is_superuser():
+        if not vals.get('channel_partner_ids') and not self.env.is_superuser():
             vals['channel_partner_ids'] = [(0, 0, {
                 'partner_id': self.env.user.partner_id.id
             })]
@@ -326,7 +329,6 @@ class Channel(models.Model):
             channel._add_groups_members()
         return channel
 
-    @api.multi
     def write(self, vals):
         res = super(Channel, self).write(vals)
         if vals.get('user_id'):
@@ -338,7 +340,6 @@ class Channel(models.Model):
             self._add_groups_members()
         return res
 
-    @api.multi
     @api.returns('mail.message', lambda value: value.id)
     def message_post(self, parent_id=False, subtype=None, **kwargs):
         """ Temporary workaround to avoid spam. If someone replies on a channel
@@ -359,7 +360,6 @@ class Channel(models.Model):
     # Business / Actions
     # ---------------------------------------------------------
 
-    @api.multi
     def action_redirect_to_members(self):
         action = self.env.ref('website_slides.slide_channel_partner_action').read()[0]
         action['view_mode'] = 'tree'
@@ -369,7 +369,6 @@ class Channel(models.Model):
 
         return action
 
-    @api.multi
     def action_channel_invite(self):
         self.ensure_one()
 
@@ -387,7 +386,6 @@ class Channel(models.Model):
         )
         return {
             'type': 'ir.actions.act_window',
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'slide.channel.invite',
             'target': 'new',
@@ -474,7 +472,6 @@ class Channel(models.Model):
     # Rating Mixin API
     # ---------------------------------------------------------
 
-    @api.multi
     def _rating_domain(self):
         """ Only take the published rating into account to compute avg and count """
         domain = super(Channel, self)._rating_domain()

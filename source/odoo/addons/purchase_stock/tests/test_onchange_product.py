@@ -27,7 +27,7 @@ class TestOnchangeProductId(TransactionCase):
 
     def test_onchange_product_id(self):
 
-        uom_id = self.product_uom_model.search([('name', '=', 'Unit(s)')])[0]
+        uom_id = self.product_uom_model.search([('name', '=', 'Units')])[0]
 
         partner_id = self.res_partner_model.create(dict(name="George"))
         tax_include_id = self.tax_model.create(dict(name="Include tax",
@@ -48,7 +48,7 @@ class TestOnchangeProductId(TransactionCase):
                                                               list_price=121,
                                                               seller_ids=[(6, 0, [supplierinfo.id])],
                                                               supplier_taxes_id=[(6, 0, [tax_include_id.id])]))
-        product_id = self.product_model.create(dict(product_tmpl_id=product_tmpl_id.id))
+        product_id = product_tmpl_id.product_variant_id
 
         fp_id = self.fiscal_position_model.create(dict(name="fiscal position", sequence=1))
 

@@ -4,11 +4,13 @@
 import logging
 import re
 
+from binascii import Error as binascii_error
+from collections import defaultdict
 from operator import itemgetter
 from email.utils import formataddr
 from openerp.http import request
 
-from odoo import _, api, fields, models, modules, SUPERUSER_ID, tools
+from odoo import _, api, fields, models, modules, tools
 from odoo.exceptions import UserError, AccessError
 from odoo.osv import expression
 from odoo.tools import groupby
@@ -59,7 +61,8 @@ class Message(models.Model):
     message_type = fields.Selection([
         ('email', 'Email'),
         ('comment', 'Comment'),
-        ('notification', 'System notification')],
+        ('notification', 'System notification'),
+        ('user_notification', 'User Specific Notification')],
         'Type', required=True, default='email',
         help="Message type: email for email message, notification for system "
              "message, comment for other messages such as user replies",
@@ -79,8 +82,7 @@ class Message(models.Model):
     author_avatar = fields.Binary("Author's avatar", related='author_id.image_small', readonly=False)
     # recipients: include inactive partners (they may have been archived after
     # the message was sent, but they should remain visible in the relation)
-    partner_ids = fields.Many2many('res.partner', string='Recipients',
-        context={'active_test': False})
+    partner_ids = fields.Many2many('res.partner', string='Recipients', context={'active_test': False})
     needaction_partner_ids = fields.Many2many(
         'res.partner', 'mail_message_res_partner_needaction_rel', string='Partners with Need Action',
         context={'active_test': False})
@@ -124,10 +126,9 @@ class Message(models.Model):
     moderator_id = fields.Many2one('res.users', string="Moderated By", index=True)
     need_moderation = fields.Boolean('Need moderation', compute='_compute_need_moderation', search='_search_need_moderation')
     #keep notification layout informations to be able to generate mail again
-    layout = fields.Char('Layout', copy=False)  # xml id of layout
+    email_layout_xmlid = fields.Char('Layout', copy=False, oldname='layout')  # xml id of layout
     add_sign = fields.Boolean(default=True)
 
-    @api.multi
     def _get_needaction(self):
         """ Need action on a mail.message = notified on my channel """
         my_messages = self.env['mail.notification'].sudo().search([
@@ -143,19 +144,17 @@ class Message(models.Model):
             return ['&', ('notification_ids.res_partner_id', '=', self.env.user.partner_id.id), ('notification_ids.is_read', '=', False)]
         return ['&', ('notification_ids.res_partner_id', '=', self.env.user.partner_id.id), ('notification_ids.is_read', '=', True)]
 
-    @api.multi
     def _compute_has_error(self):
         error_from_notification = self.env['mail.notification'].sudo().search([
             ('mail_message_id', 'in', self.ids),
-            ('email_status', 'in', ('bounce', 'exception'))]).mapped('mail_message_id')
+            ('notification_status', 'in', ('bounce', 'exception'))]).mapped('mail_message_id')
         for message in self:
             message.has_error = message in error_from_notification
 
-    @api.multi
     def _search_has_error(self, operator, operand):
         if operator == '=' and operand:
-            return [('notification_ids.email_status', 'in', ('bounce', 'exception'))]
-        return ['!', ('notification_ids.email_status', 'in', ('bounce', 'exception'))]  # this wont work and will be equivalent to "not in" beacause of orm restrictions. Dont use "has_error = False"
+            return [('notification_ids.notification_status', 'in', ('bounce', 'exception'))]
+        return ['!', ('notification_ids.notification_status', 'in', ('bounce', 'exception'))]  # this wont work and will be equivalent to "not in" beacause of orm restrictions. Dont use "has_error = False"
 
     @api.depends('starred_partner_ids')
     def _get_starred(self):
@@ -171,7 +170,6 @@ class Message(models.Model):
             return [('starred_partner_ids', 'in', [self.env.user.partner_id.id])]
         return [('starred_partner_ids', 'not in', [self.env.user.partner_id.id])]
 
-    @api.multi
     def _compute_need_moderation(self):
         for message in self:
             message.need_moderation = False
@@ -235,7 +233,6 @@ class Message(models.Model):
 
         return ids
 
-    @api.multi
     def set_message_done(self):
         """ Remove the needaction from messages for the current partner. """
         partner_id = self.env.user.partner_id
@@ -288,7 +285,6 @@ class Message(models.Model):
         notification = {'type': 'toggle_star', 'message_ids': ids, 'starred': False}
         self.env['bus.bus'].sendone((self._cr.dbname, 'res.partner', self.env.user.partner_id.id), notification)
 
-    @api.multi
     def toggle_message_starred(self):
         """ Toggle messages as (un)starred. Technically, the notifications related
             to uid are set to (un)starred.
@@ -336,11 +332,11 @@ class Message(models.Model):
         partner_tree = dict((partner[0], partner) for partner in partners_names)
 
         # 2. Attachments as SUPERUSER, because could receive msg and attachments for doc uid cannot see
-        attachments_data = attachments.sudo().read(['id', 'datas_fname', 'name', 'mimetype'])
+        attachments_data = attachments.sudo().read(['id', 'name', 'mimetype'])
         safari = request and request.httprequest.user_agent.browser == 'safari'
         attachments_tree = dict((attachment['id'], {
             'id': attachment['id'],
-            'filename': attachment['datas_fname'],
+            'filename': attachment['name'],
             'name': attachment['name'],
             'mimetype': 'application/octet-stream' if safari and attachment['mimetype'] and 'video' in attachment['mimetype'] else attachment['mimetype'],
         }) for attachment in attachments_data)
@@ -351,7 +347,7 @@ class Message(models.Model):
         tracking_tree = dict.fromkeys(tracking_values.ids, False)
         for tracking in tracking_values:
             groups = tracking.field_groups
-            if not groups or self.user_has_groups(groups):
+            if not groups or self.env.is_superuser() or self.user_has_groups(groups):
                 message_to_tracking.setdefault(tracking.mail_message_id.id, list()).append(tracking.id)
                 tracking_tree[tracking.id] = {
                     'id': tracking.id,
@@ -372,28 +368,26 @@ class Message(models.Model):
             partner_ids = []
             if message.subtype_id:
                 partner_ids = [partner_tree[partner.id] for partner in message.partner_ids
-                                if partner.id in partner_tree]
+                               if partner.id in partner_tree]
             else:
                 partner_ids = [partner_tree[partner.id] for partner in message.partner_ids
-                                if partner.id in partner_tree]
+                               if partner.id in partner_tree]
             # we read customer_email_status before filtering inactive user because we don't want to miss a red enveloppe
             customer_email_status = (
-                (all(n.email_status == 'sent' for n in message.notification_ids) and 'sent') or
-                (any(n.email_status == 'exception' for n in message.notification_ids) and 'exception') or
-                (any(n.email_status == 'bounce' for n in message.notification_ids) and 'bounce') or
+                (all(n.notification_status == 'sent' for n in message.notification_ids if n.notification_type == 'email') and 'sent') or
+                (any(n.notification_status == 'exception' for n in message.notification_ids if n.notification_type == 'email') and 'exception') or
+                (any(n.notification_status == 'bounce' for n in message.notification_ids if n.notification_type == 'email') and 'bounce') or
                 'ready'
             )
             customer_email_data = []
-            def filter_notification(notif):
-                return (
-                    (notif.email_status in ('bounce', 'exception', 'canceled') or notif.res_partner_id.partner_share) and
-                    notif.res_partner_id.active
-                )
-            for notification in message.notification_ids.filtered(filter_notification):
-                customer_email_data.append((partner_tree[notification.res_partner_id.id][0], partner_tree[notification.res_partner_id.id][1], notification.email_status))
+            for notification in message.notification_ids.filtered(
+                    lambda n: n.notification_type == 'email' and n.res_partner_id.active and
+                    (n.notification_status in ('bounce', 'exception', 'canceled') or n.res_partner_id.partner_share)):
+                customer_email_data.append((partner_tree[notification.res_partner_id.id][0], partner_tree[notification.res_partner_id.id][1], notification.notification_status))
 
             has_access_to_model = message.model and self.env[message.model].check_access_rights('read', raise_exception=False)
-            main_attachment = has_access_to_model and message.res_id and self.env[message.model].search([('id', '=',message.res_id)]) and getattr(self.env[message.model].browse(message.res_id), 'message_main_attachment_id')
+            if message.attachment_ids and message.res_id and issubclass(self.pool[message.model], self.pool['mail.thread']) and has_access_to_model:
+                main_attachment =  self.env[message.model].browse(message.res_id).message_main_attachment_id
             attachment_ids = []
             for attachment in message.attachment_ids:
                 if attachment.id in attachments_tree:
@@ -415,9 +409,14 @@ class Message(models.Model):
 
         return True
 
-    @api.multi
     def message_fetch_failed(self):
-        messages = self.search([('has_error', '=', True), ('author_id.id', '=', self.env.user.partner_id.id), ('res_id', '!=', 0), ('model', '!=', False)])
+        messages = self.search([
+            ('has_error', '=', True),
+            ('author_id.id', '=', self.env.user.partner_id.id), 
+            ('res_id', '!=', 0),
+            ('model', '!=', False),
+            ('message_type', '!=', 'user_notification')
+        ])
         return messages._format_mail_failures()
 
     @api.model
@@ -446,7 +445,6 @@ class Message(models.Model):
             messages = messages.sorted(key='id', reverse=True)[:limit]
         return messages.message_format()
 
-    @api.multi
     def message_format(self):
         """ Get the message values in the format for web client. Since message values can be broadcasted,
             computed fields MUST NOT BE READ and broadcasted.
@@ -504,7 +502,7 @@ class Message(models.Model):
 
         # fetch notification status
         notif_dict = {}
-        notifs = self.env['mail.notification'].sudo().search([('mail_message_id', 'in', list(mid for mid in message_tree)), ('is_read', '=', False)])
+        notifs = self.env['mail.notification'].sudo().search([('mail_message_id', 'in', list(mid for mid in message_tree)), ('res_partner_id', '!=', False), ('is_read', '=', False)])
         for notif in notifs:
             mid = notif.mail_message_id.id
             if not notif_dict.get(mid):
@@ -515,13 +513,12 @@ class Message(models.Model):
             message['needaction_partner_ids'] = notif_dict.get(message['id'], dict()).get('partner_id', [])
             message['is_note'] = message['subtype_id'] and subtypes_dict[message['subtype_id'][0]]['id'] == note_id
             message['is_discussion'] = message['subtype_id'] and subtypes_dict[message['subtype_id'][0]]['id'] == com_id
-            message['is_notification'] = message['is_note'] and not message['model'] and not message['res_id']
+            message['is_notification'] = message['message_type'] == 'user_notification'
             message['subtype_description'] = message['subtype_id'] and subtypes_dict[message['subtype_id'][0]]['description']
             if message['model'] and self.env[message['model']]._original_module:
                 message['module_icon'] = modules.module.get_module_icon(self.env[message['model']]._original_module)
         return message_values
 
-    @api.multi
     def _get_message_format_fields(self):
         return [
             'id', 'body', 'date', 'author_id', 'email_from',  # base message fields
@@ -532,13 +529,43 @@ class Message(models.Model):
             'moderation_status',
         ]
 
-    @api.multi
+    def _get_mail_failure_dict(self):
+        return {
+            'message_id': self.id,
+            'record_name': self.record_name,
+            'model_name': self.env['ir.model']._get(self.model).display_name,
+            'uuid': self.message_id,
+            'res_id': self.res_id,
+            'model': self.model,
+            'last_message_date': self.date,
+            'module_icon': '/mail/static/src/img/smiley/mailfailure.jpg',
+        }
+
     def _format_mail_failures(self):
-        """
-        A shorter message to notify a failure update
-        """
+        """ A shorter message to notify a failure update """
         failures_infos = []
+
+        # prepare notifications computation in batch
+        all_notifications = self.env['mail.notification'].sudo().search([
+            ('mail_message_id', 'in', self.ids)
+        ])
+        msgid_to_notif = defaultdict(lambda: self.env['mail.notification'].sudo())
+        for notif in all_notifications:
+            msgid_to_notif[notif.mail_message_id.id] += notif
+
         # for each channel, build the information header and include the logged partner information
+        for message in self:
+            notifications = msgid_to_notif[message.id]
+            if not any(notification.notification_type == 'email' for notification in notifications):
+                continue
+            info = dict(message._get_mail_failure_dict(),
+                        failure_type='mail',
+                        notifications=dict((notif.res_partner_id.id, (notif.notification_status, notif.res_partner_id.name)) for notif in notifications))
+            failures_infos.append(info)
+        return failures_infos
+
+    def _notify_mail_failure_update(self):
+        messages = self.env['mail.message']
         for message in self:
             # Check if user has access to the record before displaying a notification about it.
             # In case the user switches from one company to another, it might happen that he doesn't
@@ -550,24 +577,10 @@ class Message(models.Model):
                     record.check_access_rule('read')
                 except AccessError:
                     continue
-            info = {
-                'message_id': message.id,
-                'record_name': message.record_name,
-                'model_name': self.env['ir.model']._get(message.model).display_name,
-                'uuid': message.message_id,
-                'res_id': message.res_id,
-                'model': message.model,
-                'last_message_date': message.date,
-                'module_icon': '/mail/static/src/img/smiley/mailfailure.jpg',
-                'notifications': dict((notif.res_partner_id.id, (notif.email_status, notif.res_partner_id.name)) for notif in message.notification_ids.sudo())
-            }
-            failures_infos.append(info)
-        return failures_infos
+                else:
+                    messages |= message
 
-    @api.multi
-    def _notify_failure_update(self):
-        authors = {}
-        for author, author_messages in groupby(self, itemgetter('author_id')):
+        for author, author_messages in groupby(messages, itemgetter('author_id')):
             self.env['bus.bus'].sendone(
                 (self._cr.dbname, 'res.partner', author.id),
                 {'type': 'mail_failure', 'elements': self.env['mail.message'].concat(*author_messages)._format_mail_failures()}
@@ -577,11 +590,22 @@ class Message(models.Model):
     # mail_message internals
     #------------------------------------------------------
 
-    @api.model_cr
     def init(self):
         self._cr.execute("""SELECT indexname FROM pg_indexes WHERE indexname = 'mail_message_model_res_id_idx'""")
         if not self._cr.fetchone():
             self._cr.execute("""CREATE INDEX mail_message_model_res_id_idx ON mail_message (model, res_id)""")
+
+    def is_thread_message(self, vals=None):
+        if vals:
+            res_id = vals.get('res_id')
+            model = vals.get('model')
+            message_type = vals.get('message_type')
+        else:
+            self.ensure_one()
+            res_id = self.res_id
+            model = self.model
+            message_type = self.message_type
+        return res_id and model and message_type != 'user_notification'
 
     @api.model
     def _find_allowed_model_wise(self, doc_model, doc_dict):
@@ -616,7 +640,7 @@ class Message(models.Model):
         - otherwise: remove the id
         """
         # Rules do not apply to administrator
-        if self._uid == SUPERUSER_ID:
+        if self.env.is_superuser():
             return super(Message, self)._search(
                 args, offset=offset, limit=limit, order=order,
                 count=count, access_rights_uid=access_rights_uid)
@@ -637,10 +661,10 @@ class Message(models.Model):
         model_ids = {}
 
         # check read access rights before checking the actual rules on the given ids
-        super(Message, self.sudo(access_rights_uid or self._uid)).check_access_rights('read')
+        super(Message, self.with_user(access_rights_uid or self._uid)).check_access_rights('read')
 
         self._cr.execute("""
-            SELECT DISTINCT m.id, m.model, m.res_id, m.author_id,
+            SELECT DISTINCT m.id, m.model, m.res_id, m.author_id, m.message_type,
                             COALESCE(partner_rel.res_partner_id, needaction_rel.res_partner_id),
                             channel_partner.channel_id as channel_id
             FROM "%s" m
@@ -656,14 +680,14 @@ class Message(models.Model):
             ON channel_partner.channel_id = channel.id AND channel_partner.partner_id = %%(pid)s
 
             WHERE m.id = ANY (%%(ids)s)""" % self._table, dict(pid=pid, ids=ids))
-        for id, rmod, rid, author_id, partner_id, channel_id in self._cr.fetchall():
+        for id, rmod, rid, author_id, message_type, partner_id, channel_id in self._cr.fetchall():
             if author_id == pid:
                 author_ids.add(id)
             elif partner_id == pid:
                 partner_ids.add(id)
             elif channel_id:
                 channel_ids.add(id)
-            elif rmod and rid:
+            elif rmod and rid and message_type != 'user_notification':
                 model_ids.setdefault(rmod, {}).setdefault(rid, set()).add(id)
 
         allowed_ids = self._find_allowed_doc_ids(model_ids)
@@ -677,7 +701,6 @@ class Message(models.Model):
             id_list = [id for id in ids if id in final_ids]
             return id_list
 
-    @api.multi
     def check_access_rule(self, operation):
         """ Access rules of mail.message:
             - read: if
@@ -718,7 +741,7 @@ class Message(models.Model):
                     model_record_ids.setdefault(vals['model'], set()).add(vals['res_id'])
             return model_record_ids
 
-        if self._uid == SUPERUSER_ID:
+        if self.env.is_superuser():
             return
         # Non employees see only messages with a subtype (aka, not internal logs)
         if not self.env['res.users'].has_group('base.group_user'):
@@ -729,17 +752,19 @@ class Message(models.Model):
                                 WHERE message.message_type = %%s AND (message.subtype_id IS NULL OR subtype.internal IS TRUE) AND message.id = ANY (%%s)''' % (self._table), ('comment', self.ids,))
             if self._cr.fetchall():
                 raise AccessError(
-                    _('The requested operation cannot be completed due to security restrictions. Please contact your system administrator.\n\n(Document type: %s, Operation: %s)') %
-                    (self._description, operation))
+                    _('The requested operation cannot be completed due to security restrictions. Please contact your system administrator.\n\n(Document type: %s, Operation: %s)') % (self._description, operation)
+                    + ' - ({} {}, {} {})'.format(_('Records:'), self.ids[:6], _('User:'), self._uid)
+                )
 
         # Read mail_message.ids to have their values
-        message_values = dict((res_id, {}) for res_id in self.ids)
+        message_values = dict((message_id, {}) for message_id in self.ids)
 
         if operation == 'read':
             self._cr.execute("""
                 SELECT DISTINCT m.id, m.model, m.res_id, m.author_id, m.parent_id,
                                 COALESCE(partner_rel.res_partner_id, needaction_rel.res_partner_id),
-                                channel_partner.channel_id as channel_id, m.moderation_status
+                                channel_partner.channel_id as channel_id, m.moderation_status,
+                                m.message_type as message_type
                 FROM "%s" m
                 LEFT JOIN "mail_message_res_partner_rel" partner_rel
                 ON partner_rel.mail_message_id = m.id AND partner_rel.res_partner_id = %%(pid)s
@@ -752,7 +777,7 @@ class Message(models.Model):
                 LEFT JOIN "mail_channel_partner" channel_partner
                 ON channel_partner.channel_id = channel.id AND channel_partner.partner_id = %%(pid)s
                 WHERE m.id = ANY (%%(ids)s)""" % self._table, dict(pid=self.env.user.partner_id.id, ids=self.ids))
-            for mid, rmod, rid, author_id, parent_id, partner_id, channel_id, moderation_status in self._cr.fetchall():
+            for mid, rmod, rid, author_id, parent_id, partner_id, channel_id, moderation_status, message_type in self._cr.fetchall():
                 message_values[mid] = {
                     'model': rmod,
                     'res_id': rid,
@@ -760,13 +785,15 @@ class Message(models.Model):
                     'parent_id': parent_id,
                     'moderation_status': moderation_status,
                     'moderator_id': False,
-                    'notified': any((message_values[mid].get('notified'), partner_id, channel_id))
+                    'notified': any((message_values[mid].get('notified'), partner_id, channel_id)),
+                    'message_type': message_type,
                 }
         elif operation == 'write':
             self._cr.execute("""
                 SELECT DISTINCT m.id, m.model, m.res_id, m.author_id, m.parent_id, m.moderation_status,
                                 COALESCE(partner_rel.res_partner_id, needaction_rel.res_partner_id),
-                                channel_partner.channel_id as channel_id, channel_moderator_rel.res_users_id as moderator_id
+                                channel_partner.channel_id as channel_id, channel_moderator_rel.res_users_id as moderator_id,
+                                m.message_type as message_type
                 FROM "%s" m
                 LEFT JOIN "mail_message_res_partner_rel" partner_rel
                 ON partner_rel.mail_message_id = m.id AND partner_rel.res_partner_id = %%(pid)s
@@ -783,7 +810,7 @@ class Message(models.Model):
                 LEFT JOIN "mail_channel_moderator_rel" channel_moderator_rel
                 ON channel_moderator_rel.mail_channel_id = moderated_channel.id AND channel_moderator_rel.res_users_id = %%(uid)s
                 WHERE m.id = ANY (%%(ids)s)""" % self._table, dict(pid=self.env.user.partner_id.id, uid=self.env.user.id, ids=self.ids))
-            for mid, rmod, rid, author_id, parent_id, moderation_status, partner_id, channel_id, moderator_id in self._cr.fetchall():
+            for mid, rmod, rid, author_id, parent_id, moderation_status, partner_id, channel_id, moderator_id, message_type in self._cr.fetchall():
                 message_values[mid] = {
                     'model': rmod,
                     'res_id': rid,
@@ -791,35 +818,38 @@ class Message(models.Model):
                     'parent_id': parent_id,
                     'moderation_status': moderation_status,
                     'moderator_id': moderator_id,
-                    'notified': any((message_values[mid].get('notified'), partner_id, channel_id))
+                    'notified': any((message_values[mid].get('notified'), partner_id, channel_id)),
+                    'message_type': message_type,
                 }
         elif operation == 'create':
-            self._cr.execute("""SELECT DISTINCT id, model, res_id, author_id, parent_id, moderation_status FROM "%s" WHERE id = ANY (%%s)""" % self._table, (self.ids,))
-            for mid, rmod, rid, author_id, parent_id, moderation_status in self._cr.fetchall():
+            self._cr.execute("""SELECT DISTINCT id, model, res_id, author_id, parent_id, moderation_status, message_type FROM "%s" WHERE id = ANY (%%s)""" % self._table, (self.ids,))
+            for mid, rmod, rid, author_id, parent_id, moderation_status, message_type in self._cr.fetchall():
                 message_values[mid] = {
                     'model': rmod,
                     'res_id': rid,
                     'author_id': author_id,
                     'parent_id': parent_id,
                     'moderation_status': moderation_status,
-                    'moderator_id': False
+                    'moderator_id': False,
+                    'message_type': message_type,
                 }
         else:  # unlink
-            self._cr.execute("""SELECT DISTINCT m.id, m.model, m.res_id, m.author_id, m.parent_id, m.moderation_status, channel_moderator_rel.res_users_id as moderator_id
+            self._cr.execute("""SELECT DISTINCT m.id, m.model, m.res_id, m.author_id, m.parent_id, m.moderation_status, channel_moderator_rel.res_users_id as moderator_id, m.message_type as message_type
                 FROM "%s" m
                 LEFT JOIN "mail_channel" moderated_channel
                 ON m.moderation_status = 'pending_moderation' AND m.res_id = moderated_channel.id
                 LEFT JOIN "mail_channel_moderator_rel" channel_moderator_rel
                 ON channel_moderator_rel.mail_channel_id = moderated_channel.id AND channel_moderator_rel.res_users_id = (%%s)
                 WHERE m.id = ANY (%%s)""" % self._table, (self.env.user.id, self.ids,))
-            for mid, rmod, rid, author_id, parent_id, moderation_status, moderator_id in self._cr.fetchall():
+            for mid, rmod, rid, author_id, parent_id, moderation_status, moderator_id, message_type in self._cr.fetchall():
                 message_values[mid] = {
                     'model': rmod,
                     'res_id': rid,
                     'author_id': author_id,
                     'parent_id': parent_id,
                     'moderation_status': moderation_status,
-                    'moderator_id': moderator_id
+                    'moderator_id': moderator_id,
+                    'message_type': message_type,
                 }
 
         # Author condition (READ, WRITE, CREATE (private))
@@ -832,7 +862,56 @@ class Message(models.Model):
                           if message.get('moderation_status') != 'pending_moderation' and message.get('author_id') == self.env.user.partner_id.id]
         elif operation == 'create':
             author_ids = [mid for mid, message in message_values.items()
-                          if not message.get('model') and not message.get('res_id')]
+                          if not self.is_thread_message(message)]
+
+        # Moderator condition: allow to WRITE, UNLINK if moderator of a pending message
+        moderator_ids = []
+        if operation in ['write', 'unlink']:
+            moderator_ids = [mid for mid, message in message_values.items() if message.get('moderator_id')]
+        messages_to_check = self.ids
+        messages_to_check = set(messages_to_check).difference(set(author_ids), set(moderator_ids))
+        if not messages_to_check:
+            return
+
+        # Recipients condition, for read and write (partner_ids)
+        # keep on top, usefull for systray notifications
+        notified_ids = []
+        model_record_ids = _generate_model_record_ids(message_values, messages_to_check)
+        if operation in ['read', 'write']:
+            notified_ids = [mid for mid, message in message_values.items() if message.get('notified')]
+
+        messages_to_check = set(messages_to_check).difference(set(notified_ids))
+        if not messages_to_check:
+            return
+
+        # CRUD: Access rights related to the document
+        document_related_ids = []
+        document_related_candidate_ids = [mid for mid, message in message_values.items()
+                if (message.get('model') and message.get('res_id') and
+                    message.get('message_type') != 'user_notification' and
+                    (message.get('moderation_status') != 'pending_moderation' or operation not in ['write', 'unlink']))]
+        model_record_ids = _generate_model_record_ids(message_values, document_related_candidate_ids)
+        for model, doc_ids in model_record_ids.items():
+            DocumentModel = self.env[model]
+            if hasattr(DocumentModel, 'get_mail_message_access'):
+                check_operation = DocumentModel.get_mail_message_access(doc_ids, operation)  ## why not giving model here?
+            else:
+                check_operation = self.env['mail.thread'].get_mail_message_access(doc_ids, operation, model_name=model)
+            records = DocumentModel.browse(doc_ids)
+            records.check_access_rights(check_operation)
+            mids = records.browse(doc_ids)._filter_access_rules(check_operation)
+            document_related_ids += [
+                mid for mid, message in message_values.items()
+                if (message.get('model') == model and
+                    message.get('res_id') in mids.ids and
+                    message.get('message_type') != 'user_notification' and
+                    (message.get('moderation_status') != 'pending_moderation' or
+                    operation not in ['write', 'unlink']))]
+
+        messages_to_check = messages_to_check.difference(set(document_related_ids))
+
+        if not messages_to_check:
+            return
 
         # Parent condition, for create (check for received notifications for the created message parent)
         notified_ids = []
@@ -854,17 +933,12 @@ class Message(models.Model):
             notified_ids += [mid for mid, message in message_values.items()
                              if message.get('parent_id') in not_parent_ids]
 
-        # Moderator condition: allow to WRITE, UNLINK if moderator of a pending message
-        moderator_ids = []
-        if operation in ['write', 'unlink']:
-            moderator_ids = [mid for mid, message in message_values.items() if message.get('moderator_id')]
+        messages_to_check = messages_to_check.difference(set(notified_ids))
+        if not messages_to_check:
+            return
 
-        # Recipients condition, for read and write (partner_ids) and create (message_follower_ids)
-        other_ids = set(self.ids).difference(set(author_ids), set(notified_ids), set(moderator_ids))
-        model_record_ids = _generate_model_record_ids(message_values, other_ids)
-        if operation in ['read', 'write']:
-            notified_ids = [mid for mid, message in message_values.items() if message.get('notified')]
-        elif operation == 'create':
+        # Recipients condition for create (message_follower_ids)
+        if operation == 'create':
             for doc_model, doc_ids in model_record_ids.items():
                 followers = self.env['mail.followers'].sudo().search([
                     ('res_model', '=', doc_model),
@@ -873,34 +947,21 @@ class Message(models.Model):
                     ])
                 fol_mids = [follower.res_id for follower in followers]
                 notified_ids += [mid for mid, message in message_values.items()
-                                 if message.get('model') == doc_model and message.get('res_id') in fol_mids]
+                                 if message.get('model') == doc_model and
+                                 message.get('res_id') in fol_mids and
+                                 message.get('message_type') != 'user_notification'
+                                 ]
 
-        # CRUD: Access rights related to the document
-        other_ids = other_ids.difference(set(notified_ids))
-        model_record_ids = _generate_model_record_ids(message_values, other_ids)
-        document_related_ids = []
-        for model, doc_ids in model_record_ids.items():
-            DocumentModel = self.env[model]
-            mids = DocumentModel.browse(doc_ids).exists()
-            if hasattr(DocumentModel, 'check_mail_message_access'):
-                DocumentModel.check_mail_message_access(mids.ids, operation)  # ?? mids ?
-            else:
-                self.env['mail.thread'].check_mail_message_access(mids.ids, operation, model_name=model)
-            if operation in ['write', 'unlink']:
-                document_related_ids += [mid for mid, message in message_values.items()
-                                         if message.get('model') == model and message.get('res_id') in mids.ids and
-                                         message.get('moderation_status') != 'pending_moderation']
-            else:
-                document_related_ids += [mid for mid, message in message_values.items()
-                                         if message.get('model') == model and message.get('res_id') in mids.ids]
+        messages_to_check = messages_to_check.difference(set(notified_ids))
+        if not messages_to_check:
+            return
 
-        # Calculate remaining ids: if not void, raise an error
-        other_ids = other_ids.difference(set(document_related_ids))
-        if not (other_ids and self.browse(other_ids).exists()):
+        if not self.browse(messages_to_check).exists():
             return
         raise AccessError(
-            _('The requested operation cannot be completed due to security restrictions. Please contact your system administrator.\n\n(Document type: %s, Operation: %s)') %
-            (self._description, operation))
+            _('The requested operation cannot be completed due to security restrictions. Please contact your system administrator.\n\n(Document type: %s, Operation: %s)') % (self._description, operation)
+            + ' - ({} {}, {} {})'.format(_('Records:'), list(messages_to_check)[:6], _('User:'), self._uid)
+        )
 
     @api.model
     def _get_record_name(self, values):
@@ -915,32 +976,40 @@ class Message(models.Model):
     @api.model
     def _get_reply_to(self, values):
         """ Return a specific reply_to for the document """
-        model, res_id, email_from = values.get('model', self._context.get('default_model')), values.get('res_id', self._context.get('default_res_id')), values.get('email_from')  # ctx values / defualt_get res ?
-        records = self.env[model].browse([res_id]) if model and res_id else None
-        return self.env['mail.thread']._notify_get_reply_to_on_records(default=email_from, records=records)[res_id or False]
+        model = values.get('model', self._context.get('default_model'))
+        res_id = values.get('res_id', self._context.get('default_res_id'))
+        email_from = values.get('email_from')
+        message_type = values.get('message_type')
+        records = None
+        if self.is_thread_message({'model': model, 'res_id': res_id, 'message_type': message_type}):
+            records = self.env[model].browse([res_id])
+        else:
+            res_id = False
+        return self.env['mail.thread']._notify_get_reply_to_on_records(default=email_from, records=records)[res_id]
 
     @api.model
     def _get_message_id(self, values):
         if values.get('no_auto_thread', False) is True:
             message_id = tools.generate_tracking_message_id('reply_to')
-        elif values.get('res_id') and values.get('model'):
+        elif self.is_thread_message(values):
             message_id = tools.generate_tracking_message_id('%(res_id)s-%(model)s' % values)
         else:
             message_id = tools.generate_tracking_message_id('private')
         return message_id
 
-    @api.multi
-    def _invalidate_documents(self):
+    def _invalidate_documents(self, model=None, res_id=None):
         """ Invalidate the cache of the documents followed by ``self``. """
         for record in self:
-            if record.model and record.res_id and 'message_ids' in self.env[record.model]:
-                self.env[record.model].invalidate_cache(fnames=[
+            model = model or record.model
+            res_id = res_id or record.res_id
+            if issubclass(self.pool[model], self.pool['mail.thread']):
+                self.env[model].invalidate_cache(fnames=[
                     'message_ids',
                     'message_unread',
                     'message_unread_counter',
                     'message_needaction',
                     'message_needaction_counter',
-                ], ids=[record.res_id])
+                ], ids=[res_id])
 
     @api.model
     def create(self, values):
@@ -958,8 +1027,7 @@ class Message(models.Model):
             values['record_name'] = self._get_record_name(values)
 
         if 'attachment_ids' not in values:
-            values.setdefault('attachment_ids', [])
-
+            values['attachment_ids'] = []
         # extract base64 images
         if 'body' in values:
             Attachments = self.env['ir.attachment']
@@ -968,16 +1036,20 @@ class Message(models.Model):
                 key = match.group(2)
                 if not data_to_url.get(key):
                     name = match.group(4) if match.group(4) else 'image%s' % len(data_to_url)
-                    attachment = Attachments.create({
-                        'name': name,
-                        'datas': match.group(2),
-                        'datas_fname': name,
-                        'res_model': values.get('model'),
-                        'res_id': values.get('res_id'),
-                    })
-                    attachment.generate_access_token()
-                    values['attachment_ids'].append((4, attachment.id))
-                    data_to_url[key] = ['/web/image/%s?access_token=%s' % (attachment.id, attachment.access_token), name]
+                    try:
+                        attachment = Attachments.create({
+                            'name': name,
+                            'datas': match.group(2),
+                            'res_model': values.get('model'),
+                            'res_id': values.get('res_id'),
+                        })
+                    except binascii_error:
+                        _logger.warning("Impossible to create an attachment out of badly formated base64 embedded image. Image has been removed.")
+                        return match.group(3)  # group(3) is the url ending single/double quote matched by the regexp
+                    else:
+                        attachment.generate_access_token()
+                        values['attachment_ids'].append((4, attachment.id))
+                        data_to_url[key] = ['/web/image/%s?access_token=%s' % (attachment.id, attachment.access_token), name]
                 return '%s%s alt="%s"' % (data_to_url[key][0], match.group(3), data_to_url[key][1])
             values['body'] = _image_dataurl.sub(base64_to_boundary, tools.ustr(values['body']))
 
@@ -985,8 +1057,21 @@ class Message(models.Model):
         tracking_values_cmd = values.pop('tracking_value_ids', False)
         message = super(Message, self).create(values)
 
+        # check attachement access
         if values.get('attachment_ids'):
-            message.attachment_ids.check(mode='read')
+            attachment_ids = []
+            if all(isinstance(command, int) or command[0] in (4, 6) for command in values.get('attachment_ids')):
+                attachment_ids = []
+                for command in values.get('attachment_ids'):
+                    if isinstance(command, int):
+                        attachment_ids += [command]
+                    elif command[0] == 6:
+                        attachment_ids += command[2]
+                    else: # command[0] == 4:
+                        attachment_ids += [command[1]]
+            else:
+                attachment_ids = message.mapped('attachment_ids').ids  # fallback on read if any unknow command
+            self.env['ir.attachment'].browse(attachment_ids).check(mode='read')
 
         if tracking_values_cmd:
             vals_lst = [dict(cmd[2], mail_message_id=message.id) for cmd in tracking_values_cmd if len(cmd) == 3 and cmd[0] == 0]
@@ -996,31 +1081,29 @@ class Message(models.Model):
             if other_cmd:
                 message.sudo().write({'tracking_value_ids': tracking_values_cmd})
 
-        if values.get('model') and values.get('res_id'):
-            message._invalidate_documents()
+        if message.is_thread_message(values):
+            message._invalidate_documents(values.get('model'), values.get('res_id'))
 
         return message
 
-    @api.multi
     def read(self, fields=None, load='_classic_read'):
         """ Override to explicitely call check_access_rule, that is not called
             by the ORM. It instead directly fetches ir.rules and apply them. """
         self.check_access_rule('read')
         return super(Message, self).read(fields=fields, load=load)
 
-    @api.multi
     def write(self, vals):
-        if 'model' in vals or 'res_id' in vals:
+        record_changed = 'model' in vals or 'res_id' in vals
+        if record_changed or 'message_type' in vals:
             self._invalidate_documents()
         res = super(Message, self).write(vals)
         if vals.get('attachment_ids'):
             for mail in self:
                 mail.attachment_ids.check(mode='read')
-        if 'notification_ids' in vals or 'model' in vals or 'res_id' in vals:
+        if 'notification_ids' in vals or record_changed:
             self._invalidate_documents()
         return res
 
-    @api.multi
     def unlink(self):
         # cascade-delete attachments that are directly attached to the message (should only happen
         # for mail.messages that act as parent for a standalone mail.mail record).
@@ -1030,134 +1113,15 @@ class Message(models.Model):
         self.mapped('attachment_ids').filtered(
             lambda attach: attach.res_model == self._name and (attach.res_id in self.ids or attach.res_id == 0)
         ).unlink()
-        self._invalidate_documents()
+        for elem in self:
+            if elem.is_thread_message():
+                elem._invalidate_documents()
         return super(Message, self).unlink()
-
-    #------------------------------------------------------
-    # Messaging API
-    #------------------------------------------------------
-
-    @api.multi
-    def _notify(self, record, msg_vals, force_send=False, send_after_commit=True, model_description=False, mail_auto_delete=True):
-        """ Main notification method. This method basically does two things
-
-         * call ``_notify_compute_recipients`` that computes recipients to
-           notify based on message record or message creation values if given
-           (to optimize performance if we already have data computed);
-         * call ``_notify_recipients`` that performs the notification process;
-
-        :param record: record on which the message is posted, if any;
-        :param msg_vals: dictionary of values used to create the message. If given
-          it is used instead of accessing ``self`` to lesen query count in some
-          simple cases where no notification is actually required;
-        :param force_send: tells whether to send notification emails within the
-          current transaction or to use the email queue;
-        :param send_after_commit: if force_send, tells whether to send emails after
-          the transaction has been committed using a post-commit hook;
-        :param model_description: optional data used in notification process (see
-          notification templates);
-        :param mail_auto_delete: delete notification emails once sent;
-        """
-        msg_vals = msg_vals if msg_vals else {}
-        rdata = self._notify_compute_recipients(record, msg_vals)
-        return self._notify_recipients(
-            rdata, record, msg_vals,
-            force_send=force_send, send_after_commit=send_after_commit,
-            model_description=model_description, mail_auto_delete=mail_auto_delete)
-
-    @api.multi
-    def _notify_compute_recipients(self, record, msg_vals):
-        """ Compute recipients to notify based on subtype and followers. This
-        method returns data structured as expected for ``_notify_recipients``. """
-        msg_sudo = self.sudo()
-
-        pids = [x[1] for x in msg_vals.get('partner_ids')] if 'partner_ids' in msg_vals else msg_sudo.partner_ids.ids
-        cids = [x[1] for x in msg_vals.get('channel_ids')] if 'channel_ids' in msg_vals else msg_sudo.channel_ids.ids
-        subtype_id = msg_vals.get('subtype_id') if 'subtype_id' in msg_vals else msg_sudo.subtype_id.id
-
-        recipient_data = {
-            'partners': [],
-            'channels': [],
-        }
-        res = self.env['mail.followers']._get_recipient_data(record, subtype_id, pids, cids)
-        author_id = msg_vals.get('author_id') or self.author_id.id if res else False
-        for pid, cid, active, pshare, ctype, notif, groups in res:
-            if pid and pid == author_id and not self.env.context.get('mail_notify_author'):  # do not notify the author of its own messages
-                continue
-            if pid:
-                if active is False:
-                    # avoid to notify inactive partner by email (odoobot)
-                    continue
-                pdata = {'id': pid, 'active': active, 'share': pshare, 'groups': groups}
-                if notif == 'inbox':
-                    recipient_data['partners'].append(dict(pdata, notif=notif, type='user'))
-                else:
-                    if not pshare and notif:  # has an user and is not shared, is therefore user
-                        recipient_data['partners'].append(dict(pdata, notif='email', type='user'))
-                    elif pshare and notif:  # has an user but is shared, is therefore portal
-                        recipient_data['partners'].append(dict(pdata, notif='email', type='portal'))
-                    else:  # has no user, is therefore customer
-                        recipient_data['partners'].append(dict(pdata, notif='email', type='customer'))
-            elif cid:
-                recipient_data['channels'].append({'id': cid, 'notif': notif, 'type': ctype})
-        return recipient_data
-
-    @api.multi
-    def _notify_recipients(self, rdata, record, msg_vals,
-                           force_send=False, send_after_commit=True,
-                           model_description=False, mail_auto_delete=True):
-        """ Main method implementing the notification process.
-
-        :param rdata: dict containing recipients data: {
-            'partners': list of dict containing partner data: id, share status (boolean),
-            notification type ('email' or 'inbox'), type (main classification group used
-            in notification process), groups (user groups)
-            'channels': list of dict containing channel data: id, notification type
-            ('email' for mailing list otherwise 'inbox'), type (channel_type)
-        }
-        """
-        self.ensure_one()
-
-        email_cids = [r['id'] for r in rdata['channels'] if r['notif'] == 'email']
-        inbox_pids = [r['id'] for r in rdata['partners'] if r['notif'] == 'inbox']
-
-        message_values = {}
-        if rdata['channels']:
-            message_values['channel_ids'] = [(6, 0, [r['id'] for r in rdata['channels']])]
-        if rdata['partners']:
-            message_values['needaction_partner_ids'] = [(6, 0, [r['id'] for r in rdata['partners']])]
-        if message_values and record and hasattr(record, '_notify_customize_recipients'):
-            message_values.update(record._notify_customize_recipients(self, message_values, rdata))
-        if message_values:
-            self.write(message_values)
-
-        # notify partners and channels
-        if email_cids:
-            new_pids = self.env['res.partner'].sudo().search([
-                ('id', 'not in', [r['id'] for r in rdata['partners']]),
-                ('channel_ids', 'in', email_cids),
-                ('email', 'not in', [self.author_id.email, self.email_from]),
-            ])
-            for partner in new_pids:
-                rdata['partners'].append({'id': partner.id, 'share': True, 'notif': 'email', 'type': 'customer', 'groups': []})
-
-        partner_email_rdata = [r for r in rdata['partners'] if r['notif'] == 'email']
-        if partner_email_rdata:
-            self.env['res.partner']._notify(self, partner_email_rdata, record, force_send=force_send, send_after_commit=send_after_commit, model_description=model_description, mail_auto_delete=mail_auto_delete)
-
-        if inbox_pids:
-            self.env['res.partner'].browse(inbox_pids)._notify_by_chat(self)
-
-        if rdata['channels']:
-            self.env['mail.channel'].sudo().browse([r['id'] for r in rdata['channels']])._notify(self)
-
-        return True
 
     # --------------------------------------------------
     # Moderation
     # --------------------------------------------------
 
-    @api.multi
     def moderate(self, decision, **kwargs):
         """ Moderate messages. A check is done on moderation status of the
         current user to ensure we only moderate valid messages. """
@@ -1169,7 +1133,6 @@ class Message(models.Model):
         if to_moderate:
             self.browse(to_moderate)._moderate(decision, **kwargs)
 
-    @api.multi
     def _moderate(self, decision, **kwargs):
         """ :param decision
                  * accept       - moderate message and broadcast that message to followers of relevant channels.
@@ -1214,10 +1177,10 @@ class Message(models.Model):
         })
         # proceed with notification process to send notification emails and Inbox messages
         for message in self:
-            record = self.env[message.model].browse(message.res_id) if message.model and message.res_id else None
-            message._notify(record, {})
+            if message.is_thread_message(): # note, since we will only intercept _notify_thread for message posted on channel,
+                # message will always be a thread_message. This check should always be true.
+                self.env[message.model].browse(message.res_id)._notify_thread(message)
 
-    @api.multi
     def _moderate_send_reject_email(self, subject, comment):
         for msg in self:
             if not msg.email_from:
@@ -1225,7 +1188,7 @@ class Message(models.Model):
             if self.env.user.partner_id.email:
                 email_from = formataddr((self.env.user.partner_id.name, self.env.user.partner_id.email))
             else:
-                email_from = self.env.company_id.catchall
+                email_from = self.env.company.catchall
 
             body_html = tools.append_content_to_html('<div>%s</div>' % tools.ustr(comment), msg.body)
             vals = {
@@ -1238,7 +1201,6 @@ class Message(models.Model):
             }
             self.env['mail.mail'].sudo().create(vals)
 
-    @api.multi
     def _search_from_same_authors(self):
         """ Returns all pending moderation messages that have same email_from and
         same res_id as given recordset. """
@@ -1252,7 +1214,6 @@ class Message(models.Model):
             ])
         return messages
 
-    @api.multi
     def _moderate_discard(self):
         """ Notify deletion of messages to their moderators and authors and then delete them.
         """
@@ -1312,7 +1273,7 @@ class Message(models.Model):
         MailThread = self.env['mail.thread'].with_context(mail_notify_author=True)
         for moderator in moderators_to_notify:
             MailThread.message_notify(
-                moderator.partner_id.ids,
+                partner_ids=moderator.partner_id.ids,
                 subject=_('Message are pending moderation'),  # tocheck: target language
                 body=template.render({'record': moderator.partner_id}, engine='ir.qweb', minimal_qcontext=True),
                 email_from=moderator.company_id.catchall or moderator.company_id.email,

@@ -53,7 +53,7 @@ class Website(models.Model):
     domain = fields.Char('Website Domain')
     country_group_ids = fields.Many2many('res.country.group', 'website_country_group_rel', 'website_id', 'country_group_id',
                                          string='Country Groups', help='Used when multiple websites have the same domain.')
-    company_id = fields.Many2one('res.company', string="Company", default=lambda self: self.env.ref('base.main_company').id, required=True)
+    company_id = fields.Many2one('res.company', string="Company", default=lambda self: self.env.company, required=True)
     language_ids = fields.Many2many('res.lang', 'website_lang_rel', 'website_id', 'lang_id', 'Languages', default=_active_languages)
     default_lang_id = fields.Many2one('res.lang', string="Default Language", default=_default_language, required=True)
     default_lang_code = fields.Char("Default language code", related='default_lang_id.code', store=True, readonly=False)
@@ -123,7 +123,6 @@ class Website(models.Model):
         if language_ids and self.default_lang_id not in language_ids:
             self.default_lang_id = language_ids[0]
 
-    @api.multi
     def _compute_menu(self):
         Menu = self.env['website.menu']
         for website in self:
@@ -147,16 +146,18 @@ class Website(models.Model):
 
         return res
 
-    @api.multi
     def write(self, values):
+        public_user_to_change_websites = self.env['website']
         self._handle_favicon(values)
 
         self._get_languages.clear_cache(self)
         if 'company_id' in values and 'user_id' not in values:
-            company = self.env['res.company'].browse(values['company_id'])
-            values['user_id'] = company._get_public_user().id
+            public_user_to_change_websites = self.filtered(lambda w: w.sudo().user_id.company_id.id != values['company_id'])
+            if public_user_to_change_websites:
+                company = self.env['res.company'].browse(values['company_id'])
+                super(Website, public_user_to_change_websites).write(dict(values, user_id=company._get_public_user().id))
 
-        result = super(Website, self).write(values)
+        result = super(Website, self - public_user_to_change_websites).write(values)
         if 'cdn_activated' in values or 'cdn_url' in values or 'cdn_filters' in values:
             # invalidate the caches from static node at compile time
             self.env['ir.qweb'].clear_caches()
@@ -185,6 +186,8 @@ class Website(models.Model):
 
         self.homepage_id = self.env['website.page'].search([('website_id', '=', self.id),
                                                             ('key', '=', standard_homepage.key)])
+        # prevent /-1 as homepage URL
+        self.homepage_id.url = '/'
 
         # Bootstrap default menu hierarchy, create a new minimalist one if no default
         default_menu = self.env.ref('website.main_menu')
@@ -416,7 +419,6 @@ class Website(models.Model):
     # Languages
     # ----------------------------------------------------------
 
-    @api.multi
     def get_languages(self):
         self.ensure_one()
         return self._get_languages()
@@ -425,7 +427,6 @@ class Website(models.Model):
     def _get_languages(self):
         return [(lg.code, lg.name) for lg in self.language_ids]
 
-    @api.multi
     def get_alternate_languages(self, req=None):
         langs = []
         if req is None:
@@ -658,7 +659,6 @@ class Website(models.Model):
         # check that all args have a converter
         return all((arg in rule._converters) for arg in args)
 
-    @api.multi
     def enumerate_pages(self, query_string=None, force=False):
         """ Available pages in the website/CMS. This is mostly used for links
             generation and can be overridden by modules setting up new HTML
@@ -754,13 +754,11 @@ class Website(models.Model):
                 record['__lastmod'] = page['write_date'].date()
             yield record
 
-    @api.multi
     def get_website_pages(self, domain=[], order='name', limit=None):
         domain += self.get_current_website().website_domain()
         pages = self.env['website.page'].search(domain, order='name', limit=limit)
         return pages
 
-    @api.multi
     def search_pages(self, needle=None, limit=None):
         name = slugify(needle, max_length=50, path=True)
         res = []
@@ -803,7 +801,6 @@ class Website(models.Model):
             'target': 'self',
         }
 
-    @api.multi
     def _get_http_domain(self):
         """Get the domain of the current website, prefixed by http if no
         scheme is specified.
@@ -815,3 +812,23 @@ class Website(models.Model):
             return ''
         res = urls.url_parse(self.domain)
         return 'http://' + self.domain if not res.scheme else self.domain
+
+
+class BaseModel(models.AbstractModel):
+    _inherit = 'base'
+
+    def get_base_url(self):
+        """
+        Returns baseurl about one given record.
+        If a website_id field exists in the current record we use the url
+        from this website as base url.
+
+        :return: the base url for this record
+        :rtype: string
+
+        """
+        self.ensure_one()
+        if 'website_id' in self and self.website_id.domain:
+            return self.website_id._get_http_domain()
+        else:
+            return super(BaseModel, self).get_base_url()

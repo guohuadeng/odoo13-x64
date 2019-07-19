@@ -128,6 +128,8 @@ class WebsiteForm(http.Controller):
                 # If it's not, we'll use attachments instead
                 if field_name in authorized_fields and authorized_fields[field_name]['type'] == 'binary':
                     data['record'][field_name] = base64.b64encode(field_value.read())
+                    if authorized_fields[field_name]['manual']:
+                        data['record'][field_name + "_filename"] = field_value.filename
                 else:
                     field_value.field_name = field_name
                     data['attachments'].append(field_value)
@@ -213,7 +215,6 @@ class WebsiteForm(http.Controller):
             attachment_value = {
                 'name': file.filename,
                 'datas': base64.encodestring(file.read()),
-                'datas_fname': file.filename,
                 'res_model': model_name,
                 'res_id': record.id,
             }

@@ -20,14 +20,12 @@ class TestMailTemplate(BaseFunctionalTest, MockEmails, TestRecipients):
         })
 
         self._attachments = [{
-            'name': '_Test_First',
-            'datas_fname': 'first.txt',
+            'name': 'first.txt',
             'datas': base64.b64encode(b'My first attachment'),
             'res_model': 'res.partner',
             'res_id': self.user_admin.partner_id.id
         }, {
-            'name': '_Test_Second',
-            'datas_fname': 'second.txt',
+            'name': 'second.txt',
             'datas': base64.b64encode(b'My second attachment'),
             'res_model': 'res.partner',
             'res_id': self.user_admin.partner_id.id
@@ -52,7 +50,7 @@ class TestMailTemplate(BaseFunctionalTest, MockEmails, TestRecipients):
 
     @mute_logger('odoo.addons.mail.models.mail_mail')
     def test_composer_w_template(self):
-        composer = self.env['mail.compose.message'].sudo(self.user_employee).with_context({
+        composer = self.env['mail.compose.message'].with_user(self.user_employee).with_context({
             'default_composition_mode': 'comment',
             'default_model': 'mail.test.simple',
             'default_res_id': self.test_record.id,
@@ -72,9 +70,47 @@ class TestMailTemplate(BaseFunctionalTest, MockEmails, TestRecipients):
             body_content=self.test_record.email_from,
             attachments=[('first.txt', b'My first attachment', 'text/plain'), ('second.txt', b'My second attachment', 'text/plain')])
 
+    def test_composer_template_onchange_attachments(self):
+        """Tests that all attachments are added to the composer,
+        static attachments are not duplicated and while reports are re-generated,
+        and that intermediary attachments are dropped."""
+
+        composer = self.env['mail.compose.message'].with_context(default_attachment_ids=[]).create({})
+        report_template = self.env.ref('web.action_report_externalpreview')
+        template_1 = self.email_template.copy({
+            'report_template': report_template.id,
+        })
+        template_2 = self.email_template.copy({
+            'attachment_ids': False,
+            'report_template': report_template.id,
+        })
+
+        onchange_templates = [template_1, template_2, template_1, False]
+        attachments_onchange = [composer.attachment_ids]
+        # template_1 has two static attachments and one dynamically generated report,
+        # template_2 only has the report, so we should get 3, 1, 3 attachments
+        attachment_numbers = [0, 3, 1, 3, 0]
+
+        for template in onchange_templates:
+            onchange = composer.onchange_template_id(
+                template.id if template else False, 'comment', self.test_record._name, self.test_record.id
+            )
+            composer.update(onchange['value'])
+            attachments_onchange.append(composer.attachment_ids)
+
+        self.assertEqual(
+            [len(attachments) for attachments in attachments_onchange],
+            attachment_numbers,
+        )
+
+        self.assertTrue(
+            len(attachments_onchange[1] & attachments_onchange[3]) == 2,
+            "The two static attachments on the template should be common to the two onchanges"
+        )
+
     @mute_logger('odoo.addons.mail.models.mail_mail')
     def test_post_post_w_template(self):
-        self.test_record.sudo(self.user_employee).message_post_with_template(self.email_template.id, composition_mode='comment')
+        self.test_record.with_user(self.user_employee).message_post_with_template(self.email_template.id, composition_mode='comment')
 
         new_partners = self.env['res.partner'].search([('email', 'in', [self.email_1, self.email_2])])
         self.assertEmails(
@@ -88,7 +124,7 @@ class TestMailTemplate(BaseFunctionalTest, MockEmails, TestRecipients):
     def test_composer_w_template_mass_mailing(self):
         test_record_2 = self.env['mail.test.simple'].with_context(BaseFunctionalTest._test_context).create({'name': 'Test2', 'email_from': 'laurie.poiret@example.com'})
 
-        composer = self.env['mail.compose.message'].sudo(self.user_employee).with_context({
+        composer = self.env['mail.compose.message'].with_user(self.user_employee).with_context({
             'default_composition_mode': 'mass_mail',
             # 'default_notify': True,
             'default_notify': False,
@@ -207,7 +243,7 @@ class TestMailTemplate(BaseFunctionalTest, MockEmails, TestRecipients):
     def test_create_partner_from_tracking_multicompany(self):
         company1 = self.env['res.company'].create({'name': 'company1'})
         self.env.user.write({'company_ids': [(4, company1.id, False)]})
-        self.assertNotEqual(self.env.company_id, company1)
+        self.assertNotEqual(self.env.company, company1)
 
         email_new_partner = "diamonds@rust.com"
         Partner = self.env['res.partner']

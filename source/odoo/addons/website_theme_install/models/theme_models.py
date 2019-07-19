@@ -31,7 +31,6 @@ class ThemeView(models.Model):
 
     # TODO master add missing field: customize_show
 
-    @api.multi
     def _convert_to_base_model(self, website, **kwargs):
         self.ensure_one()
         inherit = self.inherit_id
@@ -69,9 +68,7 @@ class ThemeAttachment(models.Model):
     url = fields.Char()
     copy_ids = fields.One2many('ir.attachment', 'theme_template_id', 'Attachment using a copy of me', copy=False, readonly=True)
 
-    # TODO in master: add missing field: datas_fname
 
-    @api.multi
     def _convert_to_base_model(self, website, **kwargs):
         self.ensure_one()
         new_attach = {
@@ -99,7 +96,6 @@ class ThemeMenu(models.Model):
     parent_id = fields.Many2one('theme.website.menu', index=True, ondelete="cascade")
     copy_ids = fields.One2many('website.menu', 'theme_template_id', 'Menu using a copy of me', copy=False, readonly=True)
 
-    @api.multi
     def _convert_to_base_model(self, website, **kwargs):
         self.ensure_one()
         page_id = self.page_id.copy_ids.filtered(lambda x: x.website_id == website)
@@ -125,7 +121,6 @@ class ThemePage(models.Model):
     website_indexed = fields.Boolean('Page Indexed', default=True)
     copy_ids = fields.One2many('website.page', 'theme_template_id', 'Page using a copy of me', copy=False, readonly=True)
 
-    @api.multi
     def _convert_to_base_model(self, website, **kwargs):
         self.ensure_one()
         view_id = self.view_id.copy_ids.filtered(lambda x: x.website_id == website)

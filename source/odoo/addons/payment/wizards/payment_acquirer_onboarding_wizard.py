@@ -16,9 +16,12 @@ class PaymentWizard(models.TransientModel):
         ('manual', "Custom payment instructions"),
     ], string="Payment Method", default=lambda self: self._get_default_payment_acquirer_onboarding_value('payment_method'))
 
-    paypal_email_account = fields.Char("PayPal Email ID", default=lambda self: self._get_default_payment_acquirer_onboarding_value('paypal_email_account'))
-    paypal_seller_account = fields.Char("Paypal Merchant ID", default=lambda self: self._get_default_payment_acquirer_onboarding_value('paypal_seller_account'))
-    paypal_pdt_token = fields.Char("Paypal PDT Token", default=lambda self: self._get_default_payment_acquirer_onboarding_value('paypal_pdt_token'))
+    paypal_user_type = fields.Selection([
+        ('new_user', "I don't have a Paypal account"),
+        ('existing_user', 'I have a Paypal account')], string="Paypal User Type", default='new_user')
+    paypal_email_account = fields.Char("Email", default=lambda self: self._get_default_payment_acquirer_onboarding_value('paypal_email_account'))
+    paypal_seller_account = fields.Char("Merchant Account ID", default=lambda self: self._get_default_payment_acquirer_onboarding_value('paypal_seller_account'))
+    paypal_pdt_token = fields.Char("PDT Identity Token", default=lambda self: self._get_default_payment_acquirer_onboarding_value('paypal_pdt_token'))
 
     stripe_secret_key = fields.Char(default=lambda self: self._get_default_payment_acquirer_onboarding_value('stripe_secret_key'))
     stripe_publishable_key = fields.Char(default=lambda self: self._get_default_payment_acquirer_onboarding_value('stripe_publishable_key'))
@@ -31,7 +34,7 @@ class PaymentWizard(models.TransientModel):
     @api.onchange('journal_name', 'acc_number')
     def _set_manual_post_msg_value(self):
         self.manual_post_msg = _('<h3>Please make a payment to: </h3><ul><li>Bank: %s</li><li>Account Number: %s</li><li>Account Holder: %s</li></ul>') %\
-                               (self.journal_name or _("Bank") , self.acc_number or _("Account"), self.env.company_id.name)
+                               (self.journal_name or _("Bank") , self.acc_number or _("Account"), self.env.company.name)
 
     _payment_acquirer_onboarding_cache = {}
     _data_fetched = False
@@ -41,10 +44,10 @@ class PaymentWizard(models.TransientModel):
             env = self.env
         module_id = env.ref('base.module_payment_transfer').id
         return env['payment.acquirer'].search([('module_id', '=', module_id),
-            ('company_id', '=', env.company_id.id)], limit=1)
+            ('company_id', '=', env.company.id)], limit=1)
 
     def _get_default_payment_acquirer_onboarding_value(self, key):
-        if not self.env.user._is_admin():
+        if not self.env.is_admin():
             raise UserError(_("Only administrators can access this data."))
 
         if self._data_fetched:
@@ -52,7 +55,7 @@ class PaymentWizard(models.TransientModel):
 
         self._data_fetched = True
 
-        self._payment_acquirer_onboarding_cache['payment_method'] = self.env.company_id.payment_onboarding_payment_method
+        self._payment_acquirer_onboarding_cache['payment_method'] = self.env.company.payment_onboarding_payment_method
 
         installed_modules = self.env['ir.module.module'].sudo().search([
             ('name', 'in', ('payment_paypal', 'payment_stripe')),
@@ -88,7 +91,6 @@ class PaymentWizard(models.TransientModel):
     def _on_save_payment_acquirer(self):
         self._install_module('account_payment')
 
-    @api.multi
     def add_payment_methods(self):
         """ Install required payment acquiers, configure them and mark the
             onboarding step as done."""
@@ -103,7 +105,7 @@ class PaymentWizard(models.TransientModel):
 
             self._on_save_payment_acquirer()
 
-            self.env.company_id.payment_onboarding_payment_method = self.payment_method
+            self.env.company.payment_onboarding_payment_method = self.payment_method
 
             # create a new env including the freshly installed module(s)
             new_env = api.Environment(self.env.cr, self.env.uid, self.env.context)
@@ -149,7 +151,7 @@ class PaymentWizard(models.TransientModel):
         return {'type': 'ir.actions.act_window_close'}
 
     def _set_payment_acquirer_onboarding_step_done(self):
-        self.env.company_id.set_onboarding_step_done('payment_acquirer_onboarding_state')
+        self.env.company.set_onboarding_step_done('payment_acquirer_onboarding_state')
 
     def action_onboarding_other_payment_acquirer(self):
         self._set_payment_acquirer_onboarding_step_done()

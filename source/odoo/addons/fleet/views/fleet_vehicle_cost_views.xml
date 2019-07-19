@@ -153,7 +153,6 @@
         <record id='fleet_vehicle_costs_action' model='ir.actions.act_window'>
             <field name="name">Vehicles Costs</field>
             <field name="res_model">fleet.vehicle.cost</field>
-            <field name="view_type">form</field>
             <field name="view_mode">tree,kanban,form,graph</field>
             <field name="context">{"search_default_parent_false" : True, "search_default_groupby_vehicle_id" : True,}</field>
             <field name="help" type="html">
@@ -181,14 +180,11 @@
                     <field name="state" widget="statusbar" />
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                     <field name="currency_id" invisible="1"/>
-                    <div class="oe_button_box" name="button_box">
-                        <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
-                            <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
-                        </button>
-                    </div>
                     <group col="2">
                         <group string="Contract Informations">
+                            <field name="active" invisible="1"/>
                             <field name="ins_ref"/>
                             <field name="cost_subtype_id" required="1" domain="['|',('category','=','contract'),('category','=','both')]"/>
                             <field name="insurer_id" context="{'default_supplier': True}"/>
@@ -266,7 +262,6 @@
         binding_model="fleet.vehicle.log.contract"
         binding_views="form"
         view_mode="form"
-        view_type="form"
         />
 
     <record id='fleet_vehicle_log_contract_view_tree' model='ir.ui.view'>
@@ -384,7 +379,6 @@
     <record id='fleet_vehicle_log_contract_action' model='ir.actions.act_window'>
         <field name="name">Vehicles Contracts</field>
         <field name="res_model">fleet.vehicle.log.contract</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,graph,activity</field>
         <field name="context">{'search_default_open': 1}</field>
         <field name="help" type="html">
@@ -518,7 +512,6 @@
     <record id='fleet_vehicle_log_fuel_action' model='ir.actions.act_window'>
         <field name="name">Vehicles Fuel Logs</field>
         <field name="res_model">fleet.vehicle.log.fuel</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,graph</field>
         <field name="context">{"search_default_groupby_vehicle" : True}</field>
         <field name="help" type="html">
@@ -650,7 +643,6 @@
     <record id='fleet_vehicle_log_services_action' model='ir.actions.act_window'>
         <field name="name">Vehicles Services Logs</field>
         <field name="res_model">fleet.vehicle.log.services</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,graph</field>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">
