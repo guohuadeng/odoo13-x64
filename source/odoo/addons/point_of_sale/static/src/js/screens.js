@@ -289,7 +289,6 @@ var ScaleScreenWidget = ScreenWidget.extend({
     show: function(){
         this._super();
         var self = this;
-        var queue = this.pos.proxy_queue;
 
         this.set_weight(0);
         this.renderElement();
@@ -314,7 +313,12 @@ var ScaleScreenWidget = ScreenWidget.extend({
             // add product *after* switching screen to scroll properly
             self.order_product();
         });
+        this._read_scale();
+    },
 
+    _read_scale: function() {
+        var self = this;
+        var queue = this.pos.proxy_queue;
         queue.schedule(function(){
             return self.pos.proxy.scale_read().then(function(weight){
                 self.set_weight(weight.weight);
@@ -728,7 +732,7 @@ var ProductCategoriesWidget = PosBaseWidget.extend({
     },
 
     get_image_url: function(category){
-        return window.location.origin + '/web/image?model=pos.category&field=image_medium&id='+category.id;
+        return window.location.origin + '/web/image?model=pos.category&field=image_128&id='+category.id;
     },
 
     render_category: function( category, with_image ){
@@ -895,7 +899,7 @@ var ProductListWidget = PosBaseWidget.extend({
         this.renderElement();
     },
     get_product_image_url: function(product){
-        return window.location.origin + '/web/image?model=product.product&field=image_medium&id='+product.id;
+        return window.location.origin + '/web/image?model=product.product&field=image_128&id='+product.id;
     },
     replace: function($target){
         this.renderElement();
@@ -1150,6 +1154,7 @@ var ClientListScreenWidget = ScreenWidget.extend({
         this.$('.new-customer').click(function(){
             self.display_client_details('edit',{
                 'country_id': self.pos.company.country_id,
+                'state_id': self.pos.company.state_id,
             });
         });
 
@@ -1247,10 +1252,11 @@ var ClientListScreenWidget = ScreenWidget.extend({
         if( this.has_client_changed() ){
             var default_fiscal_position_id = _.findWhere(this.pos.fiscal_positions, {'id': this.pos.config.default_fiscal_position_id[0]});
             if ( this.new_client ) {
+                var client_fiscal_position_id;
                 if (this.new_client.property_account_position_id ){
-                  var client_fiscal_position_id = _.findWhere(this.pos.fiscal_positions, {'id': this.new_client.property_account_position_id[0]});
-                  order.fiscal_position = client_fiscal_position_id || default_fiscal_position_id;
+                    client_fiscal_position_id = _.findWhere(this.pos.fiscal_positions, {'id': this.new_client.property_account_position_id[0]});
                 }
+                order.fiscal_position = client_fiscal_position_id || default_fiscal_position_id;
                 order.set_pricelist(_.findWhere(this.pos.pricelists, {'id': this.new_client.property_product_pricelist[0]}) || this.pos.default_pricelist);
             } else {
                 order.fiscal_position = default_fiscal_position_id;
@@ -1302,7 +1308,7 @@ var ClientListScreenWidget = ScreenWidget.extend({
         }
     },
     partner_icon_url: function(id){
-        return '/web/image?model=res.partner&id='+id+'&field=image_small';
+        return '/web/image?model=res.partner&id='+id+'&field=image_64';
     },
 
     // ui handle for the 'edit selected customer' action
@@ -1535,6 +1541,24 @@ var ClientListScreenWidget = ScreenWidget.extend({
                 }, 0);
             });
 
+            contents.find('.client-address-country').on('change', function (ev) {
+                var $stateSelection = contents.find('.client-address-states');
+                var value = this.value;
+                $stateSelection.empty()
+                $stateSelection.append($("<option/>", {
+                    value: '',
+                    text: 'None',
+                }));
+                self.pos.states.forEach(function (state) {
+                    if (state.country_id[0] == value) {
+                        $stateSelection.append($("<option/>", {
+                            value: state.id,
+                            text: state.name
+                        }));
+                    }
+                });
+            });
+
             contents.find('.image-uploader').on('change',function(event){
                 self.load_image_file(event.target.files[0],function(res){
                     if (res) {
@@ -1645,10 +1669,10 @@ var ReceiptScreenWidget = ScreenWidget.extend({
         }
         this.pos.get_order()._printed = true;
     },
-    print_xml: function() {
-        var receipt = QWeb.render('XmlReceipt', this.get_receipt_render_env());
+    print_html: function () {
+        var receipt = QWeb.render('OrderReceipt', this.get_receipt_render_env());
 
-        this.pos.proxy.print_receipt(receipt);
+        this.pos.proxy.printer.print_receipt(receipt);
         this.pos.get_order()._printed = true;
     },
     print: function() {
@@ -1679,8 +1703,8 @@ var ReceiptScreenWidget = ScreenWidget.extend({
             }, 1000);
 
             this.print_web();
-        } else {    // proxy (xml) printing
-            this.print_xml();
+        } else {    // proxy (html) printing
+            this.print_html();
             this.lock_screen(false);
         }
     },
@@ -1737,7 +1761,7 @@ var ReceiptScreenWidget = ScreenWidget.extend({
         }
     },
     render_receipt: function() {
-        this.$('.pos-receipt-container').html(QWeb.render('PosTicket', this.get_receipt_render_env()));
+        this.$('.pos-receipt-container').html(QWeb.render('OrderReceipt', this.get_receipt_render_env()));
     },
 });
 gui.define_screen({name:'receipt', widget: ReceiptScreenWidget});
@@ -1877,7 +1901,7 @@ var PaymentScreenWidget = ScreenWidget.extend({
 	}
 
 	if (! open_paymentline) {
-            this.pos.get_order().add_paymentline( this.pos.cashregisters[0]);
+            this.pos.get_order().add_paymentline( this.pos.payment_methods[0]);
             this.render_paymentlines();
         }
 
@@ -1921,12 +1945,7 @@ var PaymentScreenWidget = ScreenWidget.extend({
         }
 
         var lines = order.get_paymentlines();
-        var due   = order.get_due();
-        var extradue = 0;
-        if (due && lines.length  && due !== order.get_due(lines[lines.length-1])) {
-            extradue = due;
-        }
-
+        var extradue = this.compute_extradue(order);
 
         this.$('.paymentlines-container').empty();
         var lines = $(QWeb.render('PaymentScreen-Paymentlines', { 
@@ -1946,15 +1965,17 @@ var PaymentScreenWidget = ScreenWidget.extend({
             
         lines.appendTo(this.$('.paymentlines-container'));
     },
-    click_paymentmethods: function(id) {
-        var cashregister = null;
-        for ( var i = 0; i < this.pos.cashregisters.length; i++ ) {
-            if ( this.pos.cashregisters[i].journal_id[0] === id ){
-                cashregister = this.pos.cashregisters[i];
-                break;
-            }
+    compute_extradue: function (order) {
+        var lines = order.get_paymentlines();
+        var due   = order.get_due();
+        if (due && lines.length  && due !== order.get_due(lines[lines.length-1])) {
+            return due;
         }
-        this.pos.get_order().add_paymentline( cashregister );
+        return 0;
+    },
+    click_paymentmethods: function(id) {
+        var payment_method = this.pos.payment_methods_by_id[id]
+        this.pos.get_order().add_paymentline(payment_method);
         this.reset_input();
         this.render_paymentlines();
     },
@@ -2038,7 +2059,7 @@ var PaymentScreenWidget = ScreenWidget.extend({
         });
 
         this.$('.js_cashdrawer').click(function(){
-            self.pos.proxy.open_cashbox();
+            self.pos.proxy.printer.open_cashbox();
         });
 
     },
@@ -2108,8 +2129,8 @@ var PaymentScreenWidget = ScreenWidget.extend({
         // The exact amount must be paid if there is no cash payment method defined.
         if (Math.abs(order.get_total_with_tax() - order.get_total_paid()) > 0.00001) {
             var cash = false;
-            for (var i = 0; i < this.pos.cashregisters.length; i++) {
-                cash = cash || (this.pos.cashregisters[i].journal.type === 'cash');
+            for (var i = 0; i < this.pos.payment_methods.length; i++) {
+                cash = cash || (this.pos.payment_methods[i].is_cash_count);
             }
             if (!cash) {
                 this.gui.show_popup('error',{
@@ -2149,7 +2170,7 @@ var PaymentScreenWidget = ScreenWidget.extend({
 
         if (order.is_paid_with_cash() && this.pos.config.iface_cashdrawer) { 
 
-                this.pos.proxy.open_cashbox();
+                this.pos.proxy.printer.open_cashbox();
         }
 
         order.initialize_validation_date();

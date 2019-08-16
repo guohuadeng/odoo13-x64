@@ -50,7 +50,7 @@ class TestWarehouse(common.TestMrpCommon):
         return p
 
     def test_manufacturing_route(self):
-        warehouse_1_stock_manager = self.warehouse_1.sudo(self.user_stock_manager)
+        warehouse_1_stock_manager = self.warehouse_1.with_user(self.user_stock_manager)
         manu_rule = self.env['stock.rule'].search([
             ('action', '=', 'manufacture'),
             ('warehouse_id', '=', self.warehouse_1.id)])
@@ -98,20 +98,18 @@ class TestWarehouse(common.TestMrpCommon):
 
         stock_inv_product_4 = self.env['stock.inventory'].create({
             'name': 'Stock Inventory for Stick',
-            'filter': 'product',
-            'product_id': self.product_4.id,
+            'product_ids': [(4, self.product_4.id)],
             'line_ids': [
                 (0, 0, {'product_id': self.product_4.id, 'product_uom_id': self.product_4.uom_id.id, 'product_qty': 8, 'prod_lot_id': lot_product_4.id, 'location_id': self.ref('stock.stock_location_14')}),
             ]})
 
         stock_inv_product_2 = self.env['stock.inventory'].create({
             'name': 'Stock Inventory for Stone Tools',
-            'filter': 'product',
-            'product_id': self.product_2.id,
+            'product_ids': [(4, self.product_2.id)],
             'line_ids': [
                 (0, 0, {'product_id': self.product_2.id, 'product_uom_id': self.product_2.uom_id.id, 'product_qty': 12, 'prod_lot_id': lot_product_2.id, 'location_id': self.ref('stock.stock_location_14')})
             ]})
-        (stock_inv_product_4 | stock_inv_product_2).action_start()
+        (stock_inv_product_4 | stock_inv_product_2)._action_start()
         stock_inv_product_2.action_validate()
         stock_inv_product_4.action_validate()
 
@@ -307,8 +305,6 @@ class TestKitPicking(common.TestMrpCommon):
         # We create an 'immediate transfer' receipt for x3 kit_parent
         self.test_partner = self.env['res.partner'].create({
             'name': 'Notthat Guyagain',
-            'supplier': True,
-            'customer': True,
         })
         self.test_supplier = self.env['stock.location'].create({
             'name': 'supplier',

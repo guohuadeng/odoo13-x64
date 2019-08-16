@@ -382,6 +382,24 @@ var MockServer = Class.extend({
         }
 
         if (domain.length) {
+            // 'child_of' operator isn't supported by domain.js, so we replace
+            // in by the 'in' operator (with the ids of children)
+            domain = domain.map(function (criterion) {
+                if (criterion[1] === 'child_of') {
+                    var oldLength = 0;
+                    var childIDs = [criterion[2]];
+                    while (childIDs.length > oldLength) {
+                        oldLength = childIDs.length;
+                        _.each(records, function (r) {
+                            if (childIDs.indexOf(r.parent_id) >= 0) {
+                                childIDs.push(r.id);
+                            }
+                        });
+                    }
+                    criterion = [criterion[0], 'in', childIDs];
+                }
+                return criterion;
+            });
             records = _.filter(records, function (record) {
                 var fieldValues = _.mapObject(record, function (value) {
                     return value instanceof Array ? value[0] : value;
@@ -644,7 +662,7 @@ var MockServer = Class.extend({
             var viewID = view_descr[0] || false;
             var viewType = view_descr[1];
             if (!viewID) {
-                var contextKey = viewType + '_view_ref';
+                var contextKey = (viewType === 'list' ? 'tree' : viewType) + '_view_ref';
                 if (contextKey in kwargs.context) {
                     viewID = kwargs.context[contextKey];
                 }
@@ -922,7 +940,7 @@ var MockServer = Class.extend({
                 if (fields[fieldName].type === 'date') {
                     value += formatValue(groupByField, record[fieldName]);
                 } else {
-                    value += record[groupByField];
+                    value += JSON.stringify(record[groupByField]);
                 }
             });
             return value;
@@ -956,7 +974,7 @@ var MockServer = Class.extend({
                     res[groupByField] = val;
                 }
 
-                if (field.type === 'date') {
+                if (field.type === 'date' && val) {
                     var aggregateFunction = groupByField.split(':')[1];
                     var startDate, endDate;
                     if (aggregateFunction === 'day') {

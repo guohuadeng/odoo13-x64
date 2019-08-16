@@ -81,9 +81,9 @@ class HolidaysAllocation(models.Model):
     linked_request_ids = fields.One2many('hr.leave.allocation', 'parent_id', string='Linked Requests')
     first_approver_id = fields.Many2one(
         'hr.employee', string='First Approval', readonly=True, copy=False,
-        help='This area is automatically filled by the user who validate the time off', oldname='manager_id')
+        help='This area is automatically filled by the user who validate the time off')
     second_approver_id = fields.Many2one(
-        'hr.employee', string='Second Approval', readonly=True, copy=False, oldname='manager_id2',
+        'hr.employee', string='Second Approval', readonly=True, copy=False,
         help='This area is automaticly filled by the user who validate the time off with second level (If time off type need second validation)')
     validation_type = fields.Selection('Validation Type', related='holiday_status_id.validation_type', readonly=True)
     can_reset = fields.Boolean('Can reset', compute='_compute_can_reset')
@@ -118,13 +118,13 @@ class HolidaysAllocation(models.Model):
     number_per_interval = fields.Float("Number of unit per interval", readonly=True, states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]}, default=1)
     interval_number = fields.Integer("Number of unit between two intervals", readonly=True, states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]}, default=1)
     unit_per_interval = fields.Selection([
-        ('hours', 'Hour(s)'),
-        ('days', 'Day(s)')
+        ('hours', 'Hours'),
+        ('days', 'Days')
         ], string="Unit of time added at each interval", default='hours', readonly=True, states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]})
     interval_unit = fields.Selection([
-        ('weeks', 'Week(s)'),
-        ('months', 'Month(s)'),
-        ('years', 'Year(s)')
+        ('weeks', 'Weeks'),
+        ('months', 'Months'),
+        ('years', 'Years')
         ], string="Unit of time between two intervals", default='weeks', readonly=True, states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]})
     nextcall = fields.Date("Date of the next accrual allocation", default=False, readonly=True)
     max_leaves = fields.Float(compute='_compute_leaves')
@@ -200,7 +200,6 @@ class HolidaysAllocation(models.Model):
 
             holiday.write(values)
 
-    @api.multi
     @api.depends('employee_id', 'holiday_status_id')
     def _compute_leaves(self):
         for allocation in self:
@@ -208,19 +207,19 @@ class HolidaysAllocation(models.Model):
             allocation.max_leaves = leave_type.max_leaves
             allocation.leaves_taken = leave_type.leaves_taken
 
-    @api.multi
     @api.depends('number_of_days')
     def _compute_number_of_days_display(self):
         for allocation in self:
             allocation.number_of_days_display = allocation.number_of_days
 
-    @api.multi
     @api.depends('number_of_days', 'employee_id')
     def _compute_number_of_hours_display(self):
         for allocation in self:
-            allocation.number_of_hours_display = allocation.number_of_days * (allocation.employee_id.resource_calendar_id.hours_per_day or HOURS_PER_DAY)
+            if allocation.parent_id and allocation.parent_id.type_request_unit == "hour":
+                allocation.number_of_hours_display = allocation.number_of_days * HOURS_PER_DAY
+            else:
+                allocation.number_of_hours_display = allocation.number_of_days * (allocation.employee_id.resource_calendar_id.hours_per_day or HOURS_PER_DAY)
 
-    @api.multi
     @api.depends('number_of_hours_display', 'number_of_days_display')
     def _compute_duration_display(self):
         for allocation in self:
@@ -230,7 +229,6 @@ class HolidaysAllocation(models.Model):
                 else float_round(allocation.number_of_days_display, precision_digits=2)),
                 _('hours') if allocation.type_request_unit == 'hour' else _('days'))
 
-    @api.multi
     @api.depends('state', 'employee_id', 'department_id')
     def _compute_can_reset(self):
         for allocation in self:
@@ -254,13 +252,11 @@ class HolidaysAllocation(models.Model):
             else:
                 allocation.can_approve = True
 
-    @api.multi
     @api.onchange('number_of_hours_display')
     def _onchange_number_of_hours_display(self):
         for allocation in self:
             allocation.number_of_days = allocation.number_of_hours_display / (allocation.employee_id.resource_calendar_id.hours_per_day or HOURS_PER_DAY)
 
-    @api.multi
     @api.onchange('number_of_days_display')
     def _onchange_number_of_days_display(self):
         for allocation in self:
@@ -319,7 +315,6 @@ class HolidaysAllocation(models.Model):
     # ORM Overrides methods
     ####################################################
 
-    @api.multi
     def name_get(self):
         res = []
         for allocation in self:
@@ -342,13 +337,11 @@ class HolidaysAllocation(models.Model):
             )
         return res
 
-    @api.multi
     def add_follower(self, employee_id):
         employee = self.env['hr.employee'].browse(employee_id)
         if employee.user_id:
             self.message_subscribe(partner_ids=employee.user_id.partner_id.ids)
 
-    @api.multi
     @api.constrains('holiday_status_id')
     def _check_leave_type_validity(self):
         for allocation in self:
@@ -375,10 +368,10 @@ class HolidaysAllocation(models.Model):
             holiday.message_subscribe(partner_ids=(holiday.employee_id.parent_id.user_id.partner_id | holiday.employee_id.leave_manager_id.partner_id).ids)
         if 'employee_id' in values:
             holiday._onchange_employee()
-        holiday.activity_update()
+        if not self._context.get('import_file'):
+            holiday.activity_update()
         return holiday
 
-    @api.multi
     def write(self, values):
         employee_id = values.get('employee_id', False)
         if values.get('state'):
@@ -389,13 +382,11 @@ class HolidaysAllocation(models.Model):
             self._onchange_employee()
         return result
 
-    @api.multi
     def unlink(self):
         for holiday in self.filtered(lambda holiday: holiday.state not in ['draft', 'cancel', 'confirm']):
             raise UserError(_('You cannot delete a time off which is in %s state.') % (holiday.state,))
         return super(HolidaysAllocation, self).unlink()
 
-    @api.multi
     def copy_data(self, default=None):
         raise UserError(_('A time off cannot be duplicated.'))
 
@@ -406,7 +397,6 @@ class HolidaysAllocation(models.Model):
     # Business methods
     ####################################################
 
-    @api.multi
     def _prepare_holiday_values(self, employee):
         self.ensure_one()
         values = {
@@ -426,7 +416,6 @@ class HolidaysAllocation(models.Model):
         }
         return values
 
-    @api.multi
     def action_draft(self):
         for holiday in self:
             if holiday.state not in ['confirm', 'refuse']:
@@ -443,7 +432,6 @@ class HolidaysAllocation(models.Model):
         self.activity_update()
         return True
 
-    @api.multi
     def action_confirm(self):
         if self.filtered(lambda holiday: holiday.state != 'draft'):
             raise UserError(_('Time off request must be in Draft state ("To Submit") in order to confirm it.'))
@@ -451,7 +439,6 @@ class HolidaysAllocation(models.Model):
         self.activity_update()
         return res
 
-    @api.multi
     def action_approve(self):
         # if validation_type == 'both': this method is the first approval approval
         # if validation_type != 'both': this method calls action_validate() below
@@ -465,7 +452,6 @@ class HolidaysAllocation(models.Model):
         self.activity_update()
         return True
 
-    @api.multi
     def action_validate(self):
         current_employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
         for holiday in self:
@@ -503,7 +489,6 @@ class HolidaysAllocation(models.Model):
                 childs.action_validate()
         return childs
 
-    @api.multi
     def action_refuse(self):
         current_employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
         for holiday in self:
@@ -521,8 +506,10 @@ class HolidaysAllocation(models.Model):
 
     def _check_approval_update(self, state):
         """ Check if target state is achievable. """
+        if self.env.is_superuser():
+            return
         current_employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
-        if not current_employee or not all(self._ids):
+        if not current_employee:
             return
         is_officer = self.env.user.has_group('hr_holidays.group_hr_holidays_user')
         is_manager = self.env.user.has_group('hr_holidays.group_hr_holidays_manager')
@@ -561,7 +548,7 @@ class HolidaysAllocation(models.Model):
 
     def _get_responsible_for_approval(self):
         self.ensure_one()
-        responsible = self.env.user
+        responsible = self.env['res.users']
 
         if self.validation_type == 'hr' or (self.validation_type == 'both' and self.state == 'validate1'):
             if self.holiday_status_id.responsible_id:
@@ -583,13 +570,13 @@ class HolidaysAllocation(models.Model):
                 allocation.activity_schedule(
                     'hr_holidays.mail_act_leave_allocation_approval',
                     note=note,
-                    user_id=allocation.sudo()._get_responsible_for_approval().id)
+                    user_id=allocation.sudo()._get_responsible_for_approval().id or self.env.user.id)
             elif allocation.state == 'validate1':
                 allocation.activity_feedback(['hr_holidays.mail_act_leave_allocation_approval'])
                 allocation.activity_schedule(
                     'hr_holidays.mail_act_leave_allocation_second_approval',
                     note=note,
-                    user_id=allocation.sudo()._get_responsible_for_approval().id)
+                    user_id=allocation.sudo()._get_responsible_for_approval().id or self.env.user.id)
             elif allocation.state == 'validate':
                 to_do |= allocation
             elif allocation.state == 'refuse':
@@ -603,18 +590,16 @@ class HolidaysAllocation(models.Model):
     # Messaging methods
     ####################################################
 
-    @api.multi
     def _track_subtype(self, init_values):
         if 'state' in init_values and self.state == 'validate':
             allocation_notif_subtype_id = self.holiday_status_id.allocation_notif_subtype_id
             return allocation_notif_subtype_id or self.env.ref('hr_holidays.mt_leave_allocation')
         return super(HolidaysAllocation, self)._track_subtype(init_values)
 
-    @api.multi
-    def _notify_get_groups(self, message, groups):
+    def _notify_get_groups(self):
         """ Handle HR users and officers recipients that can validate or refuse holidays
         directly from email. """
-        groups = super(HolidaysAllocation, self)._notify_get_groups(message, groups)
+        groups = super(HolidaysAllocation, self)._notify_get_groups()
 
         self.ensure_one()
         hr_actions = []
@@ -633,7 +618,6 @@ class HolidaysAllocation(models.Model):
 
         return [new_group] + groups
 
-    @api.multi
     def message_subscribe(self, partner_ids=None, channel_ids=None, subtype_ids=None):
         # due to record rule can not allow to add follower and mention on validated leave so subscribe through sudo
         if self.state in ['validate', 'validate1']:

@@ -31,7 +31,6 @@ class ThemeView(models.Model):
 
     # TODO master add missing field: customize_show
 
-    @api.multi
     def _convert_to_base_model(self, website, **kwargs):
         self.ensure_one()
         inherit = self.inherit_id
@@ -69,9 +68,7 @@ class ThemeAttachment(models.Model):
     url = fields.Char()
     copy_ids = fields.One2many('ir.attachment', 'theme_template_id', 'Attachment using a copy of me', copy=False, readonly=True)
 
-    # TODO in master: add missing field: datas_fname
 
-    @api.multi
     def _convert_to_base_model(self, website, **kwargs):
         self.ensure_one()
         new_attach = {
@@ -99,7 +96,6 @@ class ThemeMenu(models.Model):
     parent_id = fields.Many2one('theme.website.menu', index=True, ondelete="cascade")
     copy_ids = fields.One2many('website.menu', 'theme_template_id', 'Menu using a copy of me', copy=False, readonly=True)
 
-    @api.multi
     def _convert_to_base_model(self, website, **kwargs):
         self.ensure_one()
         page_id = self.page_id.copy_ids.filtered(lambda x: x.website_id == website)
@@ -125,7 +121,6 @@ class ThemePage(models.Model):
     website_indexed = fields.Boolean('Page Indexed', default=True)
     copy_ids = fields.One2many('website.page', 'theme_template_id', 'Page using a copy of me', copy=False, readonly=True)
 
-    @api.multi
     def _convert_to_base_model(self, website, **kwargs):
         self.ensure_one()
         view_id = self.view_id.copy_ids.filtered(lambda x: x.website_id == website)
@@ -152,6 +147,18 @@ class Theme(models.AbstractModel):
         if not website:  # remove optional website in master
             website = self.env['website'].get_current_website()
 
+        # Reinitialize font customizations
+        self.env['web_editor.assets'].make_scss_customization(
+            '/website/static/src/scss/options/user_values.scss',
+            {
+                'font-number': 'null',
+                'headings-font-number': 'null',
+                'navbar-font-number': 'null',
+                'buttons-font-number': 'null',
+            }
+        )
+
+        # Call specific theme post copy
         theme_post_copy = '_%s_post_copy' % mod.name
         if hasattr(self, theme_post_copy):
             _logger.info('Executing method %s' % theme_post_copy)
@@ -203,7 +210,7 @@ class IrAttachment(models.Model):
     theme_template_id = fields.Many2one('theme.ir.attachment')
 
 
-class WebiteMenu(models.Model):
+class WebsiteMenu(models.Model):
     _inherit = 'website.menu'
 
     theme_template_id = fields.Many2one('theme.website.menu')

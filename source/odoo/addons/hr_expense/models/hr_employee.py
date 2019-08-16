@@ -18,7 +18,7 @@ class Employee(models.Model):
         return [('groups_id', 'in', group.ids)] if group else []
 
     expense_manager_id = fields.Many2one(
-        'res.users', string='Expense Responsible',
+        'res.users', string='Expense',
         domain=_group_hr_expense_user_domain,
         help="User responsible of expense approval. Should be Expense approver.")
 
@@ -29,6 +29,12 @@ class Employee(models.Model):
         manager = self.parent_id.user_id
         if manager and manager.has_group('hr_expense.group_hr_expense_user') and (self.expense_manager_id == previous_manager or not self.expense_manager_id):
             self.expense_manager_id = manager
+
+
+class EmployeePublic(models.Model):
+    _inherit = 'hr.employee.public'
+
+    expense_manager_id = fields.Many2one('res.users', readonly=True)
 
 
 class User(models.Model):

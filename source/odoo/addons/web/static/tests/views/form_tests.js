@@ -1,15 +1,16 @@
 odoo.define('web.form_tests', function (require) {
 "use strict";
 
+var AbstractStorageService = require('web.AbstractStorageService');
 var BasicModel = require('web.BasicModel');
 var concurrency = require('web.concurrency');
-var config = require('web.config');
 var core = require('web.core');
 var fieldRegistry = require('web.field_registry');
 var FormView = require('web.FormView');
 var mixins = require('web.mixins');
 var NotificationService = require('web.NotificationService');
 var pyUtils = require('web.py_utils');
+var RamStorage = require('web.RamStorage');
 var testUtils = require('web.test_utils');
 var widgetRegistry = require('web.widget_registry');
 var Widget = require('web.Widget');
@@ -245,18 +246,18 @@ QUnit.module('Views', {
         });
         assert.containsOnce(form, 'div.o_field_one2many:eq(0):not(.o_readonly_modifier)', "first one2many widget should not be readonly");
         assert.hasClass(form.$('div.o_field_one2many:eq(1)'),'o_readonly_modifier', "second one2many widget should be readonly");
-        await testUtils.dom.click(form.$('div.tab-content table.o_list_view:eq(0) tr.o_data_row td.o_data_cell:eq(0)'));
-        assert.strictEqual(form.$('div.tab-content table.o_list_view tr.o_selected_row input[name="foo"]').val(), "yop",
+        await testUtils.dom.click(form.$('div.tab-content table.o_list_table:eq(0) tr.o_data_row td.o_data_cell:eq(0)'));
+        assert.strictEqual(form.$('div.tab-content table.o_list_table tr.o_selected_row input[name="foo"]').val(), "yop",
             "first line in one2many of first tab contains yop");
-        assert.strictEqual(form.$('div.tab-content table.o_list_view:eq(1) tr.o_data_row td.o_data_cell:eq(0)').text(),
+        assert.strictEqual(form.$('div.tab-content table.o_list_table:eq(1) tr.o_data_row td.o_data_cell:eq(0)').text(),
             "yop", "first line in one2many of second tab contains yop");
-        await testUtils.fields.editInput(form.$('div.tab-content table.o_list_view tr.o_selected_row input[name="foo"]'), "hello");
-        assert.strictEqual(form.$('div.tab-content table.o_list_view:eq(1) tr.o_data_row td.o_data_cell:eq(0)').text(), "hello",
+        await testUtils.fields.editInput(form.$('div.tab-content table.o_list_table tr.o_selected_row input[name="foo"]'), "hello");
+        assert.strictEqual(form.$('div.tab-content table.o_list_table:eq(1) tr.o_data_row td.o_data_cell:eq(0)').text(), "hello",
             "first line in one2many of second tab contains hello");
-        await testUtils.dom.click(form.$('div.tab-content table.o_list_view:eq(0) a:contains(Add a line)'));
-        assert.strictEqual(form.$('div.tab-content table.o_list_view tr.o_selected_row input[name="foo"]').val(), "My little Foo Value",
+        await testUtils.dom.click(form.$('div.tab-content table.o_list_table:eq(0) a:contains(Add a line)'));
+        assert.strictEqual(form.$('div.tab-content table.o_list_table tr.o_selected_row input[name="foo"]').val(), "My little Foo Value",
             "second line in one2many of first tab contains 'My little Foo Value'");
-        assert.strictEqual(form.$('div.tab-content table.o_list_view:eq(1) tr.o_data_row:eq(1) td.o_data_cell:eq(0)').text(),
+        assert.strictEqual(form.$('div.tab-content table.o_list_table:eq(1) tr.o_data_row:eq(1) td.o_data_cell:eq(0)').text(),
             "My little Foo Value", "first line in one2many of second tab contains hello");
         form.destroy();
     });
@@ -415,6 +416,39 @@ QUnit.module('Views', {
 
         form.destroy();
     });
+
+    QUnit.test('group containing both a field and a group', async function (assert) {
+        // The purpose of this test is to check that classnames defined in a
+        // field widget and those added by the form renderer are correctly
+        // combined. For instance, the renderer adds className 'o_group_col_x'
+        // on outer group's children (an outer group being a group that contains
+        // at least a group).
+        assert.expect(4);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form>' +
+                    '<group>' +
+                        '<field name="foo"/>' +
+                        '<group>' +
+                            '<field name="int_field"/>' +
+                        '</group>' +
+                    '</group>' +
+                '</form>',
+            res_id: 1,
+        });
+
+        assert.containsOnce(form, '.o_group .o_field_widget[name=foo]');
+        assert.containsOnce(form, '.o_group .o_inner_group .o_field_widget[name=int_field]');
+
+        assert.hasClass(form.$('.o_field_widget[name=foo]'), 'o_field_char');
+        assert.hasClass(form.$('.o_field_widget[name=foo]'), 'o_group_col_6');
+
+        form.destroy();
+    });
+
     QUnit.test('Form and subview with _view_ref contexts', async function (assert) {
         assert.expect(2);
 
@@ -469,7 +503,6 @@ QUnit.module('Views', {
                         target: 'current',
                         res_model: args.model,
                         context: args.kwargs.context,
-                        'view_type': 'form',
                         'view_mode': 'form',
                         'views': [[false, 'form']],
                     });
@@ -487,6 +520,7 @@ QUnit.module('Views', {
         form.destroy();
         actionManager.destroy();
     });
+
     QUnit.test('invisible fields are properly hidden', async function (assert) {
         assert.expect(4);
 
@@ -2994,7 +3028,8 @@ QUnit.module('Views', {
                         value: { int_field: 10 },
                         warning: {
                             title: "Warning",
-                            message: "You must first select a partner"
+                            message: "You must first select a partner",
+                            type: 'dialog',
                         }
                     });
                 }
@@ -3003,6 +3038,55 @@ QUnit.module('Views', {
             intercepts: {
                 warning: function (event) {
                     assert.strictEqual(event.data.type, 'dialog',
+                        "should have triggered an event with the correct data");
+                    assert.strictEqual(event.data.title, "Warning",
+                        "should have triggered an event with the correct data");
+                    assert.strictEqual(event.data.message, "You must first select a partner",
+                        "should have triggered an event with the correct data");
+                },
+            },
+        });
+
+        await testUtils.form.clickEdit(form);
+
+        assert.strictEqual(form.$('input[name=int_field]').val(), '9');
+
+        await testUtils.fields.editInput(form.$('input[name=foo]'), 'tralala');
+
+        assert.strictEqual(form.$('input[name=int_field]').val(), '10');
+
+        form.destroy();
+    });
+
+    QUnit.test('display a notificaton if onchange result is a warning with type notification', async function (assert) {
+        assert.expect(5);
+
+        this.data.partner.onchanges = { foo: true };
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners">' +
+                    '<group><field name="foo"/><field name="int_field"/></group>' +
+                '</form>',
+            res_id: 2,
+            mockRPC: function (route, args) {
+                if (args.method === 'onchange') {
+                    return Promise.resolve({
+                        value: { int_field: 10 },
+                        warning: {
+                            title: "Warning",
+                            message: "You must first select a partner",
+                            type: 'notification',
+                        }
+                    });
+                }
+                return this._super.apply(this, arguments);
+            },
+            intercepts: {
+                warning: function (event) {
+                    assert.strictEqual(event.data.type, 'notification',
                         "should have triggered an event with the correct data");
                     assert.strictEqual(event.data.title, "Warning",
                         "should have triggered an event with the correct data");
@@ -3082,7 +3166,7 @@ QUnit.module('Views', {
                         value: {},
                         warning: {
                             title: "Warning",
-                            message: "You must first select a partner"
+                            message: "You must first select a partner",
                         }
                     });
                 }
@@ -3138,42 +3222,6 @@ QUnit.module('Views', {
         // case, there is nothing that the user could do.
         assert.strictEqual(form.$('.o_field_widget[name="foo"]').val(), 'My little Foo Value',
             "should display proper default value");
-
-        form.destroy();
-    });
-
-    QUnit.test('attrs are properly transmitted to new records', async function (assert) {
-        assert.expect(2);
-
-        // this test checks that the fieldsInfo have been transmitted to the
-        // load function when creating a new record
-
-        var terminology = {
-            string_true: "Production Environment",
-            hover_true: "Switch to test environment",
-            string_false: "Test Environment",
-            hover_false: "Switch to production environment"
-        };
-        var form = await createView({
-            View: FormView,
-            model: 'partner',
-            data: this.data,
-            arch: '<form>' +
-                    '<group>' +
-                        '<field name="bar" widget="boolean_button" options=\'{"terminology": ' +
-                            JSON.stringify(terminology) + '}\'/>' +
-                    '</group>' +
-                '</form>',
-            res_id: 2,
-        });
-
-        assert.strictEqual(form.$('.o_stat_text.o_not_hover:contains(Production Environment)').length, 1,
-            "button should contain correct string");
-
-        await testUtils.form.clickCreate(form);
-
-        assert.strictEqual(form.$('.o_stat_text.o_not_hover:contains(Test Environment)').length, 1,
-            "button should contain correct string");
 
         form.destroy();
     });
@@ -4554,7 +4602,7 @@ QUnit.module('Views', {
     QUnit.test('readonly fields with modifiers may be saved', async function (assert) {
         // the readonly property on the field description only applies on view,
         // this is not a DB constraint. It should be seen as a default value,
-        // that may be overriden in views, for example with modifiers. So
+        // that may be overridden in views, for example with modifiers. So
         // basically, a field defined as readonly may be edited.
         assert.expect(3);
 
@@ -4846,6 +4894,65 @@ QUnit.module('Views', {
             "foo field should have focus");
 
         form.destroy();
+    });
+
+    QUnit.module('focus and scroll test', async function () {
+        QUnit.test('no focus set on form when closing many2one modal if lastActivatedFieldIndex is not set', async function (assert) {
+            assert.expect(8);
+
+            var form = await createView({
+                View: FormView,
+                model: 'partner',
+                data: this.data,
+                arch: '<form string="Partners">' +
+                        '<field name="display_name"/>' +
+                        '<field name="foo"/>' +
+                        '<field name="bar"/>' +
+                        '<field name="p"/>' +
+                        '<field name="timmy"/>' +
+                        '<field name="product_ids"/>' +
+                        '<field name="trululu"/>' +
+                    '</form>',
+                res_id: 2,
+                archs: {
+                    'partner,false,list': '<tree><field name="display_name"/></tree>',
+                    'partner_type,false,list': '<tree><field name="name"/></tree>',
+                    'partner,false,form': '<form><field name="trululu"/></form>',
+                    'product,false,list': '<tree><field name="name"/></tree>',
+                },
+                mockRPC: function (route, args) {
+                    if (args.method === 'get_formview_id') {
+                        return Promise.resolve(false);
+                    }
+                    return this._super(route, args);
+                },
+            });
+
+            // set max-height to have scroll forcefully so that we can test scroll position after modal close
+            $('.o_content').css({'overflow': 'auto', 'max-height': '300px'});
+            // Open many2one modal, lastActivatedFieldIndex will not set as we directly click on external button
+            await testUtils.form.clickEdit(form);
+            assert.strictEqual($(".o_content").scrollTop(), 0, "scroll position should be 0");
+
+            form.$(".o_field_many2one[name='trululu'] .o_input").focus();
+            assert.notStrictEqual($(".o_content").scrollTop(), 0, "scroll position should not be 0");
+
+            await testUtils.dom.click(form.$('.o_external_button'));
+            // Close modal
+            await testUtils.dom.click($('.modal').last().find('button[class="close"]'));
+            assert.notStrictEqual($(".o_content").scrollTop(), 0,
+                "scroll position should not be 0 after closing modal");
+            assert.containsNone(document.body, '.modal', 'There should be no modal');
+            assert.doesNotHaveClass($('body'), 'modal-open', 'Modal is not said opened');
+            assert.strictEqual(form.renderer.lastActivatedFieldIndex, -1,
+                "lastActivatedFieldIndex is -1");
+            assert.equal(document.activeElement, $('body')[0],
+                'body is focused, should not set focus on form widget');
+            assert.notStrictEqual(document.activeElement, form.$('.o_field_many2one[name="trululu"] .o_input'),
+                'field widget should not be focused when lastActivatedFieldIndex is -1');
+
+            form.destroy();
+        });
     });
 
     QUnit.test('in create mode, autofocus fields are focused', async function (assert) {
@@ -6576,8 +6683,8 @@ QUnit.module('Views', {
     QUnit.test('display tooltips for buttons', async function (assert) {
         assert.expect(2);
 
-        var initialDebugMode = config.debug;
-        config.debug = true;
+        var initialDebugMode = odoo.debug;
+        odoo.debug = true;
 
         var form = await createView({
             View: FormView,
@@ -6607,7 +6714,7 @@ QUnit.module('Views', {
             "should have rendered a tooltip");
         $secondButton.trigger($.Event('mouseleave'));
 
-        config.debug = initialDebugMode;
+        odoo.debug = initialDebugMode;
         form.destroy();
     });
 
@@ -6900,7 +7007,6 @@ QUnit.module('Views', {
         delete widgetRegistry.map.test;
     });
 
-
     QUnit.test('bounce edit button in readonly mode', async function (assert) {
         assert.expect(3);
 
@@ -6936,8 +7042,8 @@ QUnit.module('Views', {
     QUnit.test('proper stringification in debug mode tooltip', async function (assert) {
         assert.expect(6);
 
-        var initialDebugMode = config.debug;
-        config.debug = true;
+        var initialDebugMode = odoo.debug;
+        odoo.debug = true;
 
         var form = await createView({
             View: FormView,
@@ -6970,7 +7076,7 @@ QUnit.module('Views', {
         assert.strictEqual($('.oe_tooltip_technical>li[data-item="widget"]')[0].lastChild.wholeText.trim(),
             'Many2one (many2one)', "widget description should be correct");
 
-        config.debug = initialDebugMode;
+        odoo.debug = initialDebugMode;
         form.destroy();
     });
 
@@ -7014,6 +7120,54 @@ QUnit.module('Views', {
         assert.strictEqual(form.$('.o_field_widget[name=text_field]').height(), height,
             "autoresize should have been done automatically at rendering");
         assert.ok(height > 80, "textarea should have an height of at least 80px");
+
+        form.destroy();
+    });
+
+    QUnit.test('autoresize of text fields is done on notebook page show', async function (assert) {
+        assert.expect(5);
+
+        this.data.partner.fields.text_field = { string: 'Text field', type: 'text' };
+        this.data.partner.fields.text_field.default = "some\n\nmulti\n\nline\n\ntext\n";
+        this.data.partner.records[0].text_field = "a\nb\nc\nd\ne\nf";
+        this.data.partner.fields.text_field_empty = { string: 'Text field', type: 'text' };
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners">' +
+                    '<sheet>' +
+                        '<notebook>' +
+                            '<page string="First Page">' +
+                                '<field name="foo"/>' +
+                            '</page>' +
+                            '<page string="Second Page">' +
+                                '<field name="text_field"/>' +
+                            '</page>' +
+                            '<page string="Third Page">' +
+                                '<field name="text_field_empty"/>' +
+                            '</page>' +
+                        '</notebook>' +
+                    '</sheet>' +
+                '</form>',
+            res_id: 1,
+        });
+
+        await testUtils.form.clickEdit(form);
+        assert.hasClass(form.$('.o_notebook .nav .nav-link:first()'), 'active');
+
+        await testUtils.dom.click(form.$('.o_notebook .nav .nav-link:nth(1)'));
+        assert.hasClass(form.$('.o_notebook .nav .nav-link:nth(1)'), 'active');
+
+        var height = form.$('.o_field_widget[name=text_field]').height();
+        assert.ok(height > 80, "textarea should have an height of at least 80px");
+
+        await testUtils.dom.click(form.$('.o_notebook .nav .nav-link:nth(2)'));
+        assert.hasClass(form.$('.o_notebook .nav .nav-link:nth(2)'), 'active');
+
+        var height = form.$('.o_field_widget[name=text_field_empty]').css('height');
+        assert.strictEqual(height, '50px', "empty textarea should have height of 50px");
 
         form.destroy();
     });
@@ -7325,99 +7479,6 @@ QUnit.module('Views', {
             'reload currencies',
             'read',
         ]);
-
-        form.destroy();
-    });
-
-    QUnit.test('a popup window should automatically close after a do_action event', async function (assert) {
-        // Having clicked on a one2many in a form view and clicked on a many2one
-        // field in the resulting popup window that popup window should automatically close.
-
-        assert.expect(2);
-
-        this.data.partner.records[0].product_ids = [37];
-        this.data.product.records[0].partner_type_id = 12;
-
-        var form = await createView({
-            View: FormView,
-            model: 'partner',
-            data: this.data,
-            arch:'<form>' +
-                    '<field name="product_ids">' +
-                        '<tree><field name="partner_type_id"/></tree>' +
-                        '<form><field name="partner_type_id"/></form>' +
-                    '</field>' +
-                '</form>',
-            res_id: 1,
-            mockRPC: function (route, args) {
-                if (args.method === 'get_formview_action' && args.model === 'partner_type') {
-                    return Promise.resolve();
-                }
-                return this._super(route, args);
-            },
-            intercepts: {
-                do_action: function (event) {
-                    event.data.on_success();
-                }
-            },
-        });
-        // Open one2many
-        await testUtils.dom.click(form.$('.o_data_row'));
-        assert.strictEqual($('.modal-content').length, 1, "a popup window should have opened");
-        // Click on many2one and trigger do_action
-        await testUtils.dom.click($('.modal-content a[name="partner_type_id"]'));
-        assert.strictEqual($('.modal-content').length, 0, "the popup window should have closed");
-
-        form.destroy();
-    });
-
-    QUnit.test('all popup windows should automatically close after a do_action event', async function (assert) {
-
-        // Having clicked successively on two different one2many in form views
-        // and clicked on a many2one in the last popup window all popup
-        // windows should automatically close.
-
-        assert.expect(2);
-
-        this.data.partner.records[0].p = [2];
-        this.data.partner.records[1].product_ids = [37];
-        this.data.product.records[0].partner_type_id = 12;
-
-        var form = await createView({
-            View: FormView,
-            model: 'partner',
-            data: this.data,
-            arch:'<form>' +
-                        '<field name="p">' +
-                            '<tree><field name="display_name"/></tree>' +
-                        '</field>' +
-                '</form>',
-            archs: {
-                'partner,false,form': '<form><field name="product_ids">' +
-                                            '<tree><field name="partner_type_id"/></tree>' +
-                                            '<form><field name="partner_type_id"/></form>' +
-                                        '</field></form>',
-            },
-            res_id: 1,
-            mockRPC: function (route, args) {
-                if (args.method === 'get_formview_action' && args.model === 'partner_type') {
-                    return Promise.resolve();
-                }
-                return this._super(route, args);
-            },
-            intercepts: {
-                do_action: function (event) {
-                    event.data.on_success();
-                }
-            },
-        });
-        // Open two one2manys
-        await testUtils.dom.click(form.$('.o_data_row'));
-        await testUtils.dom.click($('.modal-content .o_data_row'));
-        assert.strictEqual($('.modal-content').length, 2, "Two popup windows should have opened.");
-        // Click on many2one and trigger do_action
-        await testUtils.dom.click($('.modal-content a[name="partner_type_id"]'));
-        assert.strictEqual($('.modal-content').length, 0, "All popup windows should have closed.");
 
         form.destroy();
     });
@@ -7833,6 +7894,161 @@ QUnit.module('Views', {
         form.destroy();
     });
 
+    QUnit.test('form view with inline tree view with optional fields and local storage mock', async function (assert) {
+        assert.expect(12);
+
+        var Storage = RamStorage.extend({
+            getItem: function (key) {
+                assert.step('getItem ' + key);
+                return this._super.apply(this, arguments);
+            },
+            setItem: function (key, value) {
+                assert.step('setItem ' + key + ' to ' + value);
+                return this._super.apply(this, arguments);
+            },
+        });
+
+        var RamStorageService = AbstractStorageService.extend({
+            storage: new Storage(),
+        });
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners">' +
+                    '<field name="qux"/>' +
+                    '<field name="p">' +
+                        '<tree>' +
+                            '<field name="foo"/>' +
+                            '<field name="bar" optional="hide"/>' +
+                        '</tree>' +
+                    '</field>' +
+                '</form>',
+            services: {
+                local_storage: RamStorageService,
+            },
+            view_id: 27,
+        });
+
+        var localStorageKey = 'optional_fields,partner,form,27,p,list,undefined,bar,foo';
+
+        assert.verifySteps(['getItem ' + localStorageKey]);
+
+        assert.containsN(form, 'th', 2,
+            "should have 2 th, 1 for selector, 1 for foo column");
+
+        assert.ok(form.$('th:contains(Foo)').is(':visible'),
+            "should have a visible foo field");
+
+        assert.notOk(form.$('th:contains(Bar)').is(':visible'),
+            "should not have a visible bar field");
+
+        // optional fields
+        await testUtils.dom.click(form.$('table .o_optional_columns_dropdown_toggle'));
+        assert.containsN(form, 'div.o_optional_columns div.dropdown-item', 1,
+            "dropdown have 1 optional field");
+
+        // enable optional field
+        await testUtils.dom.click(form.$('div.o_optional_columns div.dropdown-item input'));
+
+        assert.verifySteps([
+            'setItem ' + localStorageKey + ' to ["bar"]',
+            'getItem ' + localStorageKey,
+        ]);
+
+        assert.containsN(form, 'th', 3,
+            "should have 3 th, 1 for selector, 2 for columns");
+
+        assert.ok(form.$('th:contains(Foo)').is(':visible'),
+            "should have a visible foo field");
+
+        assert.ok(form.$('th:contains(Bar)').is(':visible'),
+            "should have a visible bar field");
+
+        form.destroy();
+    });
+
+    QUnit.test('form view with tree_view_ref with optional fields and local storage mock', async function (assert) {
+        assert.expect(12);
+
+        var Storage = RamStorage.extend({
+            getItem: function (key) {
+                assert.step('getItem ' + key);
+                return this._super.apply(this, arguments);
+            },
+            setItem: function (key, value) {
+                assert.step('setItem ' + key + ' to ' + value);
+                return this._super.apply(this, arguments);
+            },
+        });
+
+        var RamStorageService = AbstractStorageService.extend({
+            storage: new Storage(),
+        });
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners">' +
+                    '<field name="qux"/>' +
+                    '<field name="p" context="{\'tree_view_ref\': \'34\'}"/>' +
+                '</form>',
+            archs: {
+                "partner,nope_not_this_one,list": '<tree>' +
+                    '<field name="foo"/>' +
+                    '<field name="bar"/>' +
+                    '</tree>',
+                "partner,34,list": '<tree>' +
+                        '<field name="foo" optional="hide"/>' +
+                        '<field name="bar"/>' +
+                    '</tree>',
+            },
+            services: {
+                local_storage: RamStorageService,
+            },
+            view_id: 27,
+        });
+
+        var localStorageKey = 'optional_fields,partner,form,27,p,list,34,bar,foo';
+
+        assert.verifySteps(['getItem ' + localStorageKey]);
+
+        assert.containsN(form, 'th', 2,
+            "should have 2 th, 1 for selector, 1 for foo column");
+
+        assert.notOk(form.$('th:contains(Foo)').is(':visible'),
+            "should have a visible foo field");
+
+        assert.ok(form.$('th:contains(Bar)').is(':visible'),
+            "should not have a visible bar field");
+
+        // optional fields
+        await testUtils.dom.click(form.$('table .o_optional_columns_dropdown_toggle'));
+        assert.containsN(form, 'div.o_optional_columns div.dropdown-item', 1,
+            "dropdown have 1 optional field");
+
+        // enable optional field
+        await testUtils.dom.click(form.$('div.o_optional_columns div.dropdown-item input'));
+
+        assert.verifySteps([
+            'setItem ' + localStorageKey + ' to ["foo"]',
+            'getItem ' + localStorageKey,
+        ]);
+
+        assert.containsN(form, 'th', 3,
+            "should have 3 th, 1 for selector, 2 for columns");
+
+        assert.ok(form.$('th:contains(Foo)').is(':visible'),
+            "should have a visible foo field");
+
+        assert.ok(form.$('th:contains(Bar)').is(':visible'),
+            "should have a visible bar field");
+
+        form.destroy();
+    });
+
     QUnit.module('FormViewTABMainButtons');
 
     QUnit.test('using tab in an empty required string field should not move to the next field', async function(assert) {
@@ -8159,6 +8375,72 @@ QUnit.module('Views', {
         await testUtils.nextTick();
         form.destroy();
     });
+
+    QUnit.test('resequence list lines when discardable lines are present', async function (assert) {
+        assert.expect(8);
+
+        var onchangeNum = 0;
+
+        this.data.partner.onchanges = {
+            p: function (obj) {
+                onchangeNum++;
+                obj.foo = obj.p.length.toString();
+            },
+        };
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form>' +
+                    '<field name="foo"/>' +
+                    '<field name="p"/>' +
+                '</form>',
+            archs: {
+                'partner,false,list':
+                    '<tree editable="bottom">' +
+                        '<field name="int_field" widget="handle"/>' +
+                        '<field name="display_name" required="1"/>' +
+                    '</tree>',
+            },
+        });
+
+        assert.strictEqual(onchangeNum, 1, "one onchange happens when form is opened");
+        assert.strictEqual(form.$('[name="foo"]').val(), "0", "onchange worked there is 0 line");
+
+        // Add one line
+        await testUtils.dom.click(form.$('.o_field_x2many_list_row_add a'));
+        form.$('.o_field_one2many input:first').focus();
+        await testUtils.nextTick();
+        form.$('.o_field_one2many input:first').val('first line').trigger('input');
+        await testUtils.nextTick();
+        await testUtils.dom.click(form.$('input[name="foo"]'));
+        assert.strictEqual(onchangeNum, 2, "one onchange happens when a line is added");
+        assert.strictEqual(form.$('[name="foo"]').val(), "1", "onchange worked there is 1 line");
+
+        // Drag and drop second line before first one (with 1 draft and invalid line)
+        await testUtils.dom.click(form.$('.o_field_x2many_list_row_add a'));
+        await testUtils.dom.dragAndDrop(
+            form.$('.ui-sortable-handle').eq(0),
+            form.$('.o_data_row').last(),
+            {position: 'bottom'}
+        );
+        assert.strictEqual(onchangeNum, 3, "one onchange happens when lines are resequenced");
+        assert.strictEqual(form.$('[name="foo"]').val(), "1", "onchange worked there is 1 line");
+
+        // Add a second line
+        await testUtils.dom.click(form.$('.o_field_x2many_list_row_add a'));
+        form.$('.o_field_one2many input:first').focus();
+        await testUtils.nextTick();
+        form.$('.o_field_one2many input:first').val('second line').trigger('input');
+        await testUtils.nextTick();
+        await testUtils.dom.click(form.$('input[name="foo"]'));
+        assert.strictEqual(onchangeNum, 4, "one onchange happens when a line is added");
+        assert.strictEqual(form.$('[name="foo"]').val(), "2", "onchange worked there is 2 lines");
+
+        form.destroy();
+    });
+
     QUnit.test('if the focus is on the discard button, hitting ESCAPE should discard', async function (assert) {
         assert.expect(1);
 

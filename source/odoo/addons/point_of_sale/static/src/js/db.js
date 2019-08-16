@@ -42,9 +42,12 @@ var PosDB = core.Class.extend({
         this.category_search_string = {};
     },
 
-    /* 
-     * sets an uuid to prevent conflict in locally stored data between multiple databases running
-     * in the same browser at the same origin (Doing this is not advised !)
+    /** 
+     * sets an uuid to prevent conflict in locally stored data between multiple PoS Configs. By
+     * using the uuid of the config the local storage from other configs will not get effected nor
+     * loaded in sessions that don't belong to them.
+     *
+     * @param {string} uuid Unique identifier of the PoS Config linked to the current session.
      */
     set_uuid: function(uuid){
         this.name = this.name + '_' + uuid;
@@ -277,10 +280,11 @@ var PosDB = core.Class.extend({
                 if(partner.barcode){
                     this.partner_by_barcode[partner.barcode] = partner;
                 }
-                partner.address = (partner.street || '') +', '+ 
-                                  (partner.zip || '')    +' '+
-                                  (partner.city || '')   +', '+ 
-                                  (partner.country_id[1] || '');
+                partner.address = (partner.street ? partner.street + ', ': '') +
+                                  (partner.zip ? partner.zip + ', ': '') +
+                                  (partner.city ? partner.city + ', ': '') +
+                                  (partner.state_id ? partner.state_id[1] + ', ': '') +
+                                  (partner.country_id ? partner.country_id[1]: '');
                 this.partner_search_string += this._partner_search_string(partner);
             }
         }

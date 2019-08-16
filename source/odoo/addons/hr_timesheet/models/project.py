@@ -48,7 +48,6 @@ class Project(models.Model):
             values['analytic_account_id'] = analytic_account.id
         return super(Project, self).create(values)
 
-    @api.multi
     def write(self, values):
         # create the AA for project still allowing timesheet
         if values.get('allow_timesheets'):
@@ -76,7 +75,7 @@ class Task(models.Model):
     effective_hours = fields.Float("Hours Spent", compute='_compute_effective_hours', compute_sudo=True, store=True, help="Computed using the sum of the task work done.")
     total_hours_spent = fields.Float("Total Hours", compute='_compute_total_hours_spent', store=True, help="Computed as: Time Spent + Sub-tasks Hours.")
     progress = fields.Float("Progress", compute='_compute_progress_hours', store=True, group_operator="avg", help="Display progress of current task.")
-    subtask_effective_hours = fields.Float("Sub-tasks Hours Spent", compute='_compute_subtask_effective_hours', store=True, help="Sum of actually spent hours on the subtask(s)", oldname='children_hours')
+    subtask_effective_hours = fields.Float("Sub-tasks Hours Spent", compute='_compute_subtask_effective_hours', store=True, help="Sum of actually spent hours on the subtask(s)")
     timesheet_ids = fields.One2many('account.analytic.line', 'task_id', 'Timesheets')
 
     @api.depends('timesheet_ids.unit_amount')
@@ -115,7 +114,6 @@ class Task(models.Model):
     # ORM
     # ---------------------------------------------------------
 
-    @api.multi
     def write(self, values):
         # a timesheet must have an analytic account (and a project)
         if 'project_id' in values and self and not values.get('project_id'):

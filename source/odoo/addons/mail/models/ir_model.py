@@ -10,7 +10,7 @@ class IrModel(models.Model):
     _order = 'is_mail_thread DESC, name ASC'
 
     is_mail_thread = fields.Boolean(
-        string="Mail Thread", oldname='mail_thread', default=False,
+        string="Mail Thread", default=False,
         help="Whether this model supports messages and notifications.",
     )
     is_mail_activity = fields.Boolean(
@@ -53,7 +53,6 @@ class IrModel(models.Model):
 
         return super(IrModel, self).unlink()
 
-    @api.multi
     def write(self, vals):
         if self and ('is_mail_thread' in vals or 'is_mail_activity' in vals or 'is_mail_blacklist' in vals):
             if not all(rec.state == 'manual' for rec in self):

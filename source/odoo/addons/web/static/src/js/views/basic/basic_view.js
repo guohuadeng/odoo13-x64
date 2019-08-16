@@ -48,12 +48,13 @@ var BasicView = AbstractView.extend({
         this.controllerParams.archiveEnabled = 'active' in this.fields;
         this.controllerParams.hasButtons =
                 'action_buttons' in params ? params.action_buttons : true;
+        this.controllerParams.viewId = viewInfo.view_id;
 
         this.loadParams.fieldsInfo = this.fieldsInfo;
         this.loadParams.fields = this.fields;
         this.loadParams.limit = parseInt(this.arch.attrs.limit, 10) || params.limit;
-        this.loadParams.viewType = this.viewType;
         this.loadParams.parentID = params.parentID;
+        this.loadParams.viewType = this.viewType;
         this.recordID = params.recordID;
 
         this.model = params.model;
@@ -359,7 +360,7 @@ var BasicView = AbstractView.extend({
     },
     /**
      * Processes a node of the arch (mainly nodes with tagname 'field'). Can
-     * be overriden to handle other tagnames.
+     * be overridden to handle other tagnames.
      *
      * @private
      * @param {Object} node

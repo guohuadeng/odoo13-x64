@@ -5,7 +5,7 @@ from datetime import datetime
 
 from odoo.tests import common, Form
 from odoo.exceptions import UserError
-from odoo.tools import mute_logger
+from odoo.tools import mute_logger, float_compare
 
 
 class TestSaleMrpFlow(common.SavepointCase):
@@ -407,8 +407,7 @@ class TestSaleMrpFlow(common.SavepointCase):
 
         inventory = self.Inventory.create({
             'name': 'Inventory Product KG',
-            'product_id': product_c.id,
-            'filter': 'product'})
+            'product_ids': [(4, product_c.id)]})
 
         inventory.action_start()
         self.assertFalse(inventory.line_ids, "Inventory line should not created.")
@@ -461,8 +460,7 @@ class TestSaleMrpFlow(common.SavepointCase):
         # -------------------------------------------------------
         inventory = self.Inventory.create({
             'name': 'Inventory Product C KG',
-            'product_id': product_c.id,
-            'filter': 'product'})
+            'product_ids': [(4, product_c.id)]})
 
         inventory.action_start()
         self.assertFalse(inventory.line_ids, "Inventory line should not created.")
@@ -563,6 +561,7 @@ class TestSaleMrpFlow(common.SavepointCase):
         # These products are in the Test category
         # The bom consists of 2 component1 and 1 component2
         # The invoice policy of the finished product is based on delivered quantities
+        self.env.company.currency_id = self.env.ref('base.USD')
         self.uom_unit = self.UoM.create({
             'name': 'Test-Unit',
             'category_id': self.categ_unit.id,
@@ -573,7 +572,7 @@ class TestSaleMrpFlow(common.SavepointCase):
         self.company.anglo_saxon_accounting = True
         self.partner = self.env.ref('base.res_partner_1')
         self.category = self.env.ref('product.product_category_1').copy({'name': 'Test category','property_valuation': 'real_time', 'property_cost_method': 'fifo'})
-        account_type = self.env['account.account.type'].create({'name': 'RCV type', 'type': 'receivable'})
+        account_type = self.env['account.account.type'].create({'name': 'RCV type', 'type': 'other'})
         self.account_receiv = self.env['account.account'].create({'name': 'Receivable', 'code': 'RCV00' , 'user_type_id': account_type.id, 'reconcile': True})
         account_expense = self.env['account.account'].create({'name': 'Expense', 'code': 'EXP00' , 'user_type_id': account_type.id, 'reconcile': True})
         account_output = self.env['account.account'].create({'name': 'Output', 'code': 'OUT00' , 'user_type_id': account_type.id, 'reconcile': True})
@@ -634,7 +633,13 @@ class TestSaleMrpFlow(common.SavepointCase):
             'partner_id': self.partner.id,
             'partner_invoice_id': self.partner.id,
             'partner_shipping_id': self.partner.id,
-            'order_line': [(0, 0, {'name': self.finished_product.name, 'product_id': self.finished_product.id, 'product_uom_qty': 3, 'product_uom': self.finished_product.uom_id.id, 'price_unit': self.finished_product.list_price})],
+            'order_line': [(0, 0, {
+                'name': self.finished_product.name,
+                'product_id': self.finished_product.id,
+                'product_uom_qty': 3,
+                'product_uom': self.finished_product.uom_id.id,
+                'price_unit': self.finished_product.list_price
+            })],
             'pricelist_id': self.env.ref('product.list0').id,
             'company_id': self.company.id,
         }
@@ -652,11 +657,14 @@ class TestSaleMrpFlow(common.SavepointCase):
         self.so._create_invoices()
         self.invoice = self.so.invoice_ids
         # Changed the invoiced quantity of the finished product to 2
-        self.invoice.invoice_line_ids.write({'quantity': 2.0})
-        self.invoice.action_invoice_open()
-        aml = self.invoice.move_id.line_ids
-        aml_expense = aml.filtered(lambda l: l.account_id.id == account_expense.id)
-        aml_output = aml.filtered(lambda l: l.account_id.id == account_output.id)
+        move_form = Form(self.invoice)
+        with move_form.invoice_line_ids.edit(0) as line_form:
+            line_form.quantity = 2.0
+        self.invoice = move_form.save()
+        self.invoice.post()
+        aml = self.invoice.line_ids
+        aml_expense = aml.filtered(lambda l: l.is_anglo_saxon_line and l.debit > 0)
+        aml_output = aml.filtered(lambda l: l.is_anglo_saxon_line and l.credit > 0)
         # Check that the cost of Good Sold entries are equal to 2* (2 * 20 + 1 * 10) = 100
         self.assertEqual(aml_expense.debit, 100, "Cost of Good Sold entry missing or mismatching")
         self.assertEqual(aml_output.credit, 100, "Cost of Good Sold entry missing or mismatching")
@@ -1044,9 +1052,8 @@ class TestSaleMrpFlow(common.SavepointCase):
         self.assertEquals(kit_parent_wh_order.virtual_available, 0)
         self.assertEquals(kit_parent_wh1.virtual_available, 1)
 
-        # A warning message should be returned as there arn't enough quantities available for the sale order
-        warning = order_line._onchange_product_id_check_availability()
-        self.assertTrue(warning)
+        # Check there arn't enough quantities available for the sale order
+        self.assertTrue(float_compare(order_line.virtual_available_at_date - order_line.product_uom_qty, 0, precision_rounding=line.product_uom.rounding) == -1)
 
         # We receive enoug of each component in Warehouse 2 to make 3 kit_parent
         qty_to_process = {
@@ -1067,9 +1074,8 @@ class TestSaleMrpFlow(common.SavepointCase):
         self.assertEquals(kit_parent_wh_order.virtual_available, 3)
         self.assertEquals(kit_parent_wh1.virtual_available, 1)
 
-        # A warning message should be returned as there arn't enough quantities available for the sale order
-        warning = order_line._onchange_product_id_check_availability()
-        self.assertTrue(warning)
+        # Check there arn't enough quantities available for the sale order
+        self.assertTrue(float_compare(order_line.virtual_available_at_date - order_line.product_uom_qty, 0, precision_rounding=line.product_uom.rounding) == -1)
 
         # We receive enough of each component in Warehouse 2 to make 7 kit_parent
         qty_to_process = {
@@ -1086,10 +1092,6 @@ class TestSaleMrpFlow(common.SavepointCase):
         # Enough quantities should be available, no warning message should be displayed
         kit_parent_wh_order = self.kit_parent.with_context(warehouse=so.warehouse_id.id)
         self.assertEquals(kit_parent_wh_order.virtual_available, 7)
-
-        # Some cache issue prevents the following to work in a test
-        #warning = order_line._onchange_product_id_check_availability()
-        #self.assertFalse(warning)
 
     def test_06_kit_qty_delivered_mixed_uom(self):
         """
@@ -1286,9 +1288,8 @@ class TestSaleMrpFlow(common.SavepointCase):
         virtual_available_wh_order = kit_uom_in_kit.virtual_available
         self.assertEquals(virtual_available_wh_order, 1)
 
-        # A warning message should be returned as there arn't enough quantities available for the sale order
-        warning = order_line._onchange_product_id_check_availability()
-        self.assertTrue(warning)
+        # Check there arn't enough quantities available for the sale order
+        self.assertTrue(float_compare(order_line.virtual_available_at_date - order_line.product_uom_qty, 0, precision_rounding=line.product_uom.rounding) == -1)
 
         # We receive enough of each component in Warehouse 1 to make 3 kit_uom_in_kit.
         # Moves are created instead of only updating the quant quantities in order to trigger every compute fields.
@@ -1300,9 +1301,8 @@ class TestSaleMrpFlow(common.SavepointCase):
         }
         self._create_move_quantities(qty_to_process, components, warehouse_1)
 
-        # Enough quantities should be available to make 3 kit_uom_in_kit and a warning message should be displayed
-        warning = order_line._onchange_product_id_check_availability()
-        self.assertTrue(warning)
+        # Check there arn't enough quantities available for the sale order
+        self.assertTrue(float_compare(order_line.virtual_available_at_date - order_line.product_uom_qty, 0, precision_rounding=line.product_uom.rounding) == -1)
         kit_uom_in_kit.with_context(warehouse=warehouse_1.id)._compute_quantities()
         virtual_available_wh_order = kit_uom_in_kit.virtual_available
         self.assertEquals(virtual_available_wh_order, 3)
@@ -1313,12 +1313,6 @@ class TestSaleMrpFlow(common.SavepointCase):
         # We check that enough quantities were processed to sell 5 kit_uom_in_kit
         kit_uom_in_kit.with_context(warehouse=warehouse_1.id)._compute_quantities()
         self.assertEquals(kit_uom_in_kit.virtual_available, 5)
-
-        # Some cache issue prevents the following to work in a test
-
-        # No warning should be raised
-        # warning = order_line._onchange_product_id_check_availability()
-        # self.assertFalse(warning)
 
     def test_10_sale_mrp_kits_routes(self):
 
@@ -1459,3 +1453,49 @@ class TestSaleMrpFlow(common.SavepointCase):
         move_component_kg = order.picking_ids[0].move_lines - move_component_unit
         self.assertEquals(move_component_unit.product_uom_qty, 0.5)
         self.assertEquals(move_component_kg.product_uom_qty, 0.583)
+
+    def test_product_type_service_1(self):
+        route_manufacture = self.warehouse.manufacture_pull_id.route_id.id
+        route_mto = self.warehouse.mto_pull_id.route_id.id
+        self.uom_unit = self.env.ref('uom.product_uom_unit')
+
+        # Create finished product
+        finished_product = self.env['product.product'].create({
+            'name': 'Geyser',
+            'type': 'product',
+            'route_ids': [(4, route_mto), (4, route_manufacture)],
+        })
+
+        # Create service type product
+        product_raw = self.env['product.product'].create({
+            'name': 'raw Geyser',
+            'type': 'service',
+        })
+
+        # Create bom for finish product
+        bom = self.env['mrp.bom'].create({
+            'product_id': finished_product.id,
+            'product_tmpl_id': finished_product.product_tmpl_id.id,
+            'product_uom_id': self.env.ref('uom.product_uom_unit').id,
+            'product_qty': 1.0,
+            'type': 'normal',
+            'bom_line_ids': [(5, 0), (0, 0, {'product_id': product_raw.id})]
+        })
+
+        # Create sale order
+        sale_form = Form(self.env['sale.order'])
+        sale_form.partner_id = self.env.ref('base.res_partner_1')
+        with sale_form.order_line.new() as line:
+            line.name = finished_product.name
+            line.product_id = finished_product
+            line.product_uom_qty = 1.0
+            line.product_uom = self.uom_unit
+            line.price_unit = 10.0
+        sale_order = sale_form.save()
+
+        with self.assertRaises(UserError):
+            sale_order.action_confirm()
+
+        mo = self.env['mrp.production'].search([('product_id', '=', finished_product.id)])
+
+        self.assertTrue(mo, 'Manufacturing order created.')

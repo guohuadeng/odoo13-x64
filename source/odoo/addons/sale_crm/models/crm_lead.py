@@ -20,7 +20,7 @@ class CrmLead(models.Model):
             total = 0.0
             quotation_cnt = 0
             sale_order_cnt = 0
-            company_currency = lead.company_currency or self.env.company_id.currency_id
+            company_currency = lead.company_currency or self.env.company.currency_id
             for order in lead.order_ids:
                 if order.state in ('draft', 'sent'):
                     quotation_cnt += 1
@@ -42,21 +42,22 @@ class CrmLead(models.Model):
             'last_month': 0,
         }
         account_invoice_domain = [
-            ('state', 'in', ['open', 'in_payment', 'paid']),
-            ('user_id', '=', self.env.uid),
-            ('date_invoice', '>=', date_today.replace(day=1) - relativedelta(months=+1)),
+            ('state', '=', 'posted'),
+            ('invoice_user_id', '=', self.env.uid),
+            ('invoice_date', '>=', date_today.replace(day=1) - relativedelta(months=+1)),
             ('type', 'in', ['out_invoice', 'out_refund'])
         ]
 
-        invoice_data = self.env['account.invoice'].search_read(account_invoice_domain, ['date_invoice', 'amount_untaxed_signed'])
+        invoice_data = self.env['account.move'].search_read(account_invoice_domain, ['invoice_date', 'amount_untaxed', 'type'])
 
         for invoice in invoice_data:
-            if invoice['date_invoice']:
-                invoice_date = fields.Date.from_string(invoice['date_invoice'])
+            if invoice['invoice_date']:
+                invoice_date = fields.Date.from_string(invoice['invoice_date'])
+                sign = 1 if invoice['type'] == 'out_invoice' else -1
                 if invoice_date <= date_today and invoice_date >= date_today.replace(day=1):
-                    res['invoiced']['this_month'] += invoice['amount_untaxed_signed']
+                    res['invoiced']['this_month'] += sign * invoice['amount_untaxed']
                 elif invoice_date < date_today.replace(day=1) and invoice_date >= date_today.replace(day=1) - relativedelta(months=+1):
-                    res['invoiced']['last_month'] += invoice['amount_untaxed_signed']
+                    res['invoiced']['last_month'] += sign * invoice['amount_untaxed']
 
         res['invoiced']['target'] = self.env.user.target_sales_invoiced
         return res
@@ -81,4 +82,33 @@ class CrmLead(models.Model):
             'default_name': self.name,
             'default_source_id': self.source_id.id
         }
+        return action
+
+    def action_view_sale_quotation(self):
+        action = self.env.ref('sale.action_quotations_with_onboarding').read()[0]
+        action['context'] = {
+            'search_default_draft': 1,
+            'search_default_partner_id': self.partner_id.id,
+            'default_partner_id': self.partner_id.id,
+            'default_opportunity_id': self.id
+        }
+        action['domain'] = [('opportunity_id', '=', self.id), ('state', 'in', ['draft', 'sent'])]
+        quotations = self.mapped('order_ids').filtered(lambda l: l.state in ('draft', 'sent'))
+        if len(quotations) == 1:
+            action['views'] = [(self.env.ref('sale.view_order_form').id, 'form')]
+            action['res_id'] = quotations.id
+        return action
+
+    def action_view_sale_order(self):
+        action = self.env.ref('sale.action_orders').read()[0]
+        action['context'] = {
+            'search_default_partner_id': self.partner_id.id,
+            'default_partner_id': self.partner_id.id,
+            'default_opportunity_id': self.id,
+        }
+        action['domain'] = [('opportunity_id', '=', self.id), ('state', 'not in', ('draft', 'sent', 'cancel'))]
+        orders = self.mapped('order_ids').filtered(lambda l: l.state not in ('draft', 'sent', 'cancel'))
+        if len(orders) == 1:
+            action['views'] = [(self.env.ref('sale.view_order_form').id, 'form')]
+            action['res_id'] = orders.id
         return action

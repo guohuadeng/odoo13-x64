@@ -50,6 +50,8 @@ class MrpProductProduce(models.TransientModel):
         'raw_product_produce_id', string='Components')
     finished_workorder_line_ids = fields.One2many('mrp.product.produce.line',
         'finished_product_produce_id', string='By-products')
+    production_id = fields.Many2one('mrp.production', 'Manufacturing Order',
+        required=True, ondelete='cascade')
 
     @api.depends('qty_producing')
     def _compute_pending_production(self):
@@ -78,7 +80,6 @@ class MrpProductProduce(models.TransientModel):
         return {
             'name': _('Produce'),
             'type': 'ir.actions.act_window',
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'mrp.product.produce',
             'res_id': self.id,
@@ -86,7 +87,6 @@ class MrpProductProduce(models.TransientModel):
             'target': 'new',
         }
 
-    @api.multi
     def do_produce(self):
         """ Save the current wizard and go back to the MO. """
         self.ensure_one()
@@ -100,7 +100,6 @@ class MrpProductProduce(models.TransientModel):
         todo_quantity = todo_quantity if (todo_quantity > 0) else 0
         return todo_quantity
 
-    @api.multi
     def _record_production(self):
         # Check all the product_produce line have a move id (the user can add product
         # to consume directly in the wizard)

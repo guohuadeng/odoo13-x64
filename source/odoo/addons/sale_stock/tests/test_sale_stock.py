@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
+from datetime import datetime, timedelta
 
 from odoo.addons.sale.tests.test_sale_common import TestSale
 from odoo.exceptions import UserError
@@ -13,7 +14,7 @@ class TestSaleStock(TestSale):
         Test SO's changes when playing around with stock moves, quants, pack operations, pickings
         and whatever other model there is in stock with "invoice on delivery" products
         """
-        inv_obj = self.env['account.invoice']
+        inv_obj = self.env['account.move']
         self.so = self.env['sale.order'].create({
             'partner_id': self.partner.id,
             'partner_invoice_id': self.partner.id,
@@ -41,8 +42,7 @@ class TestSaleStock(TestSale):
         del_qties_truth = [1.0 if sol.product_id.type in ['product', 'consu'] else 0.0 for sol in self.so.order_line]
         self.assertEqual(del_qties, del_qties_truth, 'Sale Stock: delivered quantities are wrong after partial delivery')
         # invoice on delivery: only storable products
-        inv_id = self.so._create_invoices()
-        inv_1 = inv_obj.browse(inv_id)
+        inv_1 = self.so._create_invoices()
         self.assertTrue(all([il.product_id.invoice_policy == 'delivery' for il in inv_1.invoice_line_ids]),
                         'Sale Stock: invoice should only contain "invoice on delivery" products')
 
@@ -93,7 +93,7 @@ class TestSaleStock(TestSale):
             'product_id': self.env.ref('sale.advance_product_0').id,
         })
         act = adv_wiz.with_context(open_invoices=True).create_invoices()
-        inv = self.env['account.invoice'].browse(act['res_id'])
+        inv = self.env['account.move'].browse(act['res_id'])
         self.assertEqual(inv.amount_untaxed, self.so.amount_untaxed * 5.0 / 100.0, 'Sale Stock: deposit invoice is wrong')
         self.assertEqual(self.so.invoice_status, 'to invoice', 'Sale Stock: so should be to invoice after invoicing deposit')
         # invoice on order: everything should be invoiced
@@ -151,12 +151,11 @@ class TestSaleStock(TestSale):
 
         # Check invoice
         self.assertEqual(self.so.invoice_status, 'to invoice', 'Sale Stock: so invoice_status should be "to invoice" instead of "%s" before invoicing' % self.so.invoice_status)
-        inv_1_id = self.so._create_invoices()
+        self.inv_1 = self.so._create_invoices()
         self.assertEqual(self.so.invoice_status, 'invoiced', 'Sale Stock: so invoice_status should be "invoiced" instead of "%s" after invoicing' % self.so.invoice_status)
-        self.assertEqual(len(inv_1_id), 1, 'Sale Stock: only one invoice instead of "%s" should be created' % len(inv_1_id))
-        self.inv_1 = self.env['account.invoice'].browse(inv_1_id)
+        self.assertEqual(len(self.inv_1), 1, 'Sale Stock: only one invoice instead of "%s" should be created' % len(self.inv_1))
         self.assertEqual(self.inv_1.amount_untaxed, self.inv_1.amount_untaxed, 'Sale Stock: amount in SO and invoice should be the same')
-        self.inv_1.action_invoice_open()
+        self.inv_1.post()
 
         # Create return picking
         stock_return_picking_form = Form(self.env['stock.return.picking']
@@ -226,10 +225,9 @@ class TestSaleStock(TestSale):
 
         # Check invoice
         self.assertEqual(self.so.invoice_status, 'to invoice', 'Sale Stock: so invoice_status should be "to invoice" before invoicing')
-        inv_1_id = self.so._create_invoices()
+        self.inv_1 = self.so._create_invoices()
         self.assertEqual(self.so.invoice_status, 'no', 'Sale Stock: so invoice_status should be "no" after invoicing')
-        self.assertEqual(len(inv_1_id), 1, 'Sale Stock: only one invoice should be created')
-        self.inv_1 = self.env['account.invoice'].browse(inv_1_id)
+        self.assertEqual(len(self.inv_1), 1, 'Sale Stock: only one invoice should be created')
         self.assertEqual(self.inv_1.amount_untaxed, self.inv_1.amount_untaxed, 'Sale Stock: amount in SO and invoice should be the same')
 
         self.so.action_done()
@@ -237,7 +235,7 @@ class TestSaleStock(TestSale):
 
     def test_04_create_picking_update_saleorderline(self):
         """
-        Test that updating multiple sale order lines after a succesful delivery creates a single picking containing
+        Test that updating multiple sale order lines after a successful delivery creates a single picking containing
         the new move lines.
         """
         # sell two products
@@ -498,3 +496,113 @@ class TestSaleStock(TestSale):
         so1.picking_ids.button_validate()
         self.assertEqual(so1.picking_ids.state, 'done')
         self.assertEqual(so1.order_line.mapped('qty_delivered'), [1, 1, 1])
+
+    def test_08_quantities(self):
+        """Change the picking code of the receipts to internal. Make a SO for 10 units, go to the
+        picking and return 5, edit the SO line to 15 units.
+
+        The purpose of the test is to check the consistencies across the delivered quantities and the
+        procurement quantities.
+        """
+        # Change the code of the picking type receipt
+        self.env['stock.picking.type'].search([('code', '=', 'incoming')]).write({'code': 'internal'})
+
+        # Sell and deliver 10 units
+        item1 = self.products['prod_order']
+        uom_unit = self.env.ref('uom.product_uom_unit')
+        so1 = self.env['sale.order'].create({
+            'partner_id': self.partner.id,
+            'order_line': [
+                (0, 0, {
+                    'name': item1.name,
+                    'product_id': item1.id,
+                    'product_uom_qty': 10,
+                    'product_uom': uom_unit.id,
+                    'price_unit': item1.list_price,
+                }),
+            ],
+        })
+        so1.action_confirm()
+
+        picking = so1.picking_ids
+        wiz_act = picking.button_validate()
+        wiz = self.env[wiz_act['res_model']].browse(wiz_act['res_id'])
+        wiz.process()
+
+        # Return 5 units
+        stock_return_picking_form = Form(self.env['stock.return.picking'].with_context(
+            active_ids=picking.ids,
+            active_id=picking.ids[0],
+            active_model='stock.picking'
+        ))
+        return_wiz = stock_return_picking_form.save()
+        for return_move in return_wiz.product_return_moves:
+            return_move.write({
+                'quantity': 5,
+                'to_refund': True
+            })
+        res = return_wiz.create_returns()
+        return_pick = self.env['stock.picking'].browse(res['res_id'])
+        wiz_act = return_pick.button_validate()
+        wiz = self.env[wiz_act['res_model']].browse(wiz_act['res_id'])
+        wiz.process()
+
+        self.assertEqual(so1.order_line.qty_delivered, 5)
+
+        # Deliver 15 instead of 10.
+        so1.write({
+            'order_line': [
+                (1, so1.order_line[0].id, {'product_uom_qty': 15}),
+            ]
+        })
+
+        # A new move of 10 unit (15 - 5 units)
+        self.assertEqual(so1.order_line.qty_delivered, 5)
+        self.assertEqual(so1.picking_ids[-1].move_lines.product_qty, 10)
+
+    def test_09_qty_available(self):
+        """ create a sale order in warehouse1, change to warehouse2 and check the
+        available quantities on sale order lines are well updated """
+        # sell two products
+        item1 = self.products['prod_order']
+        item1.type = 'product'
+        warehouse1 = self.env.ref('stock.warehouse0')
+        self.env['stock.quant']._update_available_quantity(item1, warehouse1.lot_stock_id, 10)
+        self.env['stock.quant']._update_reserved_quantity(item1, warehouse1.lot_stock_id, 3)
+        warehouse2 = self.env['stock.warehouse'].search([('id', '!=', warehouse1.id)], limit=1)
+        self.env['stock.quant']._update_available_quantity(item1, warehouse2.lot_stock_id, 5)
+        so = self.env['sale.order'].create({
+            'partner_id': self.partner.id,
+            'order_line': [
+                (0, 0, {'name': item1.name, 'product_id': item1.id, 'product_uom_qty': 1, 'product_uom': item1.uom_id.id, 'price_unit': item1.list_price}),
+            ],
+        })
+        line = so.order_line[0]
+        self.assertAlmostEqual(line.scheduled_date, datetime.now(), delta=timedelta(seconds=10))
+        self.assertEqual(line.virtual_available_at_date, 10)
+        self.assertEqual(line.free_qty_today, 7)
+        self.assertEqual(line.qty_available_today, 10)
+        self.assertEqual(line.warehouse_id, warehouse1)
+        self.assertEqual(line.qty_to_deliver, 1)
+        so.warehouse_id = warehouse2
+        self.assertEqual(line.virtual_available_at_date, 5)
+        self.assertEqual(line.free_qty_today, 5)
+        self.assertEqual(line.qty_available_today, 5)
+        self.assertEqual(line.warehouse_id, warehouse2)
+        self.assertEqual(line.qty_to_deliver, 1)
+
+    def test_10_qty_available(self):
+        """create a sale order containing three times the same product. The
+        quantity available should be different for the 3 lines"""
+        item1 = self.products['prod_order']
+        item1.type = 'product'
+        self.env['stock.quant']._update_available_quantity(item1, self.env.ref('stock.stock_location_stock'), 10)
+        so = self.env['sale.order'].create({
+            'partner_id': self.partner.id,
+            'order_line': [
+                (0, 0, {'name': item1.name, 'product_id': item1.id, 'product_uom_qty': 5, 'product_uom': item1.uom_id.id, 'price_unit': item1.list_price}),
+                (0, 0, {'name': item1.name, 'product_id': item1.id, 'product_uom_qty': 5, 'product_uom': item1.uom_id.id, 'price_unit': item1.list_price}),
+                (0, 0, {'name': item1.name, 'product_id': item1.id, 'product_uom_qty': 5, 'product_uom': item1.uom_id.id, 'price_unit': item1.list_price}),
+            ],
+        })
+        self.assertEqual(so.order_line.mapped('free_qty_today'), [10, 5, 0])

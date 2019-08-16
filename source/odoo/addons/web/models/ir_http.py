@@ -3,11 +3,11 @@
 import hashlib
 import json
 
-from odoo import models
+from odoo import api, models
 from odoo.http import request
 from odoo.tools import ustr
 
-from odoo.addons.web.controllers.main import concat_xml, manifest_glob, module_boot
+from odoo.addons.web.controllers.main import module_boot, HomeStaticTemplateHelpers
 
 import odoo
 
@@ -17,8 +17,8 @@ class Http(models.AbstractModel):
 
     def webclient_rendering_context(self):
         return {
-            'menu_data': request.env['ir.ui.menu'].load_menus(request.debug),
-            'session_info': json.dumps(self.session_info()),
+            'menu_data': request.env['ir.ui.menu'].load_menus(request.session.debug),
+            'session_info': self.session_info(),
         }
 
     def session_info(self):
@@ -28,14 +28,19 @@ class Http(models.AbstractModel):
         user_context = request.session.get_context() if request.session.uid else {}
 
         mods = module_boot()
-        files = [f[0] for f in manifest_glob('qweb', addons=','.join(mods))]
-        _, qweb_checksum = concat_xml(files)
+        qweb_checksum = HomeStaticTemplateHelpers.get_qweb_templates_checksum(addons=mods, debug=request.session.debug)
 
         lang = user_context.get("lang")
-        translations_per_module, _ = request.env['ir.translation'].get_translations_for_webclient(mods, lang)
+        translations_per_module, lang_params = request.env['ir.translation'].get_translations_for_webclient(mods, lang)
+        translation_cache = {
+            'lang': lang,
+            'lang_parameters': lang_params,
+            'modules': translations_per_module,
+            'multi_lang': len(request.env['res.lang'].sudo().get_installed()) > 1,
+        }
 
-        menu_json_utf8 = json.dumps(request.env['ir.ui.menu'].load_menus(request.debug), default=ustr, sort_keys=True).encode()
-        translations_json_utf8 = json.dumps(translations_per_module,  sort_keys=True).encode()
+        menu_json_utf8 = json.dumps(request.env['ir.ui.menu'].load_menus(request.session.debug), default=ustr, sort_keys=True).encode()
+        translations_json_utf8 = json.dumps(translation_cache,  sort_keys=True).encode()
 
         return {
             "uid": request.session.uid,
@@ -56,12 +61,21 @@ class Http(models.AbstractModel):
             "web.base.url": self.env['ir.config_parameter'].sudo().get_param('web.base.url', default=''),
             "show_effect": True,
             "display_switch_company_menu": user.has_group('base.group_multi_company') and len(user.company_ids) > 1,
-            "toggle_company": user.has_group('base.group_toggle_company'),
             "cache_hashes": {
                 "load_menus": hashlib.sha1(menu_json_utf8).hexdigest(),
                 "qweb": qweb_checksum,
                 "translations": hashlib.sha1(translations_json_utf8).hexdigest(),
             },
+        }
+
+    @api.model
+    def get_frontend_session_info(self):
+        return {
+            'is_admin': self.env.user._is_admin(),
+            'is_system': self.env.user._is_system(),
+            'is_website_user': self.env.user._is_public(),
+            'user_id': self.env.user.id,
+            'is_frontend': True,
         }
 
     def get_currencies(self):

@@ -10,6 +10,7 @@ var core = require('web.core');
 var mixins = require('web.mixins');
 var utils = require('web.utils');
 var publicWidget = require('web.public.widget');
+var utils = require('web.utils');
 
 var qweb = core.qweb;
 
@@ -76,7 +77,7 @@ publicWidget.Widget.include({
         this.editableMode = this.options.editableMode || false;
         var extraEvents = this.editableMode ? this.edit_events : this.read_events;
         if (extraEvents) {
-            this.events = _.extend(this.events || {}, extraEvents);
+            this.events = _.extend({}, this.events || {}, extraEvents);
         }
     },
 });
@@ -860,6 +861,10 @@ registry.gallerySlider = publicWidget.Widget.extend({
     destroy: function () {
         this._super.apply(this, arguments);
 
+        if (!this.$indicator) {
+            return;
+        }
+
         this.$prev.prependTo(this.$indicator);
         this.$next.appendTo(this.$indicator);
         this.$carousel.off('.gallery_slider');
@@ -1014,7 +1019,7 @@ registry.anchorSlide = publicWidget.Widget.extend({
             return;
         }
         var hash = this.$target[0].hash;
-        if (!/^#[\w-]+$/.test(hash)) {
+        if (!utils.isValidAnchor(hash)) {
             return;
         }
         var $anchor = $(hash);

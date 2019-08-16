@@ -198,7 +198,6 @@ var StatementRenderer = Widget.extend(FieldManagerMixin, {
             domain: [['id', 'in', ids]],
             views: [[false, 'list'], [false, 'form']],
             type: 'ir.actions.act_window',
-            view_type: "list",
             view_mode: "list"
         });
     },
@@ -217,8 +216,7 @@ var StatementRenderer = Widget.extend(FieldManagerMixin, {
             res_model: 'account.bank.statement',
             views: [[false, 'list'], [false, 'form']],
             type: 'ir.actions.act_window',
-            context: {search_default_journal_id: journalId},
-            view_type: 'list',
+            context: {search_default_journal_id: journalId, 'journal_type':'bank'},
             view_mode: 'form',
         });
     },
@@ -346,7 +344,7 @@ var LineRenderer = Widget.extend(FieldManagerMixin, {
     update: function (state) {
         var self = this;
         // isValid
-        var to_check_checked = !!(state.reconciliation_proposition[0] && state.reconciliation_proposition[0].to_check);
+        var to_check_checked = !!(state.to_check);
         this.$('caption .o_buttons button.o_validate').toggleClass('d-none', !!state.balance.type && !to_check_checked);
         this.$('caption .o_buttons button.o_reconcile').toggleClass('d-none', state.balance.type <= 0 || to_check_checked);
         this.$('caption .o_buttons .o_no_valid').toggleClass('d-none', state.balance.type >= 0);
@@ -476,9 +474,13 @@ var LineRenderer = Widget.extend(FieldManagerMixin, {
                                 }
                             }
                         });
-                        return true; 
+                        if (state.to_check) {
+                            // Set the to_check field to true if global to_check is set
+                            self.$('.create_to_check input').prop('checked', state.to_check).change();
+                        }
+                        return true;
                     });
-                });
+            });
         }
         this.$('.create .add_line').toggle(!!state.balance.amount_currency);
     },
@@ -523,7 +525,7 @@ var LineRenderer = Widget.extend(FieldManagerMixin, {
         }
         return this.model.makeRecord('account.bank.statement.line', [field], {
             partner_id: {
-                domain: ["|", ["is_company", "=", true], ["parent_id", "=", false], "|", ["customer", "=", true], ["supplier", "=", true]],
+                domain: ["|", ["is_company", "=", true], ["parent_id", "=", false]],
                 options: {
                     no_open: true
                 }
@@ -688,7 +690,6 @@ var LineRenderer = Widget.extend(FieldManagerMixin, {
             type: 'ir.actions.act_window',
             res_model: 'account.reconcile.model',
             views: [[false, 'list'], [false, 'form']],
-            view_type: "list",
             view_mode: "list",
             target: 'current'
         },
@@ -790,6 +791,7 @@ var LineRenderer = Widget.extend(FieldManagerMixin, {
      */
     _onSelectMoveLine: function (event) {
         var $el = $(event.target);
+        $el.prop('disabled', true);
         this._destroyPopover($el);
         var moveLineId = $el.closest('.mv_line').data('line-id');
         this.trigger_up('add_proposition', {'data': moveLineId});
@@ -938,10 +940,12 @@ var ManualLineRenderer = LineRenderer.extend({
      * @override
      */
     _renderCreate: function (state) {
-        var parentPromise = this._super(state);
-        this.$('.create .create_journal_id').show();
-        this.$('.create .create_date').removeClass('d-none');
-        this.$('.create .create_journal_id .o_input').addClass('o_required_modifier');
+        var self = this;
+        var parentPromise = this._super(state).then(function() {
+            self.$('.create .create_journal_id').show();
+            self.$('.create .create_date').removeClass('d-none');
+            self.$('.create .create_journal_id .o_input').addClass('o_required_modifier');
+        });
         return parentPromise;
     },
 

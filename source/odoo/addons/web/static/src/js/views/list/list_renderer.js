@@ -25,14 +25,20 @@ var DECORATIONS = [
 ];
 
 var FIELD_CLASSES = {
+    char: 'o_list_char',
     float: 'o_list_number',
     integer: 'o_list_number',
     monetary: 'o_list_number',
     text: 'o_list_text',
+    many2one: 'o_list_many2one',
 };
 
 var ListRenderer = BasicRenderer.extend({
+    className: 'o_list_view',
     events: {
+        "mousedown": "_onMouseDown",
+        "click .o_optional_columns_dropdown .dropdown-item": "_onToggleOptionalColumn",
+        "click .o_optional_columns_dropdown_toggle": "_onToggleOptionalColumnDropdown",
         'click tbody tr': '_onRowClicked',
         'click tbody .o_list_record_selector': '_onSelectRecord',
         'click thead th.o_column_sortable': '_onSortColumn',
@@ -51,6 +57,7 @@ var ListRenderer = BasicRenderer.extend({
      */
     init: function (parent, state, params) {
         this._super.apply(this, arguments);
+        this.columnInvisibleFields = params.columnInvisibleFields;
         this.rowDecorations = _.chain(this.arch.attrs)
             .pick(function (value, key) {
                 return DECORATIONS.indexOf(key) >= 0;
@@ -63,7 +70,16 @@ var ListRenderer = BasicRenderer.extend({
         this.editable = params.editable;
         this.isGrouped = this.state.groupedBy.length > 0;
         this.groupbys = params.groupbys;
-        this._processColumns(params.columnInvisibleFields || {});
+    },
+    /**
+     * Compute columns visilibity. This can't be done earlier as we need the
+     * controller to respond to the load_optional_fields call of processColumns.
+     *
+     * @override
+     */
+    willStart: function() {
+        this._processColumns(this.columnInvisibleFields || {});
+        return this._super.apply(this, arguments);
     },
 
     //--------------------------------------------------------------------------
@@ -229,6 +245,20 @@ var ListRenderer = BasicRenderer.extend({
         return this.hasSelectors ? n + 1 : n;
     },
     /**
+     * Returns the local storage key for stored enabled optional columns
+     *
+     * @private
+     * @returns {string}
+     */
+    _getOptionalColumnsStorageKeyParts: function () {
+        var self = this;
+        return {
+            fields: _.map(this.state.fieldsInfo[this.viewType], function (_, fieldName) {
+                return {name: fieldName, type: self.state.fields[fieldName].type};
+            }),
+        }
+    },
+    /**
      * Removes the columns which should be invisible.
      *
      * @param  {Object} columnInvisibleFields contains the column invisible modifier values
@@ -236,23 +266,50 @@ var ListRenderer = BasicRenderer.extend({
     _processColumns: function (columnInvisibleFields) {
         var self = this;
         this.handleField = null;
-        this.columns = _.reject(this.arch.children, function (c) {
-            if (c.tag === 'control' || c.tag === 'groupby') {
-                return true;
-            }
-            var reject = c.attrs.modifiers.column_invisible;
-            // If there is an evaluated domain for the field we override the node
-            // attribute to have the evaluated modifier value.
-            if (c.attrs.name in columnInvisibleFields) {
-                reject = columnInvisibleFields[c.attrs.name];
-            }
-            if (!reject && c.attrs.widget === 'handle') {
-                self.handleField = c.attrs.name;
-                if (self.isGrouped) {
-                    return true;
+        this.columns = [];
+        this.optionalColumns = [];
+        this.optionalColumnsEnabled = [];
+        var storedOptionalColumns;
+        this.trigger_up('load_optional_fields', {
+            keyParts: this._getOptionalColumnsStorageKeyParts(),
+            callback: function(res) {
+                storedOptionalColumns = res;
+            },
+        });
+        _.each(this.arch.children, function (c) {
+            if (c.tag !== 'control' && c.tag !== 'groupby') {
+                var reject = c.attrs.modifiers.column_invisible;
+                // If there is an evaluated domain for the field we override the node
+                // attribute to have the evaluated modifier value.
+                if (c.attrs.name in columnInvisibleFields) {
+                    reject = columnInvisibleFields[c.attrs.name];
+                }
+
+                if (!reject && c.attrs.widget === 'handle') {
+                    self.handleField = c.attrs.name;
+                    if (self.isGrouped) {
+                        reject = true;
+                    }
+                }
+
+                if (!reject && c.attrs.optional) {
+                    self.optionalColumns.push(c);
+                    var enabled;
+                    if (storedOptionalColumns === undefined) {
+                        enabled = c.attrs.optional === 'show'
+                    } else {
+                        enabled = _.contains(storedOptionalColumns, c.attrs.name);
+                    }
+                    if (enabled) {
+                        self.optionalColumnsEnabled.push(c.attrs.name);
+                    }
+                    reject = !enabled;
+                }
+
+                if (!reject) {
+                    self.columns.push(c);
                 }
             }
-            return reject;
         });
     },
     /**
@@ -268,7 +325,7 @@ var ListRenderer = BasicRenderer.extend({
 
         return _.map(this.columns, function (column) {
             var $cell = $('<td>');
-            if (config.debug) {
+            if (config.isDebug()) {
                 $cell.addClass(column.attrs.name);
             }
             if (column.attrs.name in aggregateValues) {
@@ -361,9 +418,11 @@ var ListRenderer = BasicRenderer.extend({
             data: record.data,
             escape: true,
             isPassword: 'password' in node.attrs,
+            digits: node.attrs.digits && JSON.parse(node.attrs.digits),
         });
         this._handleAttributes($td, node);
-        return $td.html(formattedValue).attr('title', formattedValue);
+        var title = field.type !== 'boolean' ? formattedValue : '';
+        return $td.html(formattedValue).attr('title', title);
     },
     /**
      * Renders the button element associated to the given node and record.
@@ -555,16 +614,22 @@ var ListRenderer = BasicRenderer.extend({
         var colspanBeforeAggregate;
         if (firstAggregateIndex !== -1) {
             // if there are aggregates, the first $th goes until the first
-            // aggregate then all cells between aggregates are rendered, then
-            // there is a last $th for the pager
+            // aggregate then all cells between aggregates are rendered
             colspanBeforeAggregate = firstAggregateIndex;
             var lastAggregateIndex = _.findLastIndex(this.columns, function (column) {
                 return column.tag === 'field' && _.contains(aggregateKeys, column.attrs.name);
             });
             cells = cells.concat(aggregateCells.slice(firstAggregateIndex, lastAggregateIndex + 1));
-            cells.push($('<th>').attr('colspan', this.columns.length - 1 - lastAggregateIndex));
+            var colSpan = this.columns.length - 1 - lastAggregateIndex;
+            if (colSpan > 0) {
+                cells.push($('<th>').attr('colspan', colSpan));
+            }
         } else {
-            colspanBeforeAggregate = this.columns.length;
+            var colN = this.columns.length;
+            colspanBeforeAggregate = colN > 1 ? colN - 1 : 1;
+            if (colN > 1) {
+                cells.push($('<th>'));
+            }
         }
         if (this.hasSelectors) {
             colspanBeforeAggregate += 1;
@@ -572,9 +637,9 @@ var ListRenderer = BasicRenderer.extend({
         $th.attr('colspan', colspanBeforeAggregate);
 
         if (group.isOpen && !group.groupedBy.length && (group.count > group.data.length)) {
-            var $lastCell = cells[cells.length - 1];
             var $pager = this._renderGroupPager(group);
-            $lastCell.addClass('o_group_pager').append($pager);
+            var $lastCell = cells[cells.length - 1];
+            $lastCell.append($pager);
         }
         if (group.isOpen && this.groupbys[groupBy]) {
             var $buttons = this._renderGroupButtons(group, this.groupbys[groupBy]);
@@ -698,10 +763,10 @@ var ListRenderer = BasicRenderer.extend({
         }
 
         if (field.type === 'float' || field.type === 'integer' || field.type === 'monetary') {
-            $th.css({ textAlign: 'right' });
+            $th.addClass('o_list_number_th');
         }
 
-        if (config.debug) {
+        if (config.isDebug()) {
             var fieldDescr = {
                 field: field,
                 name: name,
@@ -746,6 +811,46 @@ var ListRenderer = BasicRenderer.extend({
      */
     _renderRows: function () {
         return this.state.data.map(this._renderRow.bind(this));
+    },
+    /**
+    * Render a single <th> with dropdown menu to display optional columns of view.
+    *
+    * @private
+    * @returns {jQueryElement} a <th> element
+    */
+    _renderOptionalColumnsDropdown: function () {
+        var self = this;
+        var $optionalColumnsDropdown = $('<div>', {
+            class: 'o_optional_columns text-center dropdown',
+        });
+        var $a = $("<a>", {
+            class: "dropdown-toggle text-dark o-no-caret",
+            href: "#",
+            role: "button",
+            'data-toggle': "dropdown",
+            'aria-expanded': false,
+        });
+        $a.appendTo($optionalColumnsDropdown);
+        var $dropdown = $("<div>", {
+            class: 'dropdown-menu dropdown-menu-right o_optional_columns_dropdown',
+            role: 'menu',
+        });
+        this.optionalColumns.forEach(function (col) {
+            var txt = (col.attrs.string || self.state.fields[col.attrs.name].string) +
+                (config.isDebug() ? (' (' + col.attrs.name + ')') : '');
+            var $checkbox = dom.renderCheckbox({
+                text: txt,
+                prop: {
+                    name: col.attrs.name,
+                    checked: _.contains(self.optionalColumnsEnabled, col.attrs.name),
+                }
+            })
+            $dropdown.append($("<div>", {
+                class: "dropdown-item",
+            }).append($checkbox));
+        });
+        $dropdown.appendTo($optionalColumnsDropdown);
+        return $optionalColumnsDropdown;
     },
     /**
      * A 'selector' is the small checkbox on the left of a record in a list
@@ -798,9 +903,9 @@ var ListRenderer = BasicRenderer.extend({
         this.hasHandle = orderedBy.length === 0 || orderedBy[0].name === this.handleField;
         this._computeAggregates();
 
-        var $table = $('<table>').addClass('o_list_view table table-sm table-hover table-striped');
-        $table.toggleClass('o_list_view_grouped', this.isGrouped);
-        $table.toggleClass('o_list_view_ungrouped', !this.isGrouped);
+        var $table = $('<table>').addClass('o_list_table table table-sm table-hover table-striped');
+        $table.toggleClass('o_list_table_grouped', this.isGrouped);
+        $table.toggleClass('o_list_table_ungrouped', !this.isGrouped);
         var defs = [];
         this.defs = defs;
         if (this.isGrouped) {
@@ -819,7 +924,16 @@ var ListRenderer = BasicRenderer.extend({
             // destroy the previously instantiated pagers, if any
             _.invoke(oldPagers, 'destroy');
 
-            self.$el.addClass('table-responsive').html($table);
+            self.$el.html($('<div>', {
+                class: 'table-responsive',
+                html: $table
+            }));
+
+            if (self.optionalColumns.length) {
+                self.$el.addClass('o_list_optional_columns')
+                self.$('table').append($('<i class="o_optional_columns_dropdown_toggle fa fa-ellipsis-v"/>'));
+                self.$el.append(self._renderOptionalColumnsDropdown());
+            }
 
             if (self.selection.length) {
                 var $checked_rows = self.$('tr').filter(function (index, el) {
@@ -915,6 +1029,48 @@ var ListRenderer = BasicRenderer.extend({
         }
     },
     /**
+     * When the user clicks on the checkbox in optional fields dropdown the
+     * column is added to listview and displayed
+     *
+     * @private
+     * @param {MouseEvent} ev
+     */
+    _onToggleOptionalColumn: function (ev) {
+        var self = this;
+        ev.stopPropagation();
+        var input = ev.currentTarget.querySelector('input');
+        var fieldIndex = this.optionalColumnsEnabled.indexOf(input.name);
+        if (fieldIndex >= 0) {
+            this.optionalColumnsEnabled.splice(fieldIndex, 1);
+        } else {
+            this.optionalColumnsEnabled.push(input.name);
+        }
+        this.trigger_up('save_optional_fields', {
+            keyParts: this._getOptionalColumnsStorageKeyParts(),
+            optionalColumnsEnabled: this.optionalColumnsEnabled,
+        });
+        this._processColumns(this.columnInvisibleFields || {});
+        this._renderView().then(function() {
+            self._onToggleOptionalColumnDropdown(ev);
+        })
+    },
+    /**
+     * When the user clicks on the three dots (ellipsis), toggle the optional
+     * fields dropdown.
+     *
+     * @private
+     */
+    _onToggleOptionalColumnDropdown: function (ev) {
+        // The dropdown toggle is inside the overflow hidden container because
+        // the ellipsis is always in the last column, but we want the actual
+        // dropdown to be outside of the overflow hidden container since it
+        // could easily have a higher height than the table. However, separating
+        // the toggle and the dropdown itself is not supported by popper.js by
+        // default, which is why we need to toggle the dropdown manually.
+        ev.stopPropagation();
+        this.$('.o_optional_columns .dropdown-toggle').dropdown('toggle');
+    },
+    /**
      * Manages the keyboard events on the list. If the list is not editable, when the user navigates to
      * a cell using the keyboard, if he presses enter, enter the model represented by the line
      *
@@ -930,6 +1086,7 @@ var ListRenderer = BasicRenderer.extend({
             case $.ui.keyCode.LEFT:
                 ev.preventDefault();
                 $tr = $cell.closest('tr');
+                $tr.closest('tbody').addClass('o_keyboard_navigation');
                 if ($tr.hasClass('o_group_header') && $tr.hasClass('o_group_open')) {
                     this._onToggleGroup(ev);
                 } else {
@@ -939,6 +1096,7 @@ var ListRenderer = BasicRenderer.extend({
             case $.ui.keyCode.RIGHT:
                 ev.preventDefault();
                 $tr = $cell.closest('tr');
+                $tr.closest('tbody').addClass('o_keyboard_navigation');
                 if ($tr.hasClass('o_group_header') && !$tr.hasClass('o_group_open')) {
                     this._onToggleGroup(ev);
                 } else {
@@ -947,11 +1105,13 @@ var ListRenderer = BasicRenderer.extend({
                 break;
             case $.ui.keyCode.UP:
                 ev.preventDefault();
+                $cell.closest('tbody').addClass('o_keyboard_navigation');
                 colIndex = this.currentColIndex || $cell.index();
                 $futureCell = this._findConnectedCell($cell, 'prev', colIndex);
                 break;
             case $.ui.keyCode.DOWN:
                 ev.preventDefault();
+                $cell.closest('tbody').addClass('o_keyboard_navigation');
                 colIndex = this.currentColIndex || $cell.index();
                 $futureCell = this._findConnectedCell($cell, 'next', colIndex);
                 break;
@@ -980,6 +1140,13 @@ var ListRenderer = BasicRenderer.extend({
                 $futureCell.focus();
             }
         }
+    },
+    /**
+     *
+     * @param {MouseEvent} ev
+     */
+    _onMouseDown: function(ev) {
+        $('.o_keyboard_navigation').removeClass('o_keyboard_navigation');
     },
     /**
      * @private

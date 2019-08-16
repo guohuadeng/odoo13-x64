@@ -102,7 +102,9 @@
                 <tree string="Products Price List">
                     <field name="sequence" widget="handle" />
                     <field name="name"/>
+                    <field name="discount_policy" groups="product.group_discount_per_so_line"/>
                     <field name="currency_id" groups="base.group_multi_currency"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
                 </tree>
             </field>
         </record>
@@ -121,6 +123,7 @@
                                     </div>
                                     <strong><i class="fa fa-money" role="img" aria-label="Currency" title="Currency"></i> <field name="currency_id"/></strong>
                                 </div>
+                                <field name="discount_policy" groups="product.group_discount_per_so_line"/>
                             </div>
                         </t>
                     </templates>
@@ -134,18 +137,14 @@
             <field name="arch" type="xml">
                 <form string="Products Price List">
                     <sheet>
-                        <div class="oe_button_box" name="button_box">
-                            <button name="toggle_active" type="object"
-                                    class="oe_stat_button" icon="fa-archive">
-                                <field name="active" widget="boolean_button"
-                                    options='{"terminology": "archive"}'/>
-                            </button>
-                        </div>
+                        <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                         <div class="oe_title">
                             <h1><field name="name" placeholder="e.g. USD Retailers"/></h1>
                         </div>
                         <group>
+                            <field name="discount_policy" groups="product.group_discount_per_so_line" widget="radio"/>
                             <field name="currency_id" groups="base.group_multi_currency"/>
+                            <field name="active" invisible="1"/>
                             <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                             <field name="country_group_ids"/>
                         </group>
@@ -207,7 +206,6 @@
             <field name="name">Pricelists</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">product.pricelist</field>
-            <field name="view_type">form</field>
             <field name="view_mode">tree,kanban,form</field>
             <field name="search_view_id" ref="product_pricelist_view_search" />
             <field name="context">{"default_base":'list_price'}</field>

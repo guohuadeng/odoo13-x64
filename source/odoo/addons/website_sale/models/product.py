@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import api, fields, models, tools, _
+from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
+from odoo.addons.http_routing.models.ir_http import slug
 from odoo.addons.website.models import ir_http
 from odoo.tools.translate import html_translate
 from odoo.osv import expression
@@ -21,7 +22,7 @@ class ProductPricelist(models.Model):
 
     def _default_website(self):
         """ Find the first company's website, if there is one. """
-        company_id = self.env.company_id.id
+        company_id = self.env.company.id
 
         if self._context.get('default_company_id'):
             company_id = self._context.get('default_company_id')
@@ -51,7 +52,6 @@ class ProductPricelist(models.Model):
         self.clear_cache()
         return res
 
-    @api.multi
     def write(self, data):
         res = super(ProductPricelist, self).write(data)
         if data.keys() & {'code', 'active', 'website_id', 'selectable'}:
@@ -59,7 +59,6 @@ class ProductPricelist(models.Model):
         self.clear_cache()
         return res
 
-    @api.multi
     def unlink(self):
         res = super(ProductPricelist, self).unlink()
         self._check_website_pricelist()
@@ -85,7 +84,6 @@ class ProductPricelist(models.Model):
             if not website.pricelist_ids:
                 raise UserError(_("With this action, '%s' website would not have any pricelist available.") % (website.name))
 
-    @api.multi
     def _is_available_on_website(self, website_id):
         """ To be able to be used on a website, a pricelist should either:
         - Have its `website_id` set to current website (specific pricelist).
@@ -140,56 +138,37 @@ class ProductPricelist(models.Model):
 
 class ProductPublicCategory(models.Model):
     _name = "product.public.category"
-    _inherit = ["website.seo.metadata", "website.multi.mixin"]
+    _inherit = ["website.seo.metadata", "website.multi.mixin", 'image.mixin']
     _description = "Website Product Category"
+    _parent_store = True
     _order = "sequence, name"
 
     name = fields.Char(required=True, translate=True)
     parent_id = fields.Many2one('product.public.category', string='Parent Category', index=True)
+    parent_path = fields.Char(index=True)
     child_id = fields.One2many('product.public.category', 'parent_id', string='Children Categories')
-    sequence = fields.Integer(help="Gives the sequence order when displaying a list of product categories.")
-    # NOTE: there is no 'default image', because by default we don't show
-    # thumbnails for categories. However if we have a thumbnail for at least one
-    # category, then we display a default image on the other, so that the
-    # buttons have consistent styling.
-    # In this case, the default image is set by the js code.
-    image = fields.Binary(help="This field holds the image used as image for the category, limited to 1024x1024px.")
+    parents_and_self = fields.Many2many('product.public.category', compute='_compute_parents_and_self')
+    sequence = fields.Integer(help="Gives the sequence order when displaying a list of product categories.", index=True)
     website_description = fields.Html('Category Description', sanitize_attributes=False, translate=html_translate)
-    image_medium = fields.Binary(string='Medium-sized image',
-                                 help="Medium-sized image of the category. It is automatically "
-                                 "resized as a 128x128px image, with aspect ratio preserved. "
-                                 "Use this field in form views or some kanban views.")
-    image_small = fields.Binary(string='Small-sized image',
-                                help="Small-sized image of the category. It is automatically "
-                                "resized as a 64x64px image, with aspect ratio preserved. "
-                                "Use this field anywhere a small image is required.")
-
-    @api.model
-    def create(self, vals):
-        tools.image_resize_images(vals)
-        return super(ProductPublicCategory, self).create(vals)
-
-    @api.multi
-    def write(self, vals):
-        tools.image_resize_images(vals)
-        return super(ProductPublicCategory, self).write(vals)
+    product_tmpl_ids = fields.Many2many('product.template', relation='product_public_category_product_template_rel')
 
     @api.constrains('parent_id')
     def check_parent_id(self):
         if not self._check_recursion():
             raise ValueError(_('Error ! You cannot create recursive categories.'))
 
-    @api.multi
     def name_get(self):
         res = []
         for category in self:
-            names = [category.name]
-            parent_category = category.parent_id
-            while parent_category:
-                names.append(parent_category.name)
-                parent_category = parent_category.parent_id
-            res.append((category.id, ' / '.join(reversed(names))))
+            res.append((category.id, " / ".join(category.parents_and_self.mapped('name'))))
         return res
+
+    def _compute_parents_and_self(self):
+        for category in self:
+            if category.parent_path:
+                category.parents_and_self = self.env['product.public.category'].browse([int(p) for p in category.parent_path.split('/')[:-1]])
+            else:
+                category.parents_and_self = category
 
 
 class ProductTemplate(models.Model):
@@ -209,13 +188,12 @@ class ProductTemplate(models.Model):
     website_style_ids = fields.Many2many('product.style', string='Styles')
     website_sequence = fields.Integer('Website Sequence', help="Determine the display order in the Website E-commerce",
                                       default=lambda self: self._default_website_sequence())
-    public_categ_ids = fields.Many2many('product.public.category', string='Website Product Category',
+    public_categ_ids = fields.Many2many('product.public.category', relation='product_public_category_product_template_rel', string='Website Product Category',
                                         help="The product will be available in each mentioned e-commerce category. Go to"
                                         "Shop > Customize and enable 'E-commerce categories' to view all e-commerce categories.")
 
     product_template_image_ids = fields.One2many('product.image', 'product_tmpl_id', string="Extra Product Media", copy=True)
 
-    @api.multi
     def _has_no_variant_attributes(self):
         """Return whether this `product.template` has at least one no_variant
         attribute.
@@ -224,9 +202,8 @@ class ProductTemplate(models.Model):
         :rtype: bool
         """
         self.ensure_one()
-        return any(a.create_variant == 'no_variant' for a in self._get_valid_product_attributes())
+        return any(a.create_variant == 'no_variant' for a in self.valid_product_attribute_ids)
 
-    @api.multi
     def _has_is_custom_values(self):
         self.ensure_one()
         """Return whether this `product.template` has at least one is_custom
@@ -235,9 +212,8 @@ class ProductTemplate(models.Model):
         :return: True if at least one is_custom attribute value, False otherwise
         :rtype: bool
         """
-        return any(v.is_custom for v in self._get_valid_product_attribute_values())
+        return any(v.is_custom for v in self.valid_product_attribute_value_ids)
 
-    @api.multi
     def _get_possible_variants_sorted(self, parent_combination=None):
         """Return the sorted recordset of variants that are possible.
 
@@ -275,7 +251,6 @@ class ProductTemplate(models.Model):
 
         return self._get_possible_variants(parent_combination).sorted(_sort_key_variant)
 
-    @api.multi
     def _get_combination_info(self, combination=False, product_id=False, add_qty=1, pricelist=False, parent_combination=False, only_template=False):
         """Override for website, where we want to:
             - take the website pricelist if no pricelist is set
@@ -322,7 +297,6 @@ class ProductTemplate(models.Model):
 
         return combination_info
 
-    @api.multi
     def _create_first_product_variant(self, log_warning=False):
         """Create if necessary and possible and return the first product
         variant for this template.
@@ -335,7 +309,6 @@ class ProductTemplate(models.Model):
         """
         return self._create_product_variant(self._get_first_possible_combination(), log_warning)
 
-    @api.multi
     def _get_current_company_fallback(self, **kwargs):
         """Override: if a website is set on the product or given, fallback to
         the company of the website. Otherwise use the one from parent method."""
@@ -388,27 +361,24 @@ class ProductTemplate(models.Model):
         res = super(ProductTemplate, self)._default_website_meta()
         res['default_opengraph']['og:description'] = res['default_twitter']['twitter:description'] = self.description_sale
         res['default_opengraph']['og:title'] = res['default_twitter']['twitter:title'] = self.name
-        res['default_opengraph']['og:image'] = res['default_twitter']['twitter:image'] = "/web/image/product.template/%s/image" % (self.id)
+        res['default_opengraph']['og:image'] = res['default_twitter']['twitter:image'] = self.env['website'].image_url(self, 'image_1024')
         res['default_meta_description'] = self.description_sale
         return res
 
-    @api.multi
     def _compute_website_url(self):
         super(ProductTemplate, self)._compute_website_url()
         for product in self:
-            product.website_url = "/shop/product/%s" % (product.id,)
+            product.website_url = "/shop/product/%s" % slug(product)
 
     # ---------------------------------------------------------
     # Rating Mixin API
     # ---------------------------------------------------------
 
-    @api.multi
     def _rating_domain(self):
         """ Only take the published rating into account to compute avg and count """
         domain = super(ProductTemplate, self)._rating_domain()
         return expression.AND([domain, [('website_published', '=', True)]])
 
-    @api.multi
     def _get_images(self):
         """Return a list of records implementing `image.mixin` to
         display on the carousel on the website for this template.
@@ -430,12 +400,24 @@ class Product(models.Model):
 
     product_variant_image_ids = fields.One2many('product.image', 'product_variant_id', string="Extra Variant Images")
 
-    @api.multi
+    website_url = fields.Char('Website URL', compute='_compute_product_website_url', help='The full URL to access the document through the website.')
+
+    @api.depends('product_tmpl_id.website_url', 'attribute_value_ids')
+    def _compute_product_website_url(self):
+        for product in self:
+            attributes = ','.join(str(x) for x in product.attribute_value_ids.ids)
+            product.website_url = "%s#attr=%s" % (product.product_tmpl_id.website_url, attributes)
+
     def website_publish_button(self):
         self.ensure_one()
         return self.product_tmpl_id.website_publish_button()
 
-    @api.multi
+    def open_website_url(self):
+        self.ensure_one()
+        res = self.product_tmpl_id.open_website_url()
+        res['url'] = self.website_url
+        return res
+
     def _get_images(self):
         """Return a list of records implementing `image.mixin` to
         display on the carousel on the website for this variant.
@@ -448,7 +430,7 @@ class Product(models.Model):
         """
         self.ensure_one()
         variant_images = list(self.product_variant_image_ids)
-        if self.image_raw_original:
+        if self.image_variant_1920:
             # if the main variant image is set, display it first
             variant_images = [self] + variant_images
         else:

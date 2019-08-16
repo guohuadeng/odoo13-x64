@@ -34,7 +34,7 @@ class MailTracking(models.Model):
 
     mail_message_id = fields.Many2one('mail.message', 'Message ID', required=True, index=True, ondelete='cascade')
 
-    tracking_sequence = fields.Integer('Tracking field sequence', readonly=1, default=100, oldname='track_sequence')
+    tracking_sequence = fields.Integer('Tracking field sequence', readonly=1, default=100)
 
     def _compute_field_groups(self):
         for tracking in self:
@@ -81,7 +81,6 @@ class MailTracking(models.Model):
             return values
         return {}
 
-    @api.multi
     def get_display_value(self, type):
         assert type in ('new', 'old')
         result = []
@@ -106,12 +105,10 @@ class MailTracking(models.Model):
                 result.append(record['%s_value_char' % type])
         return result
 
-    @api.multi
     def get_old_display_value(self):
         # grep : # old_value_integer | old_value_datetime | old_value_char
         return self.get_display_value('old')
 
-    @api.multi
     def get_new_display_value(self):
         # grep : # new_value_integer | new_value_datetime | new_value_char
         return self.get_display_value('new')

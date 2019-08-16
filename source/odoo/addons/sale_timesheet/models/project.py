@@ -59,7 +59,6 @@ class Project(models.Model):
                 if project.sale_line_id and project.sale_line_id.is_expense:
                     raise ValidationError(_("A billable project should be linked to a Sales Order Item that does not come from an expense or a vendor bill."))
 
-    @api.multi
     def action_view_timesheet(self):
         self.ensure_one()
         if self.allow_timesheets:
@@ -71,7 +70,6 @@ class Project(models.Model):
             'res_model': 'account.analytic.line',
             'view_id': False,
             'view_mode': 'tree,form',
-            'view_type': 'form',
             'help': _("""
                 <p class="o_view_nocontent_smiling_face">
                     Record timesheets
@@ -88,7 +86,6 @@ class Project(models.Model):
             }
         }
 
-    @api.multi
     def action_view_timesheet_plan(self):
         action = self.env.ref('sale_timesheet.project_timesheet_action_client_timesheet_plan').read()[0]
         action['params'] = {
@@ -101,7 +98,6 @@ class Project(models.Model):
         }
         return action
 
-    @api.multi
     def action_make_billable(self):
         return {
             "name": _("Create Sales Order"),
@@ -129,8 +125,8 @@ class ProjectTask(models.Model):
     def _get_default_partner(self):
         partner = False
         if 'default_project_id' in self.env.context:  # partner from SO line is prior on one from project
-            project = self.env['project.project'].browse(self.env.context['default_project_id'])
-            partner = project.sale_line_id.order_partner_id
+            project_sudo = self.env['project.project'].browse(self.env.context['default_project_id']).sudo()
+            partner = project_sudo.sale_line_id.order_partner_id
         if not partner:
             partner = super(ProjectTask, self)._get_default_partner()
         return partner
@@ -159,7 +155,6 @@ class ProjectTask(models.Model):
     ], string="Billable Type", compute='_compute_billable_type', compute_sudo=True, store=True)
     is_project_map_empty = fields.Boolean("Is Project map empty", compute='_compute_is_project_map_empty')
 
-    @api.multi
     @api.depends('sale_line_id', 'project_id', 'billable_type')
     def _compute_sale_order_id(self):
         for task in self:
@@ -170,7 +165,6 @@ class ProjectTask(models.Model):
             elif task.billable_type == 'no':
                 task.sale_order_id = False
 
-    @api.multi
     @api.depends('project_id.billable_type', 'sale_line_id')
     def _compute_billable_type(self):
         for task in self:
@@ -184,7 +178,7 @@ class ProjectTask(models.Model):
     @api.depends('project_id.sale_line_employee_ids')
     def _compute_is_project_map_empty(self):
         for task in self:
-            task.is_project_map_empty = not bool(task.project_id.sale_line_employee_ids)
+            task.is_project_map_empty = not bool(task.sudo().project_id.sale_line_employee_ids)
 
     @api.onchange('project_id')
     def _onchange_project(self):
@@ -210,15 +204,13 @@ class ProjectTask(models.Model):
             result.setdefault('domain', {})['sale_line_id'] = [('is_service', '=', True), ('is_expense', '=', False), ('order_partner_id', 'child_of', self.partner_id.commercial_partner_id.id), ('state', 'in', ['sale', 'done'])]
         return result
 
-    @api.multi
     @api.constrains('sale_line_id')
     def _check_sale_line_type(self):
-        for task in self:
+        for task in self.sudo():
             if task.sale_line_id:
                 if not task.sale_line_id.is_service or task.sale_line_id.is_expense:
                     raise ValidationError(_('You cannot link the order item %s - %s to this task because it is a re-invoiced expense.' % (task.sale_line_id.order_id.id, task.sale_line_id.product_id.name)))
 
-    @api.multi
     def write(self, values):
         if values.get('project_id'):
             project_dest = self.env['project.project'].browse(values['project_id'])
@@ -226,7 +218,6 @@ class ProjectTask(models.Model):
                 values['sale_line_id'] = False
         return super(ProjectTask, self).write(values)
 
-    @api.multi
     def unlink(self):
         if any(task.sale_line_id for task in self):
             raise ValidationError(_('You have to unlink the task from the sale order item in order to delete it.'))
@@ -254,7 +245,6 @@ class ProjectTask(models.Model):
     # Actions
     # ---------------------------------------------------
 
-    @api.multi
     def action_view_so(self):
         self.ensure_one()
         return {

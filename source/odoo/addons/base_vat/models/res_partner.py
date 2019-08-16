@@ -49,6 +49,7 @@ from stdnum.ro.cf import compact as compact_ro
 from stdnum.se.vat import compact as compact_se
 from stdnum.si.ddv import compact as compact_si
 from stdnum.sk.dph import compact as compact_sk
+from stdnum.ar.cuit import compact as compact_ar
 # tr compact vat is not in stdnum
 
 
@@ -150,12 +151,12 @@ class ResPartner(models.Model):
                 vat = country_code + vat
         return vat
 
-    @api.constrains('vat')
+    @api.constrains('vat', 'country_id')
     def check_vat(self):
         if self.env.context.get('company_id'):
             company = self.env['res.company'].browse(self.env.context['company_id'])
         else:
-            company = self.env.company_id
+            company = self.env.company
         if company.vat_check_vies:
             # force full VIES online check
             check_func = self.vies_vat_check
@@ -182,7 +183,7 @@ class ResPartner(models.Model):
         if self.env.context.get('company_id'):
             company = self.env['res.company'].browse(self.env.context['company_id'])
         else:
-            company = self.env.company_id
+            company = self.env.company
         if company.vat_check_vies:
             return '\n' + _('The VAT number [%s] for partner [%s] either failed the VIES VAT validation check or did not respect the expected format %s.') % (self.vat, self.name, vat_no)
         return '\n' + _('The VAT number [%s] for partner [%s] does not seem to be valid. \nNote: the expected format is %s') % (self.vat, self.name, vat_no)
@@ -398,6 +399,14 @@ class ResPartner(models.Model):
         except ImportError:
             return True
 
+    # Argentinian VAT validation, contributed by ADHOC
+    def check_vat_ar(self, vat):
+        try:
+            import stdnum.ar
+            return stdnum.ar.cuit.is_valid(vat)
+        except ImportError:
+            return True
+
     def default_compact(self, vat):
         return vat
 
@@ -414,7 +423,6 @@ class ResPartner(models.Model):
             values['vat'] = self._fix_vat_number(values['vat'])
         return super(ResPartner, self).create(values)
 
-    @api.multi
     def write(self, values):
         if values.get('vat'):
             values['vat'] = self._fix_vat_number(values['vat'])

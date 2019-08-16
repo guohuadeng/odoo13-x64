@@ -19,9 +19,6 @@
                                 <span class="o_stat_text"> Leads </span>
                             </div>
                         </button>
-                        <button name="toggle_active" type="object" groups="base.group_user" class="oe_stat_button" icon="fa-archive">
-                            <field name="active" widget="boolean_button" options="{'terminology': 'archive'}"/>
-                        </button>
                     </div>
                     <div class="oe_title mb8">
                         <label for="name" class="oe_edit_only"/>
@@ -33,11 +30,13 @@
                         <div class="col-md-6">
                             <group>
                                 <field name="lead_for" widget="radio"/>
+                                <field name="active"/>
                             </group>
                             <group string="Website Traffic Conditions">
                                 <field name="country_ids" widget="many2many_tags"/>
+                                <field name="website_id" options="{'no_open': True, 'no_create_edit': True}" groups="website.group_multi_website"/>
                                 <field name="state_ids" widget="many2many_tags" attrs="{'invisible': [('country_ids', '=', [])]}" domain="[('country_id', 'in', country_ids)]"/>
-                                <field name="regex_url" widget="website_urls"/>
+                                <field name="regex_url" widget="website_urls" placeholder="e.g. /page"/>
                                 <field name="sequence"/>
                             </group>
                         </div>
@@ -76,7 +75,7 @@
                         <group>
                             <field name="lead_type" groups="crm.group_use_lead"/>
                             <field name="suffix"/>
-                            <field name="team_id"/>
+                            <field name="team_id" kanban_view_ref="%(sales_team.crm_team_view_kanban)s"/>
                             <field name="user_id"/>
                         </group>
                         <group>

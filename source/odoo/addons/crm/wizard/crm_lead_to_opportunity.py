@@ -50,7 +50,7 @@ class Lead2OpportunityPartner(models.TransientModel):
     ], 'Conversion Action', required=True)
     opportunity_ids = fields.Many2many('crm.lead', string='Opportunities')
     user_id = fields.Many2one('res.users', 'Salesperson', index=True)
-    team_id = fields.Many2one('crm.team', 'Sales Team', oldname='section_id', index=True)
+    team_id = fields.Many2one('crm.team', 'Sales Team', index=True)
 
     @api.onchange('action')
     def onchange_action(self):
@@ -87,7 +87,6 @@ class Lead2OpportunityPartner(models.TransientModel):
                 raise UserError(_("Closed/Dead leads cannot be converted into opportunities."))
         return False
 
-    @api.multi
     def _convert_opportunity(self, vals):
         self.ensure_one()
 
@@ -110,7 +109,6 @@ class Lead2OpportunityPartner(models.TransientModel):
 
         return res
 
-    @api.multi
     def action_apply(self):
         """ Convert lead to opportunity or merge lead and opportunity and open
             the freshly created opportunity view.
@@ -174,7 +172,7 @@ class Lead2OpportunityMassConvert(models.TransientModel):
         return res
 
     user_ids = fields.Many2many('res.users', string='Salesmen')
-    team_id = fields.Many2one('crm.team', 'Sales Team', index=True, oldname='section_id')
+    team_id = fields.Many2one('crm.team', 'Sales Team', index=True)
     deduplicate = fields.Boolean('Apply deduplication', default=True, help='Merge with existing leads/opportunities of each partner')
     action = fields.Selection([
         ('each_exist_or_create', 'Use existing partner or create'),
@@ -205,7 +203,6 @@ class Lead2OpportunityMassConvert(models.TransientModel):
 
         self.opportunity_ids = self.env['crm.lead'].browse(leads_with_duplicates)
 
-    @api.multi
     def _convert_opportunity(self, vals):
         """ When "massively" (more than one at a time) converting leads to
             opportunities, check the salesteam_id and salesmen_ids and update
@@ -219,7 +216,6 @@ class Lead2OpportunityMassConvert(models.TransientModel):
         vals.update({'user_ids': salesmen_ids, 'team_id': salesteam_id})
         return super(Lead2OpportunityMassConvert, self)._convert_opportunity(vals)
 
-    @api.multi
     def mass_convert(self):
         self.ensure_one()
         if self.name == 'convert' and self.deduplicate:

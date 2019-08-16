@@ -27,15 +27,16 @@
                 <separator/>
                 <field name="department_id" operator="child_of"/>
                 <field name="holiday_status_id"/>
-                <separator/>
-                <filter string="Late Activities" name="activities_overdue"
+                <filter invisible="1" string="Late Activities" name="activities_overdue"
                     domain="[('activity_ids.date_deadline', '&lt;', context_today().strftime('%Y-%m-%d'))]"
                     help="Show all records which has next action date is before today"/>
-                <filter string="Today Activities" name="activities_today"
+                <filter invisible="1" string="Today Activities" name="activities_today"
                     domain="[('activity_ids.date_deadline', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                <filter string="Future Activities" name="activities_upcoming_all"
+                <filter invisible="1" string="Future Activities" name="activities_upcoming_all"
                         domain="[('activity_ids.date_deadline', '&gt;', context_today().strftime('%Y-%m-%d'))
                         ]"/>
+                <filter string="Exception Activities" name="activities_exception"
+                        domain="[('activity_exception_decoration', '!=', False)]"/>
                 <group expand="0" string="Group By">
                     <filter name="group_name" string="Description" context="{'group_by':'name'}"/>
                     <filter name="group_employee" string="Employee" context="{'group_by':'employee_id'}"/>
@@ -68,12 +69,11 @@
                             type="action"
                             attrs="{'invisible': [('holiday_type', '!=', 'employee')]}"
                             name="%(hr_leave_action_all)d"
-                            context="{'search_default_employee_id': [employee_id], 'search_default_holiday_status_id': [holiday_status_id]}"
+                            context="{'search_default_employee_id': [employee_id], 'search_default_holiday_status_id': [holiday_status_id], 'default_holiday_status_id': holiday_status_id}"
                             help="Leaves Taken/Total Allocated">
                             <div class="o_stat_info">
                                 <span class="o_stat_value">
-                                    <field name="leaves_taken" digits="[42,1]"/>/
-                                    <field name="max_leaves" digits="[42,1]"/>
+                                    <field name="leaves_taken" digits="[42,1]"/>/<field name="max_leaves" digits="[42,1]"/>
                                 </span>
                                 <span class="o_stat_text">
                                     Time Off
@@ -88,8 +88,7 @@
                         <group>
                             <field name="type_request_unit" invisible="1"/>
                             <field name="name" attrs="{'readonly': [('state', 'not in', ('draft', 'confirm'))]}"/>
-                            <field name="holiday_status_id" context="{'employee_id':employee_id}"
-                                domain="[('valid', '=', True), ('allocation_type', '=', 'fixed_allocation')]"/>
+                            <field name="holiday_status_id" context="{'employee_id':employee_id}"/>
 
                             <field name="number_of_days" invisible="1"/>
                             <label for="number_of_days" string="Duration"/>
@@ -135,9 +134,6 @@
                     attrs="{'invisible': ['|', ('can_approve', '=', False), ('state', 'not in', ('confirm','validate','validate1'))]}"/>
                 <button string="Reset to Draft" name="action_draft" type="object"
                         attrs="{'invisible': ['|', ('can_reset', '=', False), ('state', 'not in', ['confirm', 'refuse'])]}"/>
-            </xpath>
-            <xpath expr="//field[@name='holiday_status_id']" position="attributes">
-                <attribute name="domain">[('valid', '=', True)]</attribute>
             </xpath>
             <xpath expr="//field[@name='employee_id']" position="before">
                 <field name="holiday_type" string="Mode" groups="hr_holidays.group_hr_holidays_user" context="{'employee_id':employee_id}" />
@@ -211,6 +207,7 @@
                     icon="fa-ban text-danger"
                     states="confirm,validate,validate1"
                     groups="hr_holidays.group_hr_holidays_manager"/>
+                <field name="activity_exception_decoration" widget="activity_exception"/>
             </tree>
         </field>
     </record>
@@ -258,7 +255,7 @@
                         <div class="oe_kanban_global_click container">
                             <div class="row no-gutters">
                                 <div class="col-2">
-                                    <img t-att-src="kanban_image('hr.employee', 'image_small', record.employee_id.raw_value)"
+                                    <img t-att-src="kanban_image('hr.employee', 'image_64', record.employee_id.raw_value)"
                                         t-att-title="record.employee_id.value"
                                         t-att-alt="record.employee_id.value"
                                         width="40" height="40"
@@ -311,7 +308,7 @@
                 <field name="employee_id"/>
                 <templates>
                     <div t-name="activity-box">
-                        <img t-att-src="activity_image('hr.employee', 'image_small', record.employee_id.raw_value)" t-att-title="record.employee_id.value" t-att-alt="record.employee_id.value"/>
+                        <img t-att-src="activity_image('hr.employee', 'image_64', record.employee_id.raw_value)" t-att-title="record.employee_id.value" t-att-alt="record.employee_id.value"/>
                         <div>
                             <field name="employee_id"/>
                             <span class="ml-3 text-muted">
@@ -328,7 +325,6 @@
     <record id="hr_leave_allocation_action_my" model="ir.actions.act_window">
         <field name="name">My Allocations</field>
         <field name="res_model">hr.leave.allocation</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,activity</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -357,7 +353,6 @@
     <record id="hr_leave_allocation_action_all" model="ir.actions.act_window">
         <field name="name">All Allocations</field>
         <field name="res_model">hr.leave.allocation</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,activity</field>
         <field name="context">{}</field>
         <field name="domain">[]</field>
@@ -374,7 +369,6 @@
     <record id="hr_leave_allocation_action_approve_department" model="ir.actions.act_window">
         <field name="name">Department Allocation to Approve</field>
         <field name="res_model">hr.leave.allocation</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,form,kanban,activity</field>
         <field name="context">{'search_default_department':1, 'search_default_approve':1}</field>
         <field name="domain">[]</field>
@@ -387,27 +381,5 @@
             </p>
         </field>
     </record>
-
-    <menuitem
-        id="menu_open_allocation"
-        name="Allocation Requests"
-        parent="menu_hr_holidays_my_leaves"
-        action="hr_leave_allocation_action_my"
-        sequence="6"/>
-
-    <menuitem
-        id="hr_holidays_menu_manager_approve_allocations"
-        name="Allocations"
-        parent="hr_holidays_menu_manager_approve"
-        groups="hr_holidays.group_hr_holidays_manager,hr_holidays.group_hr_holidays_user"
-        action="hr_leave_allocation_action_approve_department"
-        sequence="2"/>
-    <menuitem
-        id="hr_holidays_menu_manager_all_allocations"
-        name="Allocations"
-        parent="hr_holidays_menu_manager_all"
-        groups="hr_holidays.group_hr_holidays_manager,hr_holidays.group_hr_holidays_user"
-        action="hr_leave_allocation_action_all"
-        sequence="2"/>
 
 </odoo>

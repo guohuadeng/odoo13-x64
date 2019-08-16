@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-# decorator makes wrappers that have the same API as their wrapped function;
-# this is important for the odoo.api.guess() that relies on signatures
+# decorator makes wrappers that have the same API as their wrapped function
 from collections import defaultdict
 from decorator import decorator
 from inspect import formatargspec, getargspec
@@ -91,6 +90,7 @@ class ormcache(object):
             value = d[key] = self.method(*args, **kwargs)
             return value
         except TypeError:
+            _logger.warn("cache lookup error on %r", key, exc_info=True)
             counter.err += 1
             return self.method(*args, **kwargs)
 

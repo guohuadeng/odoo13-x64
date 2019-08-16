@@ -9,7 +9,6 @@
                 <field name="ir_attachment_id"/>
                 <field name="mimetype"/>
                 <field name="type"/>
-                <field name="datas_fname"/>
                 <field name="name"/>
                 <field name="priority"/>
                 <field name="create_uid"/>
@@ -30,7 +29,7 @@
                                         <field name="name" class="o_text_overflow"/>
                                     </div>
                                     <div class="o_kanban_record_body">
-                                      <field name="datas_fname" attrs="{'invisible':[('type','=','url')]}"/>
+                                      <field name="name" attrs="{'invisible':[('type','=','url')]}"/>
                                       <field name="url" widget="url" attrs="{'invisible':[('type','=','binary')]}"/>
                                     </div>
                                     <div class="o_kanban_record_bottom">
@@ -38,7 +37,7 @@
                                             <field name="priority" widget="priority"/>
                                         </span>
                                         <div class="oe_kanban_bottom_right">
-                                            <img t-att-src="kanban_image('res.users', 'image_small', record.create_uid.raw_value)" t-att-data-member_id="record.create_uid.raw_value" t-att-alt="record.create_uid.raw_value" width="32" height="32" class="oe_kanban_avatar"/>
+                                            <img t-att-src="kanban_image('res.users', 'image_64', record.create_uid.raw_value)" t-att-data-member_id="record.create_uid.raw_value" t-att-alt="record.create_uid.raw_value" width="32" height="32" class="oe_kanban_avatar"/>
                                         </div>
                                     </div>
                                 </div>

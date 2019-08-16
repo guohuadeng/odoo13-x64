@@ -26,7 +26,7 @@
         'data/stock_traceability_report_data.xml',
         'data/procurement_data.xml',
 
-        'report/report_stock_forecast.xml',
+        'report/report_stock_quantity.xml',
         'report/stock_report_views.xml',
         'report/report_package_barcode.xml',
         'report/report_lot_barcode.xml',
@@ -40,6 +40,7 @@
         'report/product_templates.xml',
         'report/product_packaging.xml',
 
+        'wizard/stock_assign_serial_views.xml',
         'wizard/stock_change_product_qty_views.xml',
         'wizard/stock_picking_return_views.xml',
         'wizard/stock_scheduler_compute_views.xml',
@@ -77,6 +78,8 @@
         'data/stock_sequence_data.xml',
     ],
     'qweb': [
+        'static/src/xml/inventory_report.xml',
+        'static/src/xml/inventory_lines.xml',
         'static/src/xml/stock_traceability_report_backend.xml',
     ],
     'installable': True,

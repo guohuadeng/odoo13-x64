@@ -23,6 +23,7 @@ class ProductionLot(models.Model):
     quant_ids = fields.One2many('stock.quant', 'lot_id', 'Quants', readonly=True)
     product_qty = fields.Float('Quantity', compute='_product_qty')
     note = fields.Html(string='Description')
+    display_complete = fields.Boolean(compute='_compute_display_complete')
 
     _sql_constraints = [
         ('name_ref_uniq', 'unique (name, product_id)', 'The combination of serial number and product must be unique !'),
@@ -35,12 +36,21 @@ class ProductionLot(models.Model):
             if picking_id and not picking_id.picking_type_id.use_create_lots:
                 raise UserError(_('You are not allowed to create a lot or serial number with this operation type. To change this, go on the operation type and tick the box "Create New Lots/Serial Numbers".'))
 
+    @api.depends('name')
+    def _compute_display_complete(self):
+        """ Defines if we want to display all fields in the stock.production.lot form view.
+        It will if the record exists (`id` set) or if we precised it into the context.
+        This compute depends on field `name` because as it has always a default value, it'll be
+        always triggered.
+        """
+        for prod_lot in self:
+            prod_lot.display_complete = prod_lot.id or self._context.get('display_complete')
+
     @api.model_create_multi
     def create(self, vals_list):
         self._check_create()
         return super(ProductionLot, self).create(vals_list)
 
-    @api.multi
     def write(self, vals):
         if 'product_id' in vals and any([vals['product_id'] != lot.product_id.id for lot in self]):
             move_lines = self.env['stock.move.line'].search([('lot_id', 'in', self.ids)])
@@ -52,14 +62,14 @@ class ProductionLot(models.Model):
                 ))
         return super(ProductionLot, self).write(vals)
 
-    @api.one
     def _product_qty(self):
-        # We only care for the quants in internal or transit locations.
-        quants = self.quant_ids.filtered(lambda q: q.location_id.usage in ['internal', 'transit'])
-        self.product_qty = sum(quants.mapped('quantity'))
+        for lot in self:
+            # We only care for the quants in internal or transit locations.
+            quants = lot.quant_ids.filtered(lambda q: q.location_id.usage in ['internal', 'transit'])
+            lot.product_qty = sum(quants.mapped('quantity'))
 
     def action_lot_open_quants(self):
-        self.env['stock.quant']._quant_tasks()
-        action = self.env.ref('stock.lot_open_quants').read()[0]
-        action['context'] = {'search_default_lot_id': self.id}
-        return action
+        self = self.with_context(search_default_lot_id=self.id, create=False)
+        if self.user_has_groups('stock.group_stock_manager'):
+            self = self.with_context(inventory_mode=True)
+        return self.env['stock.quant']._get_quants_action()

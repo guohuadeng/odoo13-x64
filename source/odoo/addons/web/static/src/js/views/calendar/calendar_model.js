@@ -274,7 +274,6 @@ return AbstractModel.extend({
         this.data.highlight_date = this.data.target_date = start.clone();
         // set dates in UTC with timezone applied manually
         this.data.start_date = this.data.end_date = start;
-        this.data.start_date.utc().add(this.getSession().getTZOffset(this.data.start_date), 'minutes');
 
         switch (this.data.scale) {
             case 'month':
@@ -289,6 +288,9 @@ return AbstractModel.extend({
                 this.data.start_date = this.data.start_date.clone().startOf('day');
                 this.data.end_date = this.data.end_date.clone().endOf('day');
         }
+
+        this.data.start_date.utc();
+        this.data.end_date.utc();
     },
     /**
      * @param {string} scale the scale to set
@@ -305,13 +307,6 @@ return AbstractModel.extend({
      */
     today: function () {
         this.setDate(moment(new Date()));
-    },
-    /**
-     * Toggle the sidebar (containing the mini calendar)
-     */
-    toggleFullWidth: function () {
-        var fullWidth = this.call('local_storage', 'getItem', 'calendar_fullWidth') !== 'true';
-        this.call('local_storage', 'setItem', 'calendar_fullWidth', fullWidth);
     },
     /**
      * @param {Object} record
@@ -408,8 +403,10 @@ return AbstractModel.extend({
             snapMinutes: 15,
             longPressDelay: 500,
             eventResizableFromStart: true,
+            nowIndicator: true,
             weekNumbers: true,
-            weekNumberTitle: _t("W"),
+            weekNumbersWithinDays: true,
+            weekNumberTitle: _t("Week") + " ",
             allDayText: _t("All day"),
             monthNames: moment.months(),
             monthNamesShort: moment.monthsShort(),
@@ -442,7 +439,6 @@ return AbstractModel.extend({
      */
     _loadCalendar: function () {
         var self = this;
-        this.data.fullWidth = this.call('local_storage', 'getItem', 'calendar_fullWidth') === 'true';
         this.data.fc_options = this._getFullCalendarOptions();
 
         var defs = _.map(this.data.filters, this._loadFilter.bind(this));

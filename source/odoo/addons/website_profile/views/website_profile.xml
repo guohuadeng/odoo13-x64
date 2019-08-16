@@ -97,20 +97,20 @@
     <template id="user_profile_edit_content" name="Edit Profile">
         <h1 class="o_page_header">Edit Profile</h1>
         <div>
-            <form t-attf-action="/profile/user/save" method="post" role="form" class="js_website_submit_form row" enctype="multipart/form-data">
+            <form t-attf-action="/profile/user/save" method="post" role="form" class="o_wprofile_editor_form js_website_submit_form row" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                 <input type="file" class="d-none o_forum_file_upload" name="ufile" accept="image/*"/>
                 <input type="hidden" name="url_param" t-att-value="request.params.get('url_param')"/>
                 <div class="col-3">
                     <div class="card o_card_people">
                         <div class="card-body">
-                            <img class="w-100 mb-3" t-attf-src="/web/image/res.users/#{user.id}/image_medium"/>
+                            <img class="o_forum_avatar_img w-100 mb-3" t-att-src="website.image_url(user, 'image_128')"/>
                             <div class="text-center">
                                 <a href="#" class="o_forum_profile_pic_edit btn btn-primary" aria-label="Edit">
                                     <i class="fa fa-pencil fa-1g float-sm-none float-md-left" title="Edit"></i>
                                 </a>
-                                <a href="#" title="Clear" aria-label="Clear" class="btn border-primary">
-                                    <i class="fa fa-trash-o float-sm-none float-md-right o_forum_profile_pic_clear"></i>
+                                <a href="#" title="Clear" aria-label="Clear" class="btn border-primary o_forum_profile_pic_clear">
+                                    <i class="fa fa-trash-o float-sm-none float-md-right"></i>
                                 </a>
                             </div>
                             <div class="form-group mt-3 mb-0 pt-2 border-top">
@@ -174,7 +174,7 @@
                                         class="form-control load_editor"><t t-esc="user.partner_id.website_description"/></textarea>
                                 </div>
                                 <div class="col">
-                                    <button type="submit" class="btn btn-primary btn">Update</button>
+                                    <button type="submit" class="btn btn-primary o_wprofile_submit_btn">Update</button>
                                 </div>
                             </div>
                         </div>
@@ -206,8 +206,8 @@
                     <!-- ==== Header Left ==== -->
                     <div class="col-12 col-md-4 col-lg-3">
                         <div t-attf-class="d-flex align-items-start h-100 #{'justify-content-between' if (request.env.user == user) else 'justify-content-around' }">
-                            <div class="o_wprofile_pict d-inline-block mb-3 mb-md-0" t-attf-style="background-image:url(/web/image/res.users/#{user.id}/image)"/>
-                            <a class="btn btn-primary d-inline-block d-md-none" t-if="request.env.user == user and validation_email_done" t-attf-href="/profile/edit?url_param=#{edit_button_url_param}">
+                            <div class="o_wprofile_pict d-inline-block mb-3 mb-md-0" t-attf-style="background-image: url(#{website.image_url(user, 'image_1024')});"/>
+                            <a class="btn btn-primary d-inline-block d-md-none" t-if="request.env.user == user and user.karma != 0" t-attf-href="/profile/edit?url_param=#{edit_button_url_param}">
                                 <i class="fa fa-pencil mr-1"/>EDIT
                             </a>
                         </div>
@@ -219,14 +219,14 @@
                             <h1 class="o_card_people_name">
                                 <span t-field="user.name"/><small t-if="user.karma == 0"> (not verified)</small>
                             </h1>
-                            <a class="btn btn-primary d-none d-md-inline-block" t-if="request.env.user == user and validation_email_done or request.env.user._is_admin()" t-attf-href="/profile/edit?url_param=#{edit_button_url_param}">
+                            <a class="btn btn-primary d-none d-md-inline-block" t-if="request.env.user == user and user.karma != 0 or request.env.user._is_admin()" t-attf-href="/profile/edit?url_param=#{edit_button_url_param}">
                                 <i class="fa fa-pencil mr-2"/>EDIT PROFILE
                             </a>
                         </div>
 
                         <div class="d-flex flex-column justify-content-center flex-grow-1 mb-0 mb-md-5">
-                            <div t-if="user.company_id" class="lead mb-2">
-                                <i class="fa fa-building-o fa-fw mr-1"/><span t-field="user.company_id"/>
+                            <div t-if="user.partner_id.company_name" class="lead mb-2">
+                                <i class="fa fa-building-o fa-fw mr-1"/><span t-field="user.partner_id.company_name"/>
                             </div>
                             <div t-if="user.city or user.country_id" class="lead mb-2">
                                 <i class="fa fa-map-marker fa-fw mr-1"/>
@@ -252,18 +252,17 @@
                         <div class="o_wprofile_sidebar_top d-flex justify-content-between">
                             <div t-if="user.rank_id" class="d-flex align-items-center">
                                 <small class="font-weight-bold mr-2">Current rank:</small>
-                                <img t-attf-src="/web/image/gamification.karma.rank/#{user.rank_id.id}/image_small" height="16" alt="" class="mr-1"/>
+                                <img t-att-src="website.image_url(user.rank_id, 'image_64')" height="16" alt="" class="mr-1"/>
                                 <a href="/profile/ranks_badges" t-field="user.rank_id"/>
                             </div>
                             <button class="btn btn-sm d-md-none bg-white border" type="button" data-toggle="collapse" data-target="#o_wprofile_sidebar_collapse" aria-expanded="false" aria-controls="o_wprofile_sidebar_collapse">More info</button>
                         </div>
                         <div class="collapse d-md-block" id="o_wprofile_sidebar_collapse">
-                            <div t-if="user.next_rank_id" class="mb-3">
-                                <small class="font-weight-bold mt-1">Next rank:</small>
-                                <t t-call="website_profile.profile_next_rank_card">
-                                    <t t-set="img_max_width">40%</t>
-                                </t>
-                            </div>
+                            <t t-set="next_rank_id" t-value="user._get_next_rank()"/>
+                            <small t-if="next_rank_id" class="font-weight-bold mt-1">Next rank:</small>
+                            <t t-if="next_rank_id or user.rank_id" t-call="website_profile.profile_next_rank_card">
+                                <t t-set="img_max_width">40%</t>
+                            </t>
 
                             <table class="table table-sm w-100" id="o_wprofile_sidebar_table">
                                 <tbody>
@@ -273,7 +272,7 @@
                                     </tr>
                                     <tr>
                                         <th><small class="font-weight-bold">Badges</small></th>
-                                        <td t-if="user.badge_ids" t-esc="len(user.badge_ids)"/>
+                                        <td t-if="user.badge_ids" t-esc="len(user.badge_ids.filtered(lambda b: b.badge_id.website_published))"/>
                                         <td t-else="">0</td>
                                     </tr>
                                 </tbody>
@@ -313,10 +312,19 @@
     </template>
 
     <template id="profile_next_rank_card" name="Profile Next Rank Card">
-        <div t-if="user.next_rank_id" class="o_wprofile_progress_circle">
+        <div class="o_wprofile_progress_circle">
             <svg viewBox="0 0 36 36" class="o_pc_circular_chart">
-                <t t-if="(user.next_rank_id.karma_min - user.rank_id.karma_min) > 0">
-                    <t t-set="user_points" t-value="int(100*(user.karma - user.rank_id.karma_min)/(user.next_rank_id.karma_min - user.rank_id.karma_min))"/>
+                <t t-set="next_rank_id" t-value="next_rank_id or user._get_next_rank()"/>
+                <t t-if="next_rank_id and user.rank_id">
+                    <t t-if="(next_rank_id.karma_min - user.rank_id.karma_min) > 0">
+                        <t t-set="user_points" t-value="int(100*(user.karma - user.rank_id.karma_min)/(next_rank_id.karma_min - user.rank_id.karma_min))"/>
+                    </t>
+                    <t t-else="">
+                        <t t-set="user_points" t-value="0"/>
+                    </t>
+                </t>
+                <t t-elif="user.rank_id">
+                    <t t-set="user_points" t-value="100"/>
                 </t>
                 <t t-else="">
                     <t t-set="user_points" t-value="0"/>
@@ -333,12 +341,20 @@
             </svg>
             <div class="o_pc_overlay d-flex flex-column align-items-center justify-content-center">
                 <img class="img-fluid"
-                    t-attf-src="/web/image/gamification.karma.rank/#{user.next_rank_id.id}/image_medium"
-                    t-att-alt="user.next_rank_id.name + ' badge'"
+                    t-att-src="website.image_url(next_rank_id if next_rank_id else user.rank_id, 'image_128')"
+                    t-att-alt="(next_rank_id.name if next_rank_id else user.rank_id.name) + ' badge'"
                     t-att-style="'max-width: ' + (img_max_width if img_max_width else '50%;')"/>
-                <h4 class=" mb-0">"<span t-field="user.next_rank_id.name"/>"</h4>
+                <h4 class=" mb-0">
+                    "
+                    <span t-if="next_rank_id" t-field="next_rank_id.name"/>
+                    <span t-else="" t-field="user.rank_id.name"/>
+                    "
+                </h4>
                 <small>
-                    <span class="font-weight-bold text-primary" t-field="user.karma"/>/<span class="font-weight-bold" t-field="user.next_rank_id.karma_min"/> xp
+                    <span class="font-weight-bold text-primary" t-field="user.karma"/>/
+                    <span t-if="next_rank_id" class="font-weight-bold" t-field="next_rank_id.karma_min"/>
+                    <span t-else="" class="font-weight-bold" t-field="user.rank_id.karma_min"/>
+                     xp
                 </small>
             </div>
         </div>
@@ -346,20 +362,22 @@
 
     <template id="user_badges" name="User Bagdes">
         <div t-if="user.badge_ids" class="row mx-n1">
-            <div class="col px-1 mb-2 col-xl-4" t-foreach="user.badge_ids" t-as="badge">
+            <t t-foreach="user.badge_ids" t-as="badge">
                 <t t-if="badge.badge_id.website_published">
-                    <div class="card">
-                        <div class="card-body p-2 pr-3">
-                            <div class="media align-items-center">
-                                <img height="38" t-attf-src="/web/image/gamification.badge/#{badge.badge_id.id}/image_small" class="mr-2"/>
-                                <div class="media-body text-nowrap">
-                                    <h6 class="my-0" t-field="badge.badge_id.name"/>
+                    <div class="col px-1 mb-2 col-xl-4">
+                        <div class="card">
+                            <div class="card-body p-2 pr-3">
+                                <div class="media align-items-center">
+                                  <img height="38" t-att-src="website.image_url(badge.badge_id, 'image_64')" class="mr-0"/>
+                                  <div class="media-body col-md-10 p-0">
+                                    <h6 class="my-0 text-truncate" t-field="badge.badge_id.name"/>
+                                  </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </t>
-            </div>
+            </t>
         </div>
         <div class="mb-3" t-if="not user.badge_ids">
             <p class="text-muted">No badge yet</p>
@@ -390,7 +408,7 @@
                                 <t t-foreach="ranks" t-as="rank">
                                     <li t-attf-class="list-group-item">
                                         <div class="media align-items-center">
-                                            <img height="40" t-attf-src="/web/image/gamification.karma.rank/#{rank.id}/image" class="mr-2" alt="Rank badge"/>
+                                            <img width="40" t-att-src="website.image_url(rank, 'image_64')" class="mr-2" alt="Rank badge"/>
                                             <div class="media-body">
                                                 <h5 class="mt-0 mb-0" t-field="rank.name"/>
                                                 <span class="badge badge-success"><span t-field="rank.karma_min"/></span> point<span t-if="rank.karma_min">s</span>
@@ -421,9 +439,9 @@
         <table class="table table-sm mb64">
             <tr t-foreach="badges" t-as="badge">
                 <td class="align-middle">
-                    <img t-if="not badge.image and badge.level" t-attf-src="/website_profile/static/src/img/badge_#{badge.level}.svg"
+                    <img t-if="not badge.image_1920 and badge.level" t-attf-src="/website_profile/static/src/img/badge_#{badge.level}.svg"
                          class="my-1" style="height:2.5em" t-att-alt="badge.name"/>
-                    <img t-else="" t-attf-src="/web/image/gamification.badge/#{badge.id}/image" class="my-1" style="height:2.5em" t-att-alt="badge.name"/>
+                    <img t-else="" t-att-src="website.image_url(badge, 'image_1024')" class="my-1" style="height:2.5em" t-att-alt="badge.name"/>
                     <h6 t-field="badge.name" class="d-inline my-0"/>
                 </td>
                 <td class="align-middle d-none d-md-table-cell">
@@ -478,11 +496,14 @@
                     <t t-call="website_profile.top3_user_card"></t>
                 </div>
             </div>
-            <table class="table table-sm">
+            <table class="table table-sm" t-if='users'>
                 <tr t-foreach="users" t-as="user" t-attf-onclick="location.href='/profile/user/#{user['id']}';" class="o_wprofile_pointer bg-white">
                     <t t-call="website_profile.all_user_card"/>
                 </tr>
             </table>
+            <t t-if='search'>
+                <div class='alert alert-warning'>No user found for <strong><t t-esc="search"/></strong>. Try another search.</div>
+            </t>
             <div class="form-inline justify-content-center">
                 <t t-call="website_profile.pager_nobox"/>
             </div>
@@ -493,10 +514,11 @@
         <div class="card text-center mb-2 border-bottom-0 o_wprofile_pointer">
             <div class="card-body">
                 <div class="d-inline-block position-relative">
-                    <img class="rounded-circle img-fluid" t-att-src="'/profile/avatar/%s?field=image_medium%s' % (user['id'], '&amp;res_model=%s&amp;res_id=%s' % (record._name, record.id) if record else '')"/>
-                    <img class="position-absolute" t-attf-src="/website_profile/static/src/img/rank_#{user['position']}.svg" alt="User rank" style="bottom: 0; right: -10px"/>
+                    <img class="rounded-circle img-fluid" t-att-src="'/profile/avatar/%s?field=image_128%s' % (user['id'], '&amp;res_model=%s&amp;res_id=%s' % (record._name, record.id) if record else '')"/>
+                    <img class="position-absolute" t-attf-src="/website_profile/static/src/img/rank_#{user_index + 1}.svg" alt="User rank" style="bottom: 0; right: -10px"/>
                 </div>
                 <h3 class="mt-2 mb-0" t-esc="user['name']"></h3>
+                <span class="badge badge-danger font-weight-normal px-2" t-if="not user['website_published']">Unpublished</span>
                 <strong class="text-muted" t-esc="user['rank']"/>
             </div>
             <div class="row mx-0 o_wprofile_top3_card_footer text-nowrap">
@@ -511,11 +533,14 @@
             <span t-esc="user['position']"/>
         </td>
         <td class="align-middle d-none d-sm-table-cell">
-            <img class="rounded-circle o_wprofile_img_small" height="30" t-att-src="'/profile/avatar/%s?field=image_medium%s' % (user['id'], '&amp;res_model=%s&amp;res_id=%s' % (record._name, record.id) if record else '')"/>
+            <img class="rounded-circle o_wprofile_img_small" height="30" t-att-src="'/profile/avatar/%s?field=image_128%s' % (user['id'], '&amp;res_model=%s&amp;res_id=%s' % (record._name, record.id) if record else '')"/>
         </td>
         <td class="align-middle w-md-75">
             <span class="font-weight-bold" t-esc="user['name']"/><br/>
             <span class="text-muted font-weight-bold" t-esc="user['rank']"></span>
+        </td>
+         <td t-if="not user['website_published']" class="align-middle font-weight-bold text-right text-nowrap">
+            <span class="badge badge-danger font-weight-normal px-2 py-1 m-1">Unpublished</span>
         </td>
         <td class="align-middle font-weight-bold text-right text-nowrap">
             <b t-esc="user['karma']"/> <span class="text-muted small font-weight-bold">XP</span>

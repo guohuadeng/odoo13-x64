@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import api, fields, models
+from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 
 
 class ResConfigSettings(models.TransientModel):
@@ -26,13 +27,7 @@ class ResConfigSettings(models.TransientModel):
         implied_group='stock.group_adv_location',
         help="Add and customize route operations to process product moves in your warehouse(s): e.g. unload > quality control > stock for incoming products, pick > pack > ship for outgoing products. \n You can also set putaway strategies on warehouse locations in order to send incoming products into specific child locations straight away (e.g. specific bins, racks).")
     group_warning_stock = fields.Boolean("Warnings for Stock", implied_group='stock.group_warning_stock')
-    propagation_minimum_delta = fields.Integer(related='company_id.propagation_minimum_delta', string="Minimum Delta for Propagation", readonly=False)
-    use_propagation_minimum_delta = fields.Boolean(
-        string="No Rescheduling Propagation",
-        oldname='default_new_propagation_minimum_delta',
-        config_parameter='stock.use_propagation_minimum_delta',
-        help="Rescheduling applies to any chain of operations (e.g. Make To Order, Pick Pack Ship). In the case of MTO sales, a vendor delay (updated incoming date) impacts the expected delivery date to the customer. \n This option allows to not propagate the rescheduling if the change is not critical.")
-    module_stock_picking_batch = fields.Boolean("Batch Pickings", oldname="module_stock_picking_wave")
+    module_stock_picking_batch = fields.Boolean("Batch Pickings")
     module_stock_barcode = fields.Boolean("Barcode Scanner")
     module_delivery_dhl = fields.Boolean("DHL USA")
     module_delivery_fedex = fields.Boolean("FedEx")
@@ -43,11 +38,6 @@ class ResConfigSettings(models.TransientModel):
     group_stock_multi_locations = fields.Boolean('Storage Locations', implied_group='stock.group_stock_multi_locations',
         help="Store products in specific locations of your warehouse (e.g. bins, racks) and to track inventory accordingly.")
     group_stock_multi_warehouses = fields.Boolean('Multi-Warehouses', implied_group='stock.group_stock_multi_warehouses')
-
-    @api.onchange('use_propagation_minimum_delta')
-    def _onchange_use_propagation_minimum_delta(self):
-        if not self.use_propagation_minimum_delta:
-            self.propagation_minimum_delta = 1
 
     @api.onchange('group_stock_multi_locations')
     def _onchange_group_stock_multi_locations(self):
@@ -64,13 +54,19 @@ class ResConfigSettings(models.TransientModel):
     def _onchange_group_stock_production_lot(self):
         if not self.group_stock_production_lot:
             self.group_lot_on_delivery_slip = False
+        tracked_products = self.env['product.template'].search([('tracking', 'in', ['lot', 'serial']),])
+        if not self.group_stock_production_lot and tracked_products:
+            names = ", ".join(tracked_products.mapped('display_name') if len(tracked_products) <= 10
+                    else tracked_products[:10].mapped('display_name') + ["..."])
+            raise UserError(_("You should not remove the 'lots and serial numbers' "
+                              "option while the following products are still tracked by lot "
+                              "or serial number:\n %s") % names)
 
     @api.onchange('group_stock_adv_location')
     def onchange_adv_location(self):
         if self.group_stock_adv_location and not self.group_stock_multi_locations:
             self.group_stock_multi_locations = True
 
-    @api.multi
     def set_values(self):
         super(ResConfigSettings, self).set_values()
 
@@ -97,6 +93,9 @@ class ResConfigSettings(models.TransientModel):
         res = super(ResConfigSettings, self).execute()
         self.ensure_one()
         if self.group_stock_multi_locations or self.group_stock_production_lot or self.group_stock_tracking_lot:
-            picking_types = self.env['stock.picking.type'].with_context(active_test=False).search([('show_operations', '=', False)])
+            picking_types = self.env['stock.picking.type'].with_context(active_test=False).search([
+                ('code', '!=', 'incoming'),
+                ('show_operations', '=', False)
+            ])
             picking_types.write({'show_operations': True})
         return res

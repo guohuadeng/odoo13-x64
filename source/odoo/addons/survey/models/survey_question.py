@@ -81,7 +81,7 @@ class SurveyQuestion(models.Model):
         ('simple_choice', 'Multiple choice: only one answer'),
         ('multiple_choice', 'Multiple choice: multiple answers allowed'),
         ('matrix', 'Matrix')], string='Question Type',
-        default='free_text', required=True, oldname='type')
+        default='free_text', required=True)
     # simple choice / multiple choice / matrix
     labels_ids = fields.One2many(
         'survey.label', 'question_id', string='Types of answers', copy=True,
@@ -141,7 +141,6 @@ class SurveyQuestion(models.Model):
 
     # Validation methods
 
-    @api.multi
     def validate_question(self, post, answer_tag):
         """ Validate question, depending on question type and parameters """
         self.ensure_one()
@@ -153,7 +152,6 @@ class SurveyQuestion(models.Model):
         else:
             return checker(post, answer_tag)
 
-    @api.multi
     def validate_free_text(self, post, answer_tag):
         self.ensure_one()
         errors = {}
@@ -163,7 +161,6 @@ class SurveyQuestion(models.Model):
             errors.update({answer_tag: self.constr_error_msg})
         return errors
 
-    @api.multi
     def validate_textbox(self, post, answer_tag):
         self.ensure_one()
         errors = {}
@@ -186,7 +183,6 @@ class SurveyQuestion(models.Model):
                 errors.update({answer_tag: self.validation_error_msg})
         return errors
 
-    @api.multi
     def validate_numerical_box(self, post, answer_tag):
         self.ensure_one()
         errors = {}
@@ -253,15 +249,12 @@ class SurveyQuestion(models.Model):
                 pass
         return errors
 
-    @api.multi
     def validate_date(self, post, answer_tag):
         return self.date_validation('date', post, answer_tag, self.validation_min_date, self.validation_max_date)
 
-    @api.multi
     def validate_datetime(self, post, answer_tag):
         return self.date_validation('datetime', post, answer_tag, self.validation_min_datetime, self.validation_max_datetime)
 
-    @api.multi
     def validate_simple_choice(self, post, answer_tag):
         self.ensure_one()
         errors = {}
@@ -277,7 +270,6 @@ class SurveyQuestion(models.Model):
             errors.update({answer_tag: self.constr_error_msg})
         return errors
 
-    @api.multi
     def validate_multiple_choice(self, post, answer_tag):
         self.ensure_one()
         errors = {}
@@ -297,7 +289,6 @@ class SurveyQuestion(models.Model):
                 errors.update({answer_tag: self.constr_error_msg})
         return errors
 
-    @api.multi
     def validate_matrix(self, post, answer_tag):
         self.ensure_one()
         errors = {}
@@ -317,7 +308,6 @@ class SurveyQuestion(models.Model):
                 errors.update({answer_tag: self.constr_error_msg})
         return errors
 
-    @api.multi
     @api.depends('survey_id.question_and_page_ids.is_page', 'survey_id.question_and_page_ids.sequence')
     def _compute_question_ids(self):
         """Will take all questions of the survey for which the index is higher than the index of this page
@@ -335,7 +325,6 @@ class SurveyQuestion(models.Model):
             else:
                 question.question_ids = self.env['survey.question']
 
-    @api.multi
     @api.depends('survey_id.question_and_page_ids.is_page', 'survey_id.question_and_page_ids.sequence')
     def _compute_page_id(self):
         """Will find the page to which this question belongs to by looking inside the corresponding survey"""
@@ -352,7 +341,6 @@ class SurveyQuestion(models.Model):
                     None
                 )
 
-    @api.multi
     def _index(self):
         """We would normally just use the 'sequence' field of questions BUT, if the pages and questions are
         created without ever moving records around, the sequence field can be set to 0 for all the questions.
@@ -381,9 +369,9 @@ class SurveyLabel(models.Model):
     answer_score = fields.Float('Score for this choice',
     help="A positive score indicates a correct choice; a negative or null score indicates a wrong answer")
 
-    @api.one
     @api.constrains('question_id', 'question_id_2')
     def _check_question_not_empty(self):
         """Ensure that field question_id XOR field question_id_2 is not null"""
-        if not bool(self.question_id) != bool(self.question_id_2):
-            raise ValidationError(_("A label must be attached to only one question."))
+        for label in self:
+            if not bool(label.question_id) != bool(label.question_id_2):
+                raise ValidationError(_("A label must be attached to only one question."))

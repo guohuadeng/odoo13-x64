@@ -29,7 +29,6 @@
         padding: 0;
 
         .nav-item {
-            text-align: center;
             background-color: $o-brand-lightsecondary;
 
             .nav-link {
@@ -51,7 +50,7 @@
     .dropdown-menu {
         position: static !important;
         transform: none !important;
-        width: 100%;
+        min-width: 100%;
     }
 
     .o_theme_customize_option {
@@ -195,6 +194,11 @@
         }
         $i: $i + 1;
     }
+
+    .o_theme_customize_delete_google_font {
+        @include o-position-absolute(1px, 1px, 1px, auto);
+        padding: 0 8px !important;
+    }
 }
 
 
@@ -275,7 +279,6 @@
     outline: none!important;
 }
 
-.css_editable_display,
 .editor_enable .css_non_editable_mode_hidden,
 .o_editable .media_iframe_video .css_editable_mode_display {
     display: block!important;
@@ -337,5 +340,21 @@ table.editorbar-panel {
     }
     .o_facebook_alert .o_add_facebook_page {
         cursor: pointer;
+    }
+}
+
+// User modal in edit mode
+.editor_enable, .note-editable {
+    .modal:not(.o_technical_modal) {
+        top: 40px;
+        right: 0;
+        bottom: 0;
+        left: $o-we-sidebar-width;
+        width: auto;
+        height: auto;
+
+        .modal-dialog {
+            padding: 0.5rem 0; // To use more editor space if necessary
+        }
     }
 }

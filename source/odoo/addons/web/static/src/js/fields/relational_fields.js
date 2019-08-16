@@ -393,6 +393,7 @@ var FieldMany2One = AbstractField.extend({
             initial_view: view,
             disable_multiple_selection: true,
             no_create: !self.can_create,
+            kanban_view_ref: this.attrs.kanban_view_ref,
             on_selected: function (records) {
                 self.reinitialize(records[0]);
                 self.activate();
@@ -471,9 +472,9 @@ var FieldMany2One = AbstractField.extend({
 
         // this is a stupid hack necessary to support the always_reload flag.
         // the field value has been reread by the basic model.  We use it to
-        // display the full address of a patner, separated by \n.  This is
+        // display the full address of a partner, separated by \n.  This is
         // really a bad way to do it.  Now, we need to remove the extra lines
-        // and hope for the best that noone tries to uses this mechanism to do
+        // and hope for the best that no one tries to uses this mechanism to do
         // something else.
         if (this.nodeOptions.always_reload) {
             value = this._getDisplayName(value);
@@ -856,6 +857,8 @@ var FieldX2Many = AbstractField.extend({
         toggle_column_order: '_onToggleColumnOrder',
         activate_next_widget: '_onActiveNextWidget',
         navigation_move: '_onNavigationMove',
+        save_optional_fields: '_onSaveOrLoadOptionalFields',
+        load_optional_fields: '_onSaveOrLoadOptionalFields',
     }),
 
     // We need to trigger the reset on every changes to be aware of the parent changes
@@ -1388,6 +1391,18 @@ var FieldX2Many = AbstractField.extend({
         });
     },
     /**
+     * Add necessary key parts for the basic controller to compute the local
+     * storage key. The event will be properly handled by the basic controller.
+     *
+     * @param {OdooEvent} ev
+     * @private
+     */
+    _onSaveOrLoadOptionalFields: function (ev) {
+        ev.data.keyParts.relationalField = this.name;
+        ev.data.keyParts.subViewId = this.view.view_id;
+        ev.data.keyParts.subViewType = this.view.type;
+    },
+    /**
      * Forces a resequencing of the records.
      *
      * @private
@@ -1609,7 +1624,7 @@ var FieldOne2Many = FieldX2Many.extend({
             fields_view: this.attrs.views && this.attrs.views.form,
             parentID: this.value.id,
             viewInfo: this.view,
-            deletable: this.activeActions.delete,
+            deletable: this.activeActions.delete && params.deletable,
         }));
     },
 
@@ -1714,7 +1729,7 @@ var FieldOne2Many = FieldX2Many.extend({
             on_remove: function () {
                 self._setValue({operation: 'DELETE', ids: [id]});
             },
-            deletable: this.activeActions.delete,
+            deletable: this.activeActions.delete && this.view.arch.tag !== 'tree',
             readonly: this.mode === 'readonly',
         });
     },
@@ -1750,6 +1765,7 @@ var FieldMany2Many = FieldX2Many.extend({
             title: _t("Add: ") + this.string,
             no_create: this.nodeOptions.no_create || !this.activeActions.create,
             fields_view: this.attrs.views.form,
+            kanban_view_ref: this.attrs.kanban_view_ref,
             on_selected: function (records) {
                 var resIDs = _.pluck(records, 'id');
                 var newIDs = _.difference(resIDs, self.value.res_ids);
@@ -1788,7 +1804,7 @@ var FieldMany2Many = FieldX2Many.extend({
                 self._setValue({operation: 'FORGET', ids: [ev.data.id]});
             },
             readonly: this.mode === 'readonly',
-            deletable: this.activeActions.delete,
+            deletable: this.activeActions.delete && this.view.arch.tag !== 'tree',
             string: this.string,
         });
     },
@@ -1803,7 +1819,6 @@ var FieldMany2ManyBinaryMultiFiles = AbstractField.extend({
     supportedFieldTypes: ['many2many'],
     fieldsToFetch: {
         name: {type: 'char'},
-        datas_fname: {type: 'char'},
         mimetype: {type: 'char'},
     },
     events: {
@@ -2207,6 +2222,26 @@ var FieldMany2ManyTags = AbstractField.extend({
      */
     _onQuickCreate: function (event) {
         this._quickCreate(event.data.value);
+    },
+});
+
+var FieldMany2ManyTagsAvatar = FieldMany2ManyTags.extend({
+    tag_template: 'FieldMany2ManyTagAvatar',
+    className: 'o_field_many2manytags avatar',
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * @override
+     * @private
+     */
+    _getRenderTagsContext: function () {
+        var result = this._super.apply(this, arguments);
+        result.avatarModel = this.nodeOptions.avatarModel || this.field.relation;
+        result.avatarField = this.nodeOptions.avatarField || 'image';
+        return result;
     },
 });
 
@@ -2787,6 +2822,32 @@ var FieldSelectionBadge = FieldSelection.extend({
     },
 });
 
+var FieldSelectionFont = FieldSelection.extend({
+
+    //--------------------------------------------------------------------------
+    // Private
+    //--------------------------------------------------------------------------
+
+    /**
+     * Changes CSS for all options according to their value.
+     * Also removes empty labels.
+     *
+     * @private
+     * @override
+     */
+    _renderEdit: function () {
+        this._super.apply(this, arguments);
+
+        this.$('option').each(function (i, option) {
+            if (! option.label) {
+                $(option).remove();
+            }
+            $(option).css('font-family', option.value);
+        });
+        this.$el.css('font-family', this.value);
+    },
+});
+
 /**
  * The FieldReference is a combination of a select (for the model) and
  * a FieldMany2one for its value.
@@ -2947,6 +3008,7 @@ return {
     FieldMany2ManyBinaryMultiFiles: FieldMany2ManyBinaryMultiFiles,
     FieldMany2ManyCheckBoxes: FieldMany2ManyCheckBoxes,
     FieldMany2ManyTags: FieldMany2ManyTags,
+    FieldMany2ManyTagsAvatar: FieldMany2ManyTagsAvatar,
     FormFieldMany2ManyTags: FormFieldMany2ManyTags,
     KanbanFieldMany2ManyTags: KanbanFieldMany2ManyTags,
 
@@ -2954,6 +3016,7 @@ return {
     FieldSelectionBadge: FieldSelectionBadge,
     FieldSelection: FieldSelection,
     FieldStatus: FieldStatus,
+    FieldSelectionFont: FieldSelectionFont,
 
     FieldReference: FieldReference,
 };

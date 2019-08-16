@@ -59,6 +59,7 @@
         <field name="name">Orders</field>
         <field name="res_model">sale.order</field>
         <field name="view_mode">tree,form,kanban,activity</field>
+        <field name="domain">[]</field>
         <field name="context">{'show_sale': True, 'search_default_order_confirmed': 1, 'search_default_from_website': 1}</field>
         <field name="search_view_id" ref="view_sales_order_filter_ecommerce"/>
         <field name="help" type="html">
@@ -140,13 +141,13 @@
                 action = records.action_recovery_email_send()
         </field>
         <field name="binding_model_id" ref="sale.model_sale_order"/>
+        <field name="binding_view_types">list,form</field>
     </record>
 
     <record id="action_view_unpaid_quotation_tree" model="ir.actions.act_window">
         <field name="name">Unpaid Orders</field>
         <field name="res_model">sale.order</field>
         <field name="view_mode">tree,kanban,form,activity</field>
-        <field name="view_type">form</field>
         <field name="domain">[('state', '=', 'sent'), ('website_id', '!=', False)]</field>
         <field name="context" eval="{'show_sale': True, 'create': False}"/>
         <field name="view_id" ref="sale.view_quotation_tree"/>
@@ -163,7 +164,6 @@
     <record id="action_view_abandoned_tree" model="ir.actions.act_window">
         <field name="name">Abandoned Carts</field>
         <field name="res_model">sale.order</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,activity</field>
         <field name="domain">[('state', '=', 'draft'), ('order_line', '!=', False), ('partner_id', '!=', context.get('public_partner_id')), ('website_id', '!=', False), ('date_order', '&lt;=', (datetime.datetime.utcnow() - datetime.timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S'))]</field>
         <field name="context" eval="{'show_sale': True, 'create': False, 'public_partner_id': ref('base.public_partner'), 'search_default_recovery_email': True}"/>
@@ -214,8 +214,6 @@
         action="base.action_partner_customer_form"
         parent="menu_orders" sequence="4"/>
 
-
-    <!-- <menuitem id="menu_orders_invoices" name="Invoices" parent="menu_orders" action="action_invoices_ecommerce" sequence="4"/> -->
 
     <!-- Catalog sub-menus -->
     <menuitem id="menu_catalog_products" name="Products"
@@ -268,8 +266,30 @@
                 <attribute name="context">{'display_website': True}</attribute>
             </field>
             <field name="team_id" position="after">
-                <field name="website_id" groups="website.group_multi_website"/>
+                <field name="website_id" attrs="{'invisible': [('website_id', '=', False)]}" groups="website.group_multi_website"/>
             </field>
+        </field>
+    </record>
+
+    <record id="view_quotation_tree" model="ir.ui.view">
+        <field name="name">sale.order.tree.inherit.website.sale</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_quotation_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="before">
+                <field name="website_id" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_order_tree" model="ir.ui.view">
+        <field name="name">sale.order.tree.inherit.website.sale</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='user_id']" position="before">
+                <field name="website_id" optional="show"/>
+            </xpath>
         </field>
     </record>
 </odoo>

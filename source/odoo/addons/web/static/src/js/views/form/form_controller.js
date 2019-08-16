@@ -14,7 +14,6 @@ var FormController = BasicController.extend({
     custom_events: _.extend({}, BasicController.prototype.custom_events, {
         bounce_edit: '_onBounceEdit',
         button_clicked: '_onButtonClicked',
-        do_action: '_onDoAction',
         edited_list: '_onEditedList',
         open_one2many_record: '_onOpenOne2ManyRecord',
         open_record: '_onOpenRecord',
@@ -50,13 +49,18 @@ var FormController = BasicController.extend({
         this.autofocus();
     },
     /**
-     * Force mode back to readonly. Whenever we leave a form view, it is saved,
-     * and should no longer be in edit mode.
+     * This hook is called when a form view is restored (by clicking on the
+     * breadcrumbs). In general, we force mode back to readonly, because
+     * whenever we leave a form view by stacking another action on the top of
+     * it, it is saved, and should no longer be in edit mode. However, there is
+     * a special case for new records for which we still want to be in 'edit'
+     * as no record has been created (changes have been discarded before
+     * leaving).
      *
      * @override
      */
     willRestore: function () {
-        this.mode = 'readonly';
+        this.mode = this.model.isNew(this.handle) ? 'edit' : 'readonly';
     },
 
     //--------------------------------------------------------------------------
@@ -184,6 +188,24 @@ var FormController = BasicController.extend({
         var self = this;
         if (this.hasSidebar) {
             var otherItems = [];
+            if (this.archiveEnabled) {
+                var classname = "o_sidebar_item_archive" + (this.initialState.data.active ? "" : " o_hidden")
+                otherItems.push({
+                    label: _t("Archive"),
+                    callback: function () {
+                        Dialog.confirm(self, _t("Are you sure that you want to archive this record?"), {
+                            confirm_callback: self._toggleArchiveState.bind(self, true),
+                        });
+                    },
+                    classname: classname,
+                });
+                classname = "o_sidebar_item_unarchive" + (this.initialState.data.active ? " o_hidden" : "")
+                otherItems.push({
+                    label: _t("Unarchive"),
+                    callback: this._toggleArchiveState.bind(this, false),
+                    classname: classname,
+                });
+            }
             if (this.is_action_enabled('delete')) {
                 otherItems.push({
                     label: _t('Delete'),
@@ -263,6 +285,29 @@ var FormController = BasicController.extend({
     //--------------------------------------------------------------------------
     // Private
     //--------------------------------------------------------------------------
+
+    /**
+     * Archive the current selection
+     *
+     * @private
+     * @param {string[]} ids
+     * @param {boolean} archive
+     * @returns {Promise}
+     */
+    _archive: function (ids, archive) {
+        if (ids.length === 0) {
+            return Promise.resolve();
+        }
+        if (archive) {
+            return  this.model
+            .actionArchive(ids, this.handle)
+            .then(this.update.bind(this, {}, {reload: false}));   
+        } else {
+            return this.model
+            .actionUnarchive(ids, this.handle)
+            .then(this.update.bind(this, {}, {reload: false}));   
+        }
+    },
 
     /**
      * Assign on the buttons save and discard additionnal behavior to facilitate
@@ -429,7 +474,6 @@ var FormController = BasicController.extend({
             self._setTitle(title);
             self._updateButtons();
             self._updateSidebar();
-
             self.autofocus();
         });
     },
@@ -458,6 +502,25 @@ var FormController = BasicController.extend({
     _updateSidebar: function () {
         if (this.sidebar) {
             this.sidebar.do_toggle(this.mode === 'readonly');
+            // Hide/Show Archive/Unarchive dropdown items
+            // We could have toggled the o_hidden class on the
+            // item theirselves, but the items are redrawed
+            // at each update, based on the initial definition
+            var archive_item = _.find(this.sidebar.items.other, function(item) {
+                return item.classname && item.classname.includes('o_sidebar_item_archive')
+            })
+            var unarchive_item = _.find(this.sidebar.items.other, function(item) {
+                return item.classname && item.classname.includes('o_sidebar_item_unarchive')
+            })
+            if (archive_item && unarchive_item) {
+                if (this.renderer.state.data.active) {
+                    archive_item.classname = 'o_sidebar_item_archive';
+                    unarchive_item.classname = 'o_sidebar_item_unarchive o_hidden';
+                } else {
+                    archive_item.classname = 'o_sidebar_item_archive o_hidden';
+                    unarchive_item.classname = 'o_sidebar_item_unarchive';
+                }
+            }
         }
     },
 
@@ -544,26 +607,6 @@ var FormController = BasicController.extend({
         this._discardChanges();
     },
     /**
-     * Destroy subdialog widgets after an action is finished.
-     *
-     * @param {OdooEvent} ev
-     * @private
-     */
-    _onDoAction: function (ev) {
-        var self = this;
-        // A priori, different widgets could write on the "on_success" key.
-        // Below we ensure that all the actions required by those widgets
-        // are executed in a suitable order before every cycle of destruction.
-        var callback = ev.data.on_success || function () {};
-        ev.data.on_success = function () {
-            callback();
-            function isDialog (widget) {
-                return (widget instanceof Dialog);
-            }
-            _.invoke(self.getChildren().filter(isDialog), 'destroy');
-        };
-    },
-    /**
      * Called when the user clicks on 'Duplicate Record' in the sidebar
      *
      * @private
@@ -618,9 +661,12 @@ var FormController = BasicController.extend({
      * @private
      * @param {OdooEvent} event
      */
-    _onFormDialogDiscarded: function(e) {
-        e.stopPropagation();
-        this.renderer.focusLastActivatedWidget();
+    _onFormDialogDiscarded: function(ev) {
+        ev.stopPropagation();
+        var isFocused = this.renderer.focusLastActivatedWidget();
+        if (ev.data.callback) {
+            ev.data.callback(_.str.toBool(isFocused));
+        }
     },
     /**
      * Opens a one2many record (potentially new) in a dialog. This handler is
@@ -732,6 +778,15 @@ var FormController = BasicController.extend({
             var state = self.model.get(self.handle);
             self.renderer.confirmChange(state, state.id, [field]);
         });
+    },
+    /**
+     * Called when clicking on 'Archive' or 'Unarchive' in the sidebar.
+     *
+     * @private
+     * @param {boolean} archive
+     */
+    _toggleArchiveState: function (archive) {
+        this._archive([this.handle], archive);
     },
 });
 

@@ -35,15 +35,15 @@ class NewLeadNotification(TestCrmCases):
         self.assertIn(channel_listen, lead.message_channel_ids)
 
         msg = lead.message_ids[0]
-        self.assertIn(self.crm_salesman.partner_id, msg.needaction_partner_ids)
+        self.assertIn(self.crm_salesman.partner_id, msg.notified_partner_ids)
         self.assertIn(channel_listen, msg.channel_ids)
 
         # The user should have a new unread message
-        lead_user = lead.sudo(self.crm_salesman)
+        lead_user = lead.with_user(self.crm_salesman)
         self.assertTrue(lead_user.message_needaction)
 
     def test_new_lead_from_email_multicompany(self):
-        company0 = self.env.company_id
+        company0 = self.env.company
         company1 = self.env['res.company'].create({'name': 'new_company'})
 
         self.env.user.write({

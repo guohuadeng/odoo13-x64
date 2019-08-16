@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import hashlib
+import json
 import logging
 import os
 import re
@@ -16,6 +18,7 @@ import odoo
 from odoo import api, models
 from odoo.addons.base.models.ir_http import RequestUID, ModelConverter
 from odoo.http import request
+from odoo.osv import expression
 from odoo.tools import config, ustr, pycompat
 
 from ..geoipresolver import GeoIPResolver
@@ -44,7 +47,7 @@ def _guess_mimetype(ext=False, default='text/html'):
     return ext is not False and exts.get(ext, default) or exts
 
 
-def slugify_one(s, max_length=None):
+def slugify_one(s, max_length=0):
     """ Transform a string to a slug that can be used in a url path.
         This method will first try to do the job with python-slugify if present.
         Otherwise it will process string by stripping leading and ending spaces,
@@ -62,13 +65,12 @@ def slugify_one(s, max_length=None):
         except TypeError:
             pass
     uni = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode('ascii')
-    slug_str = re.sub('[\W_]', ' ', uni).strip().lower()
-    slug_str = re.sub('[-\s]+', '-', slug_str)
+    slug_str = re.sub(r'[\W_]', ' ', uni).strip().lower()
+    slug_str = re.sub(r'[-\s]+', '-', slug_str)
+    return slug_str[:max_length] if max_length > 0 else slug_str
 
-    return slug_str[:max_length]
 
-
-def slugify(s, max_length=None, path=False):
+def slugify(s, max_length=0, path=False):
     if not path:
         return slugify_one(s, max_length=max_length)
     else:
@@ -221,20 +223,47 @@ class IrHttp(models.AbstractModel):
         )
 
     @classmethod
-    def _get_languages(cls):
-        return request.env['res.lang'].search([])
-
-    @classmethod
     def _get_language_codes(cls):
-        languages = cls._get_languages()
-        return [(lang.code, lang.name) for lang in languages]
+        return request.env['res.lang'].get_installed()
 
     @classmethod
     def _get_default_lang(cls):
         lang_code = request.env['ir.default'].sudo().get('res.partner', 'lang')
         if lang_code:
-            return request.env['res.lang'].search([('code', '=', lang_code)], limit=1)
+            return request.env['res.lang']._lang_get(lang_code)
         return request.env['res.lang'].search([], limit=1)
+
+    @api.model
+    def get_frontend_session_info(self):
+        session_info = super(IrHttp, self).get_frontend_session_info()
+
+        IrHttpModel = request.env['ir.http'].sudo()
+        modules = IrHttpModel.get_translation_frontend_modules()
+        user_context = request.session.get_context() if request.session.uid else {}
+        lang = user_context.get('lang')
+        translations, lang_params = request.env['ir.translation'].get_translations_for_webclient(modules, lang)
+        translation_cache = {
+            'lang_parameters': lang_params,
+            'modules': translations,
+            'multi_lang': len(request.env['res.lang'].sudo().get_installed()) > 1,
+            'lang': lang,
+        }
+
+        session_info.update({
+            'translationURL': '/website/translations/',
+            'cache_hashes': {
+                'translations': hashlib.sha1(json.dumps(translation_cache, sort_keys=True).encode()).hexdigest(),
+            },
+        })
+        return session_info
+
+    @api.model
+    def get_translation_frontend_modules(self):
+        Modules = request.env['ir.module.module'].sudo()
+        domain = self._get_translation_frontend_modules_domain()
+        return Modules.search(
+            expression.AND([domain, [('state', '=', 'installed')]])
+        ).mapped('name')
 
     @classmethod
     def _get_translation_frontend_modules_domain(cls):
@@ -292,7 +321,7 @@ class IrHttp(models.AbstractModel):
         if request.routing_iteration == 1:
             context = dict(request.context)
             path = request.httprequest.path.split('/')
-            langs = [lg.code for lg in cls._get_languages()]
+            langs = [code for code, _ in request.env['res.lang'].get_installed()]
             is_a_bot = cls.is_a_bot()
             cook_lang = request.httprequest.cookies.get('frontend_lang')
             nearest_lang = not func and cls.get_nearest_lang(path[1])

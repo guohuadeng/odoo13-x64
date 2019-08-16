@@ -34,9 +34,8 @@ class MergeOpportunity(models.TransientModel):
 
     opportunity_ids = fields.Many2many('crm.lead', 'merge_opportunity_rel', 'merge_id', 'opportunity_id', string='Leads/Opportunities')
     user_id = fields.Many2one('res.users', 'Salesperson', index=True)
-    team_id = fields.Many2one('crm.team', 'Sales Team', oldname='section_id', index=True)
+    team_id = fields.Many2one('crm.team', 'Sales Team', index=True)
 
-    @api.multi
     def action_merge(self):
         self.ensure_one()
         merge_opportunity = self.opportunity_ids.merge_opportunity(self.user_id.id, self.team_id.id)

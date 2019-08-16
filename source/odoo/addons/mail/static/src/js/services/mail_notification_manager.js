@@ -319,12 +319,14 @@ MailManager.include({
      */
     _handlePartnerMarkAsReadNotification: function (data) {
         var self = this;
+        var history = this.getMailbox('history');
         _.each(data.message_ids, function (messageID) {
             var message = _.find(self._messages, function (msg) {
                 return msg.getID() === messageID;
             });
             if (message) {
                 self._removeMessageFromThread('mailbox_inbox', message);
+                history.addMessage(message);
                 self._mailBus.trigger('update_message', message, data.type);
             }
         });
@@ -417,6 +419,9 @@ MailManager.include({
             this._handlePartnerUserConnectionNotification(data);
         } else if (data.info === 'channel_seen') {
             this._handlePartnerChannnelSeenNotification(data);
+        } else if (data.type === 'simple_notification') {
+            var title = _.escape(data.title), message = _.escape(data.message);
+            data.warning ? this.do_warn(title, message, data.sticky) : this.do_notify(title, message, data.sticky);
         } else {
             this._handlePartnerChannelNotification(data);
         }
@@ -471,12 +476,11 @@ MailManager.include({
      *
      * @private
      * @param {Object} data
-     * @param {string} data.author_id
      */
     _handlePartnerTransientMessageNotification: function (data) {
         var lastMessage = _.last(this._messages);
         data.id = (lastMessage ? lastMessage.getID() : 0) + 0.01;
-        data.author_id = data.author_id || this.getOdoobotID();
+        data.author_id = this.getOdoobotID();
         this.addMessage(data);
     },
     /**
@@ -504,7 +508,7 @@ MailManager.include({
             }
             this._removeChannel(channel);
             this._mailBus.trigger('unsubscribe_from_channel', data.id);
-            this.do_notify(_("Unsubscribed"), message);
+            this.do_notify(_t("Unsubscribed"), message);
         }
     },
      /**

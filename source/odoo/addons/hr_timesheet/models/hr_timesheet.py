@@ -14,6 +14,8 @@ class AccountAnalyticLine(models.Model):
     @api.model
     def default_get(self, field_list):
         result = super(AccountAnalyticLine, self).default_get(field_list)
+        if 'encoding_uom_id' in field_list:
+            result['encoding_uom_id'] = self.env.company.timesheet_encode_uom_id.id
         if not self.env.context.get('default_employee_id') and 'employee_id' in field_list and result.get('user_id'):
             result['employee_id'] = self.env['hr.employee'].search([('user_id', '=', result['user_id'])], limit=1).id
         return result
@@ -23,6 +25,11 @@ class AccountAnalyticLine(models.Model):
 
     employee_id = fields.Many2one('hr.employee', "Employee")
     department_id = fields.Many2one('hr.department', "Department", compute='_compute_department_id', store=True, compute_sudo=True)
+    encoding_uom_id = fields.Many2one('uom.uom', compute='_compute_encoding_uom_id')
+
+    def _compute_encoding_uom_id(self):
+        for analytic_line in self:
+            analytic_line.encoding_uom_id = self.env.company.timesheet_encode_uom_id
 
     @api.onchange('project_id')
     def onchange_project_id(self):
@@ -72,7 +79,6 @@ class AccountAnalyticLine(models.Model):
             result._timesheet_postprocess(values)
         return result
 
-    @api.multi
     def write(self, values):
         values = self._timesheet_preprocess(values)
         result = super(AccountAnalyticLine, self).write(values)
@@ -90,7 +96,7 @@ class AccountAnalyticLine(models.Model):
     @api.model
     def _apply_timesheet_label(self, view_arch):
         doc = etree.XML(view_arch)
-        encoding_uom = self.env.company_id.timesheet_encode_uom_id
+        encoding_uom = self.env.company.timesheet_encode_uom_id
         # Here, we select only the unit_amount field having no string set to give priority to
         # custom inheretied view stored in database. Even if normally, no xpath can be done on
         # 'string' attribute.
@@ -101,6 +107,14 @@ class AccountAnalyticLine(models.Model):
     # ----------------------------------------------------
     # Business Methods
     # ----------------------------------------------------
+
+    def _timesheet_get_portal_domain(self):
+        return ['|', '&',
+                ('task_id.project_id.privacy_visibility', '=', 'portal'),
+                ('task_id.project_id.message_partner_ids', 'child_of', [self.env.user.partner_id.commercial_partner_id.id]),
+                '&',
+                ('task_id.project_id.privacy_visibility', '=', 'portal'),
+                ('task_id.message_partner_ids', 'child_of', [self.env.user.partner_id.commercial_partner_id.id])]
 
     def _timesheet_preprocess(self, vals):
         """ Deduce other field values from the one given.
@@ -133,7 +147,6 @@ class AccountAnalyticLine(models.Model):
             vals['product_uom_id'] = analytic_account.company_id.project_time_mode_id.id
         return vals
 
-    @api.multi
     def _timesheet_postprocess(self, values):
         """ Hook to update record one by one according to the values of a `write` or a `create`. """
         sudo_self = self.sudo()  # this creates only one env for all operation that required sudo() in `_timesheet_postprocess_values`override
@@ -143,7 +156,6 @@ class AccountAnalyticLine(models.Model):
                 timesheet.write(values_to_write[timesheet.id])
         return values
 
-    @api.multi
     def _timesheet_postprocess_values(self, values):
         """ Get the addionnal values to write on record
             :param dict values: values for the model's fields, as a dictionary::
@@ -159,7 +171,7 @@ class AccountAnalyticLine(models.Model):
                 cost = timesheet.employee_id.timesheet_cost or 0.0
                 amount = -timesheet.unit_amount * cost
                 amount_converted = timesheet.employee_id.currency_id._convert(
-                    amount, timesheet.account_id.currency_id, self.env.company_id, timesheet.date)
+                    amount, timesheet.account_id.currency_id, self.env.company, timesheet.date)
                 result[timesheet.id].update({
                     'amount': amount_converted,
                 })

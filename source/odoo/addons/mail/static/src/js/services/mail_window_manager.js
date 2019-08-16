@@ -114,9 +114,9 @@ MailManager.include({
             thread.isCreatingWindow = true;
             prom = thread.fetchMessages().then(function () {
                 threadWindow = self._makeNewThreadWindow(thread, options);
-                self._placeNewThreadWindow(threadWindow, options.passively);
                 return threadWindow.appendTo($(self.THREAD_WINDOW_APPENDTO));
             }).then(function () {
+                self._placeNewThreadWindow(threadWindow, options.passively);
                 self._repositionThreadWindows();
                 threadWindow.render();
                 threadWindow.scrollToBottom();
@@ -135,10 +135,6 @@ MailManager.include({
                 thread.close();
                 thread.isCreatingWindow = false;
             });
-        } else if (!options.passively) {
-            if (threadWindow.isHidden()) {
-                this._makeThreadWindowVisible(threadWindow);
-            }
         }
         return prom.then(function () {
             threadWindow.updateVisualFoldState();
@@ -348,6 +344,7 @@ MailManager.include({
             .on('is_thread_bottom_visible', this, this._onIsThreadBottomVisible)
             .on('unsubscribe_from_channel', this, this._onUnsubscribeFromChannel)
             .on('updated_im_status', this, this._onUpdatedImStatus)
+            .on('updated_out_of_office', this, this._onUpdatedOutOfOffice)
             .on('update_thread_unread_counter', this, this._onUpdateThreadUnreadCounter);
 
         core.bus.on('resize', this, _.debounce(this._repositionThreadWindows.bind(this), 100));
@@ -703,6 +700,18 @@ MailManager.include({
             }
             threadWindow.renderHeader();
         });
+    },
+    /**
+     * @private
+     * @param {Object} data
+     * @param {integer} data.threadID
+     */
+    _onUpdatedOutOfOffice: function (data) {
+        var threadWindow = this._getThreadWindow(data.threadID);
+        if (!threadWindow) {
+            return;
+        }
+        threadWindow.renderOutOfOffice();
     },
     /**
      * Called when a thread has its unread counter that has changed.

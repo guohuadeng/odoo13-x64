@@ -319,10 +319,6 @@ function wysiwygData(data) {
                     string: "display_name",
                     type: 'char',
                 },
-                datas_fname: {
-                    string: "datas_fname",
-                    type: 'char',
-                },
                 mimetype: {
                     string: "mimetype",
                     type: 'char',
@@ -347,23 +343,41 @@ function wysiwygData(data) {
                     string: "res_model",
                     type: 'char',
                 },
+                public: {
+                    string: "public",
+                    type: 'boolean',
+                },
                 access_token: {
                     string: "access_token",
                     type: 'char',
                 },
+                image_src: {
+                    string: "image_src",
+                    type: 'char',
+                },
+                image_width: {
+                    string: "image_width",
+                    type: 'integer',
+                },
+                image_height: {
+                    string: "image_height",
+                    type: 'integer',
+                },
             },
             records: [{
                 id: 1,
-                public: true,
                 name: 'image',
-                datas_fname: 'image.png',
                 mimetype: 'image/png',
                 checksum: false,
                 url: '/web_editor/static/src/img/transparent.png',
                 type: 'url',
                 res_id: 0,
                 res_model: false,
-                access_token: false
+                public: true,
+                access_token: false,
+                image_src: '/web_editor/static/src/img/transparent.png',
+                image_width: 256,
+                image_height: 256,
             }],
             generate_access_token: function () {
                 return;
@@ -494,9 +508,10 @@ var testKeyboard = function ($editable, assert, keyboardTests, addTests) {
         keypress.keyCode = keypress.keyCode;
         var event = $.Event("keydown", keypress);
         $target.trigger(event);
+
         if (!event.isDefaultPrevented()) {
             if (keypress.key.length === 1) {
-                document.execCommand("insertText", 0, keypress.key);
+                textInput($target[0], keypress.key);
             } else {
                 console.warn('Native "' + keypress.key + '" is not supported in test');
             }
@@ -759,7 +774,39 @@ var keydown = function (key, $editable, options) {
     var $target = $(target.tagName ? target : target.parentNode);
     var event = $.Event("keydown", keyPress);
     $target.trigger(event);
+
+    if (!event.isDefaultPrevented()) {
+        if (keyPress.key.length === 1) {
+            textInput($target[0], keyPress.key);
+        } else {
+            console.warn('Native "' + keyPress.key + '" is not supported in test');
+        }
+    }
 };
+
+var textInput = function (target, char) {
+    var ev = new CustomEvent('textInput', {
+        bubbles: true,
+        cancelBubble: false,
+        cancelable: true,
+        composed: true,
+        data: char,
+        defaultPrevented: false,
+        detail: 0,
+        eventPhase: 3,
+        isTrusted: true,
+        returnValue: true,
+        sourceCapabilities: null,
+        type: "textInput",
+        which: 0,
+    });
+    ev.data = char;
+    target.dispatchEvent(ev);
+
+    if (!ev.defaultPrevented) {
+        document.execCommand("insertText", 0, ev.data);
+    }
+}
 
 return {
     wysiwygData: wysiwygData,

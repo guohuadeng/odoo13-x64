@@ -70,7 +70,6 @@ class MailMail(models.Model):
             new_mail.attachment_ids.check(mode='read')
         return new_mail
 
-    @api.multi
     def write(self, vals):
         res = super(MailMail, self).write(vals)
         if vals.get('attachment_ids'):
@@ -78,7 +77,6 @@ class MailMail(models.Model):
                 mail.attachment_ids.check(mode='read')
         return res
 
-    @api.multi
     def unlink(self):
         # cascade-delete the parent message for all mails that are not created for a notification
         mail_msg_cascade_ids = [mail.mail_message_id.id for mail in self if not mail.notification]
@@ -95,11 +93,9 @@ class MailMail(models.Model):
             self = self.with_context(dict(self._context, default_type=None))
         return super(MailMail, self).default_get(fields)
 
-    @api.multi
     def mark_outgoing(self):
         return self.write({'state': 'outgoing'})
 
-    @api.multi
     def cancel(self):
         return self.write({'state': 'cancel'})
 
@@ -142,7 +138,6 @@ class MailMail(models.Model):
             _logger.exception("Failed processing mail queue")
         return res
 
-    @api.multi
     def _postprocess_sent_message(self, success_pids, failure_reason=False, failure_type=None):
         """Perform any post-processing necessary after sending ``mail``
         successfully, including deleting it completely along with its
@@ -154,24 +149,26 @@ class MailMail(models.Model):
         notif_mails_ids = [mail.id for mail in self if mail.notification]
         if notif_mails_ids:
             notifications = self.env['mail.notification'].search([
-                ('is_email', '=', True),
+                ('notification_type', '=', 'email'),
                 ('mail_id', 'in', notif_mails_ids),
-                ('email_status', 'not in', ('sent', 'canceled'))
+                ('notification_status', 'not in', ('sent', 'canceled'))
             ])
             if notifications:
-                #find all notification linked to a failure
+                # find all notification linked to a failure
                 failed = self.env['mail.notification']
                 if failure_type:
                     failed = notifications.filtered(lambda notif: notif.res_partner_id not in success_pids)
                     failed.sudo().write({
-                        'email_status': 'exception',
+                        'notification_status': 'exception',
                         'failure_type': failure_type,
                         'failure_reason': failure_reason,
                     })
-                    messages = notifications.mapped('mail_message_id').filtered(lambda m: m.res_id and m.model)
-                    messages._notify_failure_update()  # notify user that we have a failure
+                    messages = notifications.mapped('mail_message_id').filtered(lambda m: m.is_thread_message())
+                    messages._notify_mail_failure_update()  # notify user that we have a failure
                 (notifications - failed).sudo().write({
-                    'email_status': 'sent',
+                    'notification_status': 'sent',
+                    'failure_type': '',
+                    'failure_reason': '',
                 })
         if not failure_type or failure_type == 'RECIPIENT':  # if we have another error, we want to keep the mail.
             mail_to_delete_ids = [mail.id for mail in self if mail.auto_delete]
@@ -182,14 +179,12 @@ class MailMail(models.Model):
     # mail_mail formatting, tools and send mechanism
     # ------------------------------------------------------
 
-    @api.multi
     def _send_prepare_body(self):
         """Return a specific ir_email body. The main purpose of this method
         is to be inherited to add custom content depending on some module."""
         self.ensure_one()
         return self.body_html or ''
 
-    @api.multi
     def _send_prepare_values(self, partner=None):
         """Return a dictionary for specific email values, depending on a
         partner, or generic to the whole recipients given by mail.email_to.
@@ -210,7 +205,6 @@ class MailMail(models.Model):
         }
         return res
 
-    @api.multi
     def _split_by_server(self):
         """Returns an iterator of pairs `(mail_server_id, record_ids)` for current recordset.
 
@@ -228,7 +222,6 @@ class MailMail(models.Model):
             for mail_batch in tools.split_every(batch_size, record_ids):
                 yield server_id, mail_batch
 
-    @api.multi
     def send(self, auto_commit=False, raise_exception=False):
         """ Sends the selected emails immediately, ignoring their current
             state (mails that have already been sent should not be passed
@@ -269,7 +262,6 @@ class MailMail(models.Model):
                 if smtp_session:
                     smtp_session.quit()
 
-    @api.multi
     def _send(self, auto_commit=False, raise_exception=False, smtp_session=None):
         IrMailServer = self.env['ir.mail_server']
         IrAttachment = self.env['ir.attachment']
@@ -294,8 +286,8 @@ class MailMail(models.Model):
                 # load attachment binary data with a separate read(), as prefetching all
                 # `datas` (binary field) could bloat the browse cache, triggerring
                 # soft/hard mem limits with temporary data.
-                attachments = [(a['datas_fname'], base64.b64decode(a['datas']), a['mimetype'])
-                               for a in attachments.sudo().read(['datas_fname', 'datas', 'mimetype'])]
+                attachments = [(a['name'], base64.b64decode(a['datas']), a['mimetype'])
+                               for a in attachments.sudo().read(['name', 'datas', 'mimetype'])]
 
                 # specific behavior to customize the send email for notified partners
                 email_list = []
@@ -312,7 +304,7 @@ class MailMail(models.Model):
                 bounce_alias = ICP.get_param("mail.bounce.alias")
                 catchall_domain = ICP.get_param("mail.catchall.domain")
                 if bounce_alias and catchall_domain:
-                    if mail.model and mail.res_id:
+                    if mail.mail_message_id.is_thread_message():
                         headers['Return-Path'] = '%s+%d-%s-%d@%s' % (bounce_alias, mail.id, mail.model, mail.res_id, catchall_domain)
                     else:
                         headers['Return-Path'] = '%s+%d@%s' % (bounce_alias, mail.id, catchall_domain)
@@ -333,14 +325,14 @@ class MailMail(models.Model):
                 # update in case an email bounces while sending all emails related to current
                 # mail record.
                 notifs = self.env['mail.notification'].search([
-                    ('is_email', '=', True),
+                    ('notification_type', '=', 'email'),
                     ('mail_id', 'in', mail.ids),
-                    ('email_status', 'not in', ('sent', 'canceled'))
+                    ('notification_status', 'not in', ('sent', 'canceled'))
                 ])
                 if notifs:
                     notif_msg = _('Error without exception. Probably due do concurrent access update of notification records. Please see with an administrator.')
                     notifs.sudo().write({
-                        'email_status': 'exception',
+                        'notification_status': 'exception',
                         'failure_type': 'UNKNOWN',
                         'failure_reason': notif_msg,
                     })

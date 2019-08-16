@@ -6,7 +6,7 @@ from psycopg2 import OperationalError, Error
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.osv import expression
-from odoo.tools.float_utils import float_compare, float_is_zero
+from odoo.tools.float_utils import float_compare, float_is_zero, float_round
 
 import logging
 
@@ -18,8 +18,22 @@ class StockQuant(models.Model):
     _description = 'Quants'
     _rec_name = 'product_id'
 
+    def _domain_location_id(self):
+        if not self._is_inventory_mode():
+            return
+        return ['&', ('company_id', '=', self.env.company.id), ('usage', 'in', ['internal', 'transit'])]
+
+    def _domain_product_id(self):
+        if not self._is_inventory_mode():
+            return
+        domain = [('type', '=', 'product')]
+        if self.env.context.get('product_tmpl_id'):
+            domain = expression.AND([domain, [('product_tmpl_id', '=', self.env.context['product_tmpl_id'])]])
+        return domain
+
     product_id = fields.Many2one(
         'product.product', 'Product',
+        domain=lambda self: self._domain_product_id(),
         ondelete='restrict', readonly=True, required=True)
     # so user can filter on template in webclient
     product_tmpl_id = fields.Many2one(
@@ -32,6 +46,7 @@ class StockQuant(models.Model):
         string='Company', store=True, readonly=True)
     location_id = fields.Many2one(
         'stock.location', 'Location',
+        domain=lambda self: self._domain_location_id(),
         auto_join=True, ondelete='restrict', readonly=True, required=True)
     lot_id = fields.Many2one(
         'stock.production.lot', 'Lot/Serial Number',
@@ -45,13 +60,96 @@ class StockQuant(models.Model):
     quantity = fields.Float(
         'Quantity',
         help='Quantity of products in this quant, in the default unit of measure of the product',
-        readonly=True, required=True, oldname='qty')
+        readonly=True)
+    inventory_quantity = fields.Float(
+        'Inventoried Quantity', compute='_compute_inventory_quantity',
+        inverse='_set_inventory_quantity', groups='stock.group_stock_manager')
     reserved_quantity = fields.Float(
         'Reserved Quantity',
         default=0.0,
         help='Quantity of reserved products in this quant, in the default unit of measure of the product',
         readonly=True, required=True)
     in_date = fields.Datetime('Incoming Date', readonly=True)
+    tracking = fields.Selection(related='product_id.tracking', readonly=True)
+
+    @api.depends('quantity')
+    def _compute_inventory_quantity(self):
+        if not self._is_inventory_mode():
+            return
+        for quant in self:
+            quant.inventory_quantity = quant.quantity
+
+    def _set_inventory_quantity(self):
+        """ Inverse method to create stock move when `inventory_quantity` is set
+        (`inventory_quantity` is only accessible in inventory mode).
+        """
+        if not self._is_inventory_mode():
+            return
+        for quant in self:
+            # Get the quantity to create a move for.
+            rounding = quant.product_id.uom_id.rounding
+            diff = float_round(quant.inventory_quantity - quant.quantity, precision_rounding=rounding)
+            diff_float_compared = float_compare(diff, 0, precision_rounding=rounding)
+            # Create and vaidate a move so that the quant matches its `inventory_quantity`.
+            if diff_float_compared == 0:
+                continue
+            elif diff_float_compared > 0:
+                move_vals = self._get_inventory_move_values(diff, self.product_id.property_stock_inventory, self.location_id)
+            else:
+                move_vals = self._get_inventory_move_values(-diff, self.location_id, self.product_id.property_stock_inventory, out=True)
+            move = self.env['stock.move'].with_context(inventory_mode=False).create(move_vals)
+            move._action_done()
+
+    @api.model
+    def create(self, vals):
+        """ Override to handle the "inventory mode" and create a quant as
+        superuser the conditions are met.
+        """
+        if self._is_inventory_mode() and 'inventory_quantity' in vals:
+            allowed_fields = self._get_inventory_fields_create()
+            if any([field for field in vals.keys() if field not in allowed_fields]):
+                raise UserError(_("Quant's creation is restricted, you can't do this operation."))
+            inventory_quantity = vals.pop('inventory_quantity')
+
+            # Create an empty quant or write on a similar one.
+            product = self.env['product.product'].browse(vals['product_id'])
+            location = self.env['stock.location'].browse(vals['location_id'])
+            lot_id = self.env['stock.production.lot'].browse(vals.get('lot_id'))
+            package_id = self.env['stock.quant.package'].browse(vals.get('package_id'))
+            owner_id = self.env['res.partner'].browse(vals.get('owner_id'))
+            quant = self._gather(product, location, lot_id=lot_id, package_id=package_id, owner_id=owner_id, strict=True)
+            if quant:
+                quant = quant[0]
+            else:
+                quant = self.sudo().create(vals)
+            # Set the `inventory_quantity` field to create the necessary move.
+            quant.inventory_quantity = inventory_quantity
+            return quant
+        return super(StockQuant, self).create(vals)
+
+    @api.model
+    def read_group(self, domain, fields, groupby, offset=0, limit=None, orderby=False, lazy=True):
+        """ Override to handle the "inventory mode" and set the `inventory_quantity`
+        in view list grouped.
+        """
+        result = super(StockQuant, self).read_group(domain, fields, groupby, offset=offset, limit=limit, orderby=orderby, lazy=lazy)
+        if self._is_inventory_mode():
+            for record in result:
+                record['inventory_quantity'] = record.get('quantity', 0)
+        return result
+
+    def write(self, vals):
+        """ Override to handle the "inventory mode" and create the inventory move. """
+        if self._is_inventory_mode() and 'inventory_quantity' in vals:
+            if any(quant.location_id.usage == 'inventory' for quant in self):
+                # Do nothing when user tries to modify manually a inventory loss
+                return
+            allowed_fields = self._get_inventory_fields_write()
+            if any([field for field in vals.keys() if field not in allowed_fields]):
+                raise UserError(_("Quant's edition is restricted, you can't do this operation."))
+            self = self.sudo()
+            return super(StockQuant, self).write(vals)
+        return super(StockQuant, self).write(vals)
 
     def action_view_stock_moves(self):
         self.ensure_one()
@@ -67,6 +165,31 @@ class StockQuant(models.Model):
                 ('result_package_id', '=', self.package_id.id),
         ]
         return action
+
+    @api.model
+    def action_view_quants(self):
+        self = self.with_context(search_default_internal_loc=1)
+        if self.user_has_groups('stock.group_production_lot,stock.group_stock_multi_locations'):
+            # fixme: erase the following condition when it'll be possible to create a new record
+            # from a empty grouped editable list without go through the form view.
+            if self.search_count([
+                ('company_id', '=', self.env.company.id),
+                ('location_id.usage', 'in', ['internal', 'transit'])
+            ]):
+                self = self.with_context(
+                    search_default_productgroup=1,
+                    search_default_locationgroup=1
+                )
+        if not self.user_has_groups('stock.group_stock_multi_locations'):
+            company_user = self.env.company
+            warehouse = self.env['stock.warehouse'].search([('company_id', '=', company_user.id)], limit=1)
+            if warehouse:
+                self = self.with_context(default_location_id=warehouse.lot_stock_id.id)
+
+        # If user have rights to write on quant, we set quants in inventory mode.
+        if self.user_has_groups('stock.group_stock_manager'):
+            self = self.with_context(inventory_mode=True)
+        return self._get_quants_action(extend=True)
 
     @api.constrains('product_id')
     def check_product_id(self):
@@ -85,9 +208,9 @@ class StockQuant(models.Model):
             if quant.location_id.usage == 'view':
                 raise ValidationError(_('You cannot take products from or deliver products to a location of type "view".'))
 
-    @api.one
     def _compute_name(self):
-        self.name = '%s: %s%s' % (self.lot_id.name or self.product_id.code or '', self.quantity, self.product_id.uom_id.name)
+        for quant in self:
+            quant.name = '%s: %s%s' % (quant.lot_id.name or quant.product_id.code or '', quant.quantity, quant.product_id.uom_id.name)
 
     @api.model
     def _get_removal_strategy(self, product_id, location_id):
@@ -129,7 +252,7 @@ class StockQuant(models.Model):
             domain = expression.AND([[('location_id', '=', location_id.id)], domain])
 
         # Copy code of _search for special NULLS FIRST/LAST order
-        self.sudo(self._uid).check_access_rights('read')
+        self.with_user(self._uid).check_access_rights('read')
         query = self._where_calc(domain)
         self._apply_ir_rules(query, 'read')
         from_clause, where_clause, where_clause_params = query.get_sql()
@@ -179,6 +302,45 @@ class StockQuant(models.Model):
                 return sum(availaible_quantities.values())
             else:
                 return sum([available_quantity for available_quantity in availaible_quantities.values() if float_compare(available_quantity, 0, precision_rounding=rounding) > 0])
+
+    @api.onchange('location_id', 'product_id', 'lot_id', 'package_id', 'owner_id')
+    def _onchange_location_or_product_id(self):
+        vals = {}
+
+        # Once the new line is complete, fetch the new theoretical values.
+        if self.product_id and self.location_id:
+            # Sanity check if a lot has been set.
+            if self.lot_id:
+                if self.tracking == 'none' or self.product_id != self.lot_id.product_id:
+                    vals['lot_id'] = None
+
+            quants = self._gather(self.product_id, self.location_id, lot_id=self.lot_id, package_id=self.package_id, owner_id=self.owner_id, strict=True)
+            reserved_quantity = sum(quants.mapped('reserved_quantity'))
+            quantity = sum(quants.mapped('quantity'))
+
+            vals['reserved_quantity'] = reserved_quantity
+            # Update `quantity` only if the user manually updated `inventory_quantity`.
+            if float_compare(self.quantity, self.inventory_quantity, precision_rounding=self.product_uom_id.rounding) == 0:
+                vals['quantity'] = quantity
+            # Special case: directly set the quantity to one for serial numbers,
+            # it'll trigger `inventory_quantity` compute.
+            if self.lot_id and self.tracking == 'serial':
+                vals['quantity'] = 1
+
+        if vals:
+            self.update(vals)
+
+    @api.onchange('inventory_quantity')
+    def _onchange_inventory_quantity(self):
+        if self.location_id and self.location_id.usage == 'inventory':
+            warning = {
+                'title': _('You cannot modify inventory loss quantity'),
+                'message': _(
+                    'Editing quantities in an Inventory Adjustment location is forbidden,'
+                    'those locations are used as counterpart when correcting the quantities.'
+                )
+            }
+            return {'warning': warning}
 
     @api.model
     def _update_available_quantity(self, product_id, location_id, quantity, lot_id=None, package_id=None, owner_id=None, in_date=None):
@@ -296,7 +458,7 @@ class StockQuant(models.Model):
         this method is often called in batch and each unlink invalidate
         the cache. We defer the calls to unlink in this method.
         """
-        precision_digits = max(6, self.env.ref('product.decimal_product_uom').digits * 2)
+        precision_digits = max(6, self.sudo().env.ref('product.decimal_product_uom').digits * 2)
         # Use a select instead of ORM search for UoM robustness.
         query = """SELECT id FROM stock_quant WHERE round(quantity::numeric, %s) = 0 AND round(reserved_quantity::numeric, %s) = 0;"""
         params = (precision_digits, precision_digits)
@@ -341,6 +503,109 @@ class StockQuant(models.Model):
         self._merge_quants()
         self._unlink_zero_quants()
 
+    @api.model
+    def _is_inventory_mode(self):
+        """ Used to control whether a quant was written on or created during an
+        "inventory session", meaning a mode where we need to create the stock.move
+        record necessary to be consistent with the `inventory_quantity` field.
+        """
+        return self.env.context.get('inventory_mode') is True and self.user_has_groups('stock.group_stock_manager')
+
+    @api.model
+    def _get_inventory_fields_create(self):
+        """ Returns a list of fields user can edit when he want to create a quant in `inventory_mode`.
+        """
+        return ['product_id', 'location_id', 'lot_id', 'package_id', 'owner_id', 'inventory_quantity']
+
+    @api.model
+    def _get_inventory_fields_write(self):
+        """ Returns a list of fields user can edit when he want to edit a quant in `inventory_mode`.
+        """
+        return ['inventory_quantity']
+
+    def _get_inventory_move_values(self, qty, location_id, location_dest_id, out=False):
+        """ Called when user manually set a new quantity (via `inventory_quantity`)
+        just before creating the corresponding stock move.
+
+        :param location_id: `stock.location`
+        :param location_dest_id: `stock.location`
+        :param out: boolean to set on True when the move go to inventory adjustment location.
+        :return: dict with all values needed to create a new `stock.move` with its move line.
+        """
+        self.ensure_one()
+        return {
+            'name': _('Product Quantity Updated'),
+            'product_id': self.product_id.id,
+            'product_uom': self.product_uom_id.id,
+            'product_uom_qty': qty,
+            'company_id': self.company_id.id or self.env.user.company_id.id,
+            'state': 'confirmed',
+            'location_id': location_id.id,
+            'location_dest_id': location_dest_id.id,
+            'move_line_ids': [(0, 0, {
+                'product_id': self.product_id.id,
+                'product_uom_id': self.product_uom_id.id,
+                'qty_done': qty,
+                'location_id': location_id.id,
+                'location_dest_id': location_dest_id.id,
+                'company_id': self.company_id.id or self.env.user.company_id.id,
+                'lot_id': self.lot_id.id,
+                'package_id': out and self.package_id.id or False,
+                'result_package_id': (not out) and self.package_id.id or False,
+                'owner_id': self.owner_id.id,
+            })]
+        }
+
+    @api.model
+    def _get_quants_action(self, domain=None, extend=False):
+        """ Returns an action to open quant view.
+        Depending of the context (user have right to be inventory mode or not),
+        the list view will be editable or readonly.
+
+        :param domain: List for the domain, empty by default.
+        :param extend: If True, enables form, graph and pivot views. False by default.
+        """
+        self._quant_tasks()
+        action = {
+            'name': _('Stock On Hand'),
+            'view_type': 'tree',
+            'view_mode': 'list',
+            'res_model': 'stock.quant',
+            'type': 'ir.actions.act_window',
+            'context': self.env.context,
+            'domain': domain or [],
+            'help': """
+                <p class="o_view_nocontent_empty_folder">No Stock On Hand</p>
+                <p>This analysis gives you an overview on the current stock
+                level of your products.<br/>
+                Click on create to update the quantity on hand</p>
+                """
+        }
+
+        if self._is_inventory_mode():
+            action['view_id'] = self.env.ref('stock.view_stock_quant_tree_editable').id
+        else:
+            action['view_id'] = self.env.ref('stock.view_stock_quant_tree').id
+            # Enables form view in readonly list
+            action.update({
+                'view_mode': 'tree,form',
+                'views': [
+                    (action['view_id'], 'list'),
+                    (self.env.ref('stock.view_stock_quant_form').id, 'form'),
+                ],
+            })
+        if extend:
+            action.update({
+                'view_mode': 'tree,form,pivot,graph',
+                'views': [
+                    (action['view_id'], 'list'),
+                    (self.env.ref('stock.view_stock_quant_form').id, 'form'),
+                    (self.env.ref('stock.view_stock_quant_pivot').id, 'pivot'),
+                    (self.env.ref('stock.stock_quant_view_graph').id, 'graph'),
+                ],
+            })
+        return action
+
 
 class QuantPackage(models.Model):
     """ Packages containing quants and/or other packages """
@@ -368,7 +633,7 @@ class QuantPackage(models.Model):
     @api.depends('quant_ids.package_id', 'quant_ids.location_id', 'quant_ids.company_id', 'quant_ids.owner_id', 'quant_ids.quantity', 'quant_ids.reserved_quantity')
     def _compute_package_info(self):
         for package in self:
-            values = {'location_id': False, 'company_id': self.env.company_id.id, 'owner_id': False}
+            values = {'location_id': False, 'company_id': self.env.company.id, 'owner_id': False}
             if package.quant_ids:
                 values['location_id'] = package.quant_ids[0].location_id
                 if all(q.owner_id == package.quant_ids[0].owner_id for q in package.quant_ids):
@@ -433,5 +698,5 @@ class QuantPackage(models.Model):
         for quant in self._get_contained_quants():
             if quant.product_id not in res:
                 res[quant.product_id] = 0
-            res[quant.product_id] += quant.qty
+            res[quant.product_id] += quant.quantity
         return res

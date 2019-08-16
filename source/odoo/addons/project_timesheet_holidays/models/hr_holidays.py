@@ -9,11 +9,11 @@ class HolidaysType(models.Model):
     _inherit = "hr.leave.type"
 
     def _default_project_id(self):
-        company = self.company_id if self.company_id else self.env.company_id
+        company = self.company_id if self.company_id else self.env.company
         return company.leave_timesheet_project_id.id
 
     def _default_task_id(self):
-        company = self.company_id if self.company_id else self.env.company_id
+        company = self.company_id if self.company_id else self.env.company
         return company.leave_timesheet_task_id.id
 
     timesheet_generate = fields.Boolean('Generate Timesheet', default=True, help="If checked, when validating a time off, timesheet will be generated in the Vacation Project of the company.")
@@ -29,7 +29,7 @@ class HolidaysType(models.Model):
 
     @api.onchange('timesheet_project_id')
     def _onchange_timesheet_project(self):
-        company = self.company_id if self.company_id else self.env.company_id
+        company = self.company_id if self.company_id else self.env.company
         default_task_id = company.leave_timesheet_task_id
         if default_task_id and default_task_id.project_id == self.timesheet_project_id:
             self.timesheet_task_id = default_task_id
@@ -45,9 +45,9 @@ class HolidaysType(models.Model):
         for holiday_status in self:
             if holiday_status.timesheet_generate:
                 if not holiday_status.timesheet_project_id or not holiday_status.timesheet_task_id:
-                    raise ValidationError(_('Both the internal project and task are required to\
-                    generate timesheet for the time of. If you don\'t want timesheet, you must let\
-                    empty internal project and task.'))
+                    raise ValidationError(_("Both the internal project and task are required to "
+                    "generate a timesheet for the time off. If you don't want a timesheet, you should "
+                    "leave the internal project and task empty."))
 
 
 class Holidays(models.Model):
@@ -83,11 +83,11 @@ class Holidays(models.Model):
                     'date': fields.Date.to_string(day_date),
                     'holiday_id': holiday.id,
                     'employee_id': holiday.employee_id.id,
+                    'company_id': holiday_task.company_id.id or holiday_project.company_id.id,
                 })
 
         return super(Holidays, self)._validate_leave_request()
 
-    @api.multi
     def action_refuse(self):
         """ Remove the timesheets linked to the refused holidays """
         result = super(Holidays, self).action_refuse()

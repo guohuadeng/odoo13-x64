@@ -5,11 +5,15 @@ odoo.define('website_slides.fullscreen', function (require) {
 
     var publicWidget = require('web.public.widget');
     var core = require('web.core');
+    var config = require('web.config');
     var QWeb = core.qweb;
+    var _t = core._t;
 
     var session = require('web.session');
 
     var Quiz = require('website_slides.quiz');
+
+    var Dialog = require('web.Dialog');
 
 
     /**
@@ -54,11 +58,11 @@ odoo.define('website_slides.fullscreen', function (require) {
                 // function called when the Youtube asset is loaded
                 // see https://developers.google.com/youtube/iframe_api_reference#Requirements
                 onYouTubeIframeAPIReady = function () {
-                    def.resolve();
+                    Promise.resolve(def);
                 };
 
             } else {
-                def.resolve();
+                Promise.resolve(def);
             }
             return def;
         },
@@ -275,6 +279,104 @@ odoo.define('website_slides.fullscreen', function (require) {
         },
     });
 
+    var ShareDialog = Dialog.extend({
+        template: 'website.slide.share.modal',
+        events: {
+            'click .o_wslides_js_share_email button': '_onShareByEmailClick',
+            'click a.o_wslides_js_social_share': '_onSlidesSocialShare',
+            'click .o_clipboard_button': '_onShareLinkCopy',
+        },
+
+        init: function (parent, options, slide) {
+            options = _.defaults(options || {}, {
+                title: "Share",
+                buttons: [{text: "Cancel", close: true}],
+                size: 'medium',
+            });
+            this._super(parent, options);
+            this.slide = slide;
+            this.session = session;
+        },
+
+        _onShareByEmailClick: function() {
+            var form = this.$('.o_wslides_js_share_email');
+            var input = form.find('input');
+            var slideID = form.find('button').data('slide-id');
+            if (input.val() && input[0].checkValidity()) {
+                form.removeClass('o_has_error').find('.form-control, .custom-select').removeClass('is-invalid');
+                this._rpc({
+                    route: '/slides/slide/send_share_email',
+                    params: {
+                        slide_id: slideID,
+                        email: input.val(),
+                        fullscreen: true
+                    },
+                }).then(function () {
+                    form.html('<div class="alert alert-info" role="alert">' + _t('<strong>Thank you!</strong> Mail has been sent.') + '</div>');
+                });
+            } else {
+                form.addClass('o_has_error').find('.form-control, .custom-select').addClass('is-invalid');
+                input.focus();
+            }
+        },
+
+        _onSlidesSocialShare: function (ev) {
+            ev.preventDefault();
+            var popUpURL = $(ev.currentTarget).attr('href');
+            window.open(popUpURL, 'Share Dialog', 'width=626,height=436');
+        },
+
+        _onShareLinkCopy: function (ev) {
+            ev.preventDefault();
+            var $clipboardBtn = this.$('.o_clipboard_button');
+            $clipboardBtn.tooltip({title: "Copied !", trigger: "manual", placement: "bottom"});
+            var self = this;
+            var clipboard = new ClipboardJS('.o_clipboard_button', {
+                target: function () {
+                    return self.$('.o_wslides_js_share_link')[0];
+                },
+                container: this.el
+            });
+            clipboard.on('success', function () {
+                clipboard.destroy();
+                $clipboardBtn.tooltip('show');
+                _.delay(function () {
+                    $clipboardBtn.tooltip("hide");
+                }, 800);
+            });
+            clipboard.on('error', function (e) {
+                console.log(e);
+                clipboard.destroy();
+            })
+        },
+
+    });
+
+    var ShareButton = publicWidget.Widget.extend({
+        events: {
+            "click .o_wslides_fs_share": '_onClickShareSlide'
+        },
+
+        init: function (el, slide) {
+            var result = this._super.apply(this, arguments);
+            this.slide = slide;
+            return result;
+        },
+
+        _openDialog: function() {
+            return new ShareDialog(this, {}, this.slide).open();
+        },
+
+        _onClickShareSlide: function (ev) {
+            ev.preventDefault();
+            this._openDialog();
+        },
+
+        _onChangeSlide: function (currentSlide) {
+            this.slide = currentSlide;
+        }
+
+    });
 
     /**
      * This widget's purpose is to show content of a course, naviguating through contents
@@ -298,14 +400,15 @@ odoo.define('website_slides.fullscreen', function (require) {
         * @param {Object} slides Contains the list of all slides of the course
         * @param {integer} defaultSlideId Contains the ID of the slide requested by the user
         */
-        init: function (el, slides, defaultSlideId){
+        init: function (parent, slides, defaultSlideId, channelData){
             var result = this._super.apply(this,arguments);
             this.initialSlideID = defaultSlideId;
             this.slides = this._preprocessSlideData(slides);
-
+            this.channel = channelData;
             var slide;
+            var urlParams = $.deparam.querystring();
             if (defaultSlideId) {
-                slide = findSlide(this.slides, {id: defaultSlideId});
+                slide = findSlide(this.slides, {id: defaultSlideId, isQuiz: urlParams.quiz === "1" });
             } else {
                 slide = this.slides[0];
             }
@@ -313,6 +416,7 @@ odoo.define('website_slides.fullscreen', function (require) {
             this.set('slide', slide);
 
             this.sidebar = new Sidebar(this, this.slides, slide);
+            this.shareButton = new ShareButton(this, slide);
             return result;
         },
         /**
@@ -321,6 +425,9 @@ odoo.define('website_slides.fullscreen', function (require) {
         start: function (){
             var self = this;
             this.on('change:slide', this, this._onChangeSlide);
+            if  (config.device.size_class > config.device.SIZES.MD) {
+                this._toggleSidebar();
+            }
             return this._super.apply(this, arguments).then(function () {
                 self._onChangeSlide(); // trigger manually once DOM ready, since slide content is not rendered server side
             });
@@ -334,6 +441,7 @@ odoo.define('website_slides.fullscreen', function (require) {
         attachTo: function (){
             var defs = [this._super.apply(this, arguments)];
             defs.push(this.sidebar.attachTo(this.$('.o_wslides_fs_sidebar')));
+            defs.push(this.shareButton.attachTo(this.$('.o_wslides_slide_fs_header')));
             return $.when.apply($, defs);
         },
         //--------------------------------------------------------------------------
@@ -390,7 +498,7 @@ odoo.define('website_slides.fullscreen', function (require) {
                     slideData.embedCode = $(slideData.embedCode).attr('src');  // embedCode containts an iframe tag, where src attribute is the url (youtube or embed document from odoo)
                     slideData.embedUrl =  "https://" + slideData.embedCode + "&rel=0&autoplay=1&enablejsapi=1&origin=" + window.location.origin;
                 } else if (slideData.type === 'infographic') {
-                    slideData.embedUrl = _.str.sprintf('/web/image/slide.slide/%s/image', slideData.id);
+                    slideData.embedUrl = _.str.sprintf('/web/image/slide.slide/%s/image_1024', slideData.id);
                 } else if (_.contains(['document', 'presentation'], slideData.type)) {
                     slideData.embedUrl = $(slideData.embedCode).attr('src');
                 }
@@ -413,7 +521,11 @@ odoo.define('website_slides.fullscreen', function (require) {
             urlParts[urlParts.length-1] = this.get('slide').slug;
             var url =  urlParts.join('/');
             this.$('.o_wslides_fs_exit_fullscreen').attr('href', url);
-            var fullscreenUrl = _.str.sprintf('%s?fullscreen=1', url);
+            var params = {'fullscreen': 1 };
+            if (this.get('slide').isQuiz){
+                params.quiz = 1;
+            }
+            var fullscreenUrl = _.str.sprintf('%s?%s', url, $.param(params));
             history.pushState(null, '', fullscreenUrl);
         },
         /**
@@ -433,7 +545,7 @@ odoo.define('website_slides.fullscreen', function (require) {
             // display quiz slide, or quiz attached to a slide
             if (slide.type === 'quiz' || slide.isQuiz) {
                 $content.addClass('bg-white');
-                var QuizWidget = new Quiz(this, slide);
+                var QuizWidget = new Quiz(this, slide, this.channel);
                 return QuizWidget.appendTo($content);
             }
 
@@ -486,13 +598,15 @@ odoo.define('website_slides.fullscreen', function (require) {
         _onChangeSlide: function () {
             var self = this;
             var slide = this.get('slide');
+            self._pushUrlState();
             return this._fetchSlideContent().then(function() { // render content
+                var websiteName = document.title.split(" | ")[1]; // get the website name from title
+                document.title =  (websiteName) ? slide.name + ' | ' + websiteName : slide.name;
                 return self._renderSlide();
             }).then(function() {
                 if (slide._autoSetDone && !session.is_website_user) {  // no useless RPC call
                     self._setCompleted(slide.id);
                 }
-                self._pushUrlState();
             });
         },
         /**
@@ -508,6 +622,7 @@ odoo.define('website_slides.fullscreen', function (require) {
                 isQuiz: slideData.isQuiz || false,
             });
             this.set('slide', newSlide);
+            this.shareButton._onChangeSlide(newSlide);
         },
         /**
          * Triggered when subwidget has mark the slide as done, and the UI need to be adapted.
@@ -540,12 +655,20 @@ odoo.define('website_slides.fullscreen', function (require) {
             this.sidebar.goNext();
         },
         /**
-         * Show or Hide the sidebar
+         * Called when the sidebar toggle is clicked -> toggles the sidebar visibility.
          *
          * @private
          */
         _onClickToggleSidebar: function (ev){
             ev.preventDefault();
+            this._toggleSidebar();
+        },
+        /**
+         * Toggles sidebar visibility.
+         *
+         * @private
+         */
+        _toggleSidebar: function () {
             this.$('.o_wslides_fs_sidebar').toggleClass('o_wslides_fs_sidebar_hidden');
             this.$('.o_wslides_fs_toggle_sidebar').toggleClass('active');
         },
@@ -553,12 +676,15 @@ odoo.define('website_slides.fullscreen', function (require) {
 
     publicWidget.registry.websiteSlidesFullscreenPlayer = publicWidget.Widget.extend({
         selector: '.o_wslides_fs_main',
-        xmlDependencies: ['/website_slides/static/src/xml/website_slides_fullscreen.xml'],
+        xmlDependencies: ['/website_slides/static/src/xml/website_slides_fullscreen.xml', '/website_slides/static/src/xml/website_slides_share.xml'],
         start: function (){
             var proms = [this._super.apply(this, arguments)];
-            var fullscreen = new Fullscreen(this, this._getSlides(), this._getCurrentSlideID());
+            var fullscreen = new Fullscreen(this, this._getSlides(), this._getCurrentSlideID(), this._extractChannelData());
             proms.push(fullscreen.attachTo(".o_wslides_fs_main"));
             return Promise.all(proms);
+        },
+        _extractChannelData: function (){
+            return this.$el.data();
         },
         _getCurrentSlideID: function (){
             return parseInt(this.$('.o_wslides_fs_sidebar_list_item.active').data('id'));

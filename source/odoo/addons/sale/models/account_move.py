@@ -9,7 +9,17 @@ from odoo.tools import float_compare, float_is_zero
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
-    @api.multi
+    sale_line_ids = fields.Many2many(
+        'sale.order.line',
+        'sale_order_line_invoice_rel',
+        'invoice_line_id', 'order_line_id',
+        string='Sales Order Lines', readonly=True, copy=False)
+
+    def _copy_data_extend_business_fields(self, values):
+        # OVERRIDE to copy the 'sale_line_ids' field as well.
+        super(AccountMoveLine, self)._copy_data_extend_business_fields(values)
+        values['sale_line_ids'] = [(6, None, self.sale_line_ids.ids)]
+
     def _prepare_analytic_line(self):
         """ Note: This method is called only on the move.line that having an analytic account, and
             so that should create analytic entries.
@@ -36,7 +46,6 @@ class AccountMoveLine(models.Model):
 
         return values_list
 
-    @api.multi
     def _sale_create_reinvoice_sale_line(self):
 
         sale_order_map = self._sale_determine_order()
@@ -110,7 +119,6 @@ class AccountMoveLine(models.Model):
                 result[move_line_id] = unknown_sale_line
         return result
 
-    @api.multi
     def _sale_determine_order(self):
         """ Get the mapping of move.line with the sale.order record on which its analytic entries should be reinvoiced
             :return a dict where key is the move line id, and value is sale.order record (or None).
@@ -133,7 +141,6 @@ class AccountMoveLine(models.Model):
         # map of AAL index with the SO on which it needs to be reinvoiced. Maybe be None if no SO found
         return {move_line.id: mapping.get(move_line.analytic_account_id.id) for move_line in self}
 
-    @api.multi
     def _sale_prepare_sale_line_values(self, order, price):
         """ Generate the sale.line creation value from the current move line """
         self.ensure_one()
@@ -156,7 +163,6 @@ class AccountMoveLine(models.Model):
             'is_expense': True,
         }
 
-    @api.multi
     def _sale_get_invoice_price(self, order):
         """ Based on the current move line, compute the price to reinvoice the analytic line that is going to be created (so the
             price of the sale line).

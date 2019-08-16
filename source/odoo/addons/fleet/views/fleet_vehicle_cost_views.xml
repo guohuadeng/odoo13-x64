@@ -153,7 +153,6 @@
         <record id='fleet_vehicle_costs_action' model='ir.actions.act_window'>
             <field name="name">Vehicles Costs</field>
             <field name="res_model">fleet.vehicle.cost</field>
-            <field name="view_type">form</field>
             <field name="view_mode">tree,kanban,form,graph</field>
             <field name="context">{"search_default_parent_false" : True, "search_default_groupby_vehicle_id" : True,}</field>
             <field name="help" type="html">
@@ -181,17 +180,14 @@
                     <field name="state" widget="statusbar" />
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                     <field name="currency_id" invisible="1"/>
-                    <div class="oe_button_box" name="button_box">
-                        <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
-                            <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
-                        </button>
-                    </div>
                     <group col="2">
                         <group string="Contract Informations">
+                            <field name="active" invisible="1"/>
                             <field name="ins_ref"/>
                             <field name="cost_subtype_id" required="1" domain="['|',('category','=','contract'),('category','=','both')]"/>
-                            <field name="insurer_id" context="{'default_supplier': True}"/>
+                            <field name="insurer_id"/>
                             <field name="user_id"/>
                         </group>
                         <group string="Vehicle Informations">
@@ -216,7 +212,7 @@
                         <group>
                             <field name="date" string="Invoice Date"/>
                             <field name="start_date"/>
-                            <field name="expiration_date"/>
+                            <field name="expiration_date" attrs="{'required': [('cost_frequency', '!=', 'no')]}"/>
                         </group>
                     </group>
                     <notebook>
@@ -266,7 +262,6 @@
         binding_model="fleet.vehicle.log.contract"
         binding_views="form"
         view_mode="form"
-        view_type="form"
         />
 
     <record id='fleet_vehicle_log_contract_view_tree' model='ir.ui.view'>
@@ -285,6 +280,7 @@
                 <field name="cost_generated"/>
                 <field name="cost_frequency"/>
                 <field name="state" />
+                <field name="activity_exception_decoration" widget="activity_exception"/>
             </tree>
         </field>
     </record>
@@ -346,15 +342,16 @@
                 <filter string="In Progress" name="open" domain="[('state', 'in', ['open','diesoon'])]"/>
                 <filter string="Expired" name="expired" domain="[('state', '=', 'expired')]"/>
                 <filter string="Expiring Soon" name="expire_soon" domain="[('state', '=', 'diesoon')]"/>
-                <separator/>
-                <filter string="Late Activities" name="activities_overdue"
+                <filter invisible="1" string="Late Activities" name="activities_overdue"
                     domain="[('activity_ids.date_deadline', '&lt;', context_today().strftime('%Y-%m-%d'))]"
                     help="Show all records which has next action date is before today"/>
-                <filter string="Today Activities" name="activities_today"
+                <filter invisible="1" string="Today Activities" name="activities_today"
                     domain="[('activity_ids.date_deadline', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                <filter string="Future Activities" name="activities_upcoming_all"
+                <filter invisible="1" string="Future Activities" name="activities_upcoming_all"
                         domain="[('activity_ids.date_deadline', '&gt;', context_today().strftime('%Y-%m-%d'))
                         ]"/>
+                <filter string="Exception Activities" name="activities_exception"
+                        domain="[('activity_exception_decoration', '!=', False)]"/>
                 <group expand="0" string="Group By">
                     <filter string="Vehicle" name="vehicle" context="{'group_by':'vehicle_id'}"/>
                 </group>
@@ -370,7 +367,7 @@
                 <field name="purchaser_id"/>
                 <templates>
                     <div t-name="activity-box">
-                        <img t-att-src="activity_image('res.partner', 'image_small', record.purchaser_id.raw_value)" t-att-title="record.purchaser_id.value" t-att-alt="record.purchaser_id.value"/>
+                        <img t-att-src="activity_image('res.partner', 'image_64', record.purchaser_id.raw_value)" t-att-title="record.purchaser_id.value" t-att-alt="record.purchaser_id.value"/>
                         <div>
                             <field name="vehicle_id" display="full"/>
                             <field name="cost_subtype_id" muted="1" display="full"/>
@@ -384,7 +381,6 @@
     <record id='fleet_vehicle_log_contract_action' model='ir.actions.act_window'>
         <field name="name">Vehicles Contracts</field>
         <field name="res_model">fleet.vehicle.log.contract</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,graph,activity</field>
         <field name="context">{'search_default_open': 1}</field>
         <field name="help" type="html">
@@ -431,7 +427,7 @@
                             <field name="date" />
                             <field name="purchaser_id" />
                             <field name="inv_ref" />
-                            <field name="vendor_id" context="{'default_supplier': True}"/>
+                            <field name="vendor_id"/>
                         </group>
                     </group>
                     <field name="notes" placeholder="Write here any other information"/>
@@ -518,7 +514,6 @@
     <record id='fleet_vehicle_log_fuel_action' model='ir.actions.act_window'>
         <field name="name">Vehicles Fuel Logs</field>
         <field name="res_model">fleet.vehicle.log.fuel</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,graph</field>
         <field name="context">{"search_default_groupby_vehicle" : True}</field>
         <field name="help" type="html">
@@ -556,7 +551,7 @@
                         <group string="Additional Details">
                             <field name="date" />
                             <field name="purchaser_id" />
-                            <field name="vendor_id" context="{'default_supplier': True}"/>
+                            <field name="vendor_id"/>
                             <field name="inv_ref" />
                         </group>
                     </group>
@@ -650,7 +645,6 @@
     <record id='fleet_vehicle_log_services_action' model='ir.actions.act_window'>
         <field name="name">Vehicles Services Logs</field>
         <field name="res_model">fleet.vehicle.log.services</field>
-        <field name="view_type">form</field>
         <field name="view_mode">tree,kanban,form,graph</field>
         <field name="help" type="html">
           <p class="o_view_nocontent_smiling_face">

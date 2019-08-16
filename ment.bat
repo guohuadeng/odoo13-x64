@@ -127,4 +127,6 @@ move /y .\addons_ent\l10n_uy_reports .\addons_ent_remove\
 move /y .\addons_ent\l10n_ve .\addons_ent_remove\
 move /y .\addons_ent\l10n_vn .\addons_ent_remove\
 move /y .\addons_ent\l10n_vn_reports .\addons_ent_remove\
+move /y .\addons_ent\sale_account_taxcloud .\addons_ent_remove\
+move /y .\addons_ent\website_sale_account_taxcloud .\addons_ent_remove\
 

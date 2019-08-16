@@ -102,6 +102,7 @@ async function nextTick() {
 // to load xml files that are normally lazy loaded by specific widgets).
 return Promise.all([
     session.is_bound,
+    ajax.loadXML('/web/static/src/xml/debug.xml', core.qweb),
     ajax.loadXML('/web/static/src/xml/dialog.xml', core.qweb)
 ]).then(function () {
     setTimeout(function () {
@@ -178,6 +179,7 @@ return Promise.all([
             createFile: testUtilsFile.createFile,
             dragoverFile: testUtilsFile.dragoverFile,
             dropFile: testUtilsFile.dropFile,
+            dropFiles: testUtilsFile.dropFiles,
         },
 
         createActionManager: testUtilsCreate.createActionManager,

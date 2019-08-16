@@ -843,7 +843,7 @@
 
             <div id="snippet_feature" class="o_panel">
                 <div class="o_panel_header">
-                    <i class="fa fa-diamond"/> Feature
+                    <i class="fa fa-diamond"/> Features
                 </div>
                 <div class="o_panel_body">
                     <t t-snippet="website.s_image_gallery" t-thumbnail="/website/static/src/img/snippets_thumbs/s_image_gallery.png"/>
@@ -859,7 +859,7 @@
 
             <div id="snippet_effect" class="o_panel">
                 <div class="o_panel_header">
-                    <i class="fa fa-magic icon-fix"/> Effect
+                    <i class="fa fa-magic icon-fix"/> Effects
                 </div>
                 <div class="o_panel_body">
                     <t t-snippet="website.s_parallax" t-thumbnail="/website/static/src/img/snippets_thumbs/s_parallax.png"/>
@@ -892,6 +892,8 @@
 
 <template id="external_snippets" inherit_id="website.snippets" priority="8">
     <xpath expr="//div[@id='snippet_feature']//t[@t-snippet][last()]" position="after">
+        <t id="newsletter_popup_snippet" t-install="mass_mailing" string="Newsletter Popup" t-thumbnail="/website/static/src/img/snippets_thumbs/newsletter_subscribe_popup.png"/>
+        <t id="newsletter_block_snippet" t-install="mass_mailing" string="Newsletter Block" t-thumbnail="/website/static/src/img/snippets_thumbs/s_newsletter_block.png"/>
         <t t-install="website_twitter" string="Twitter Scroller" t-thumbnail="/website/static/src/img/snippets_thumbs/s_twitter_scroll.png"/>
         <t t-install="website_form" string="Form Builder" t-thumbnail="/website/static/src/img/s_website_form.png"/>
         <t id="s_products_searchbar" t-install="website_sale" string="Products Search" t-thumbnail="/website/static/src/img/snippets_thumbs/s_products_searchbar.png"/>
@@ -899,7 +901,7 @@
     <xpath expr="//div[@id='snippet_content']//t[@t-snippet][last()]" position="after">
         <t t-install="website_event" string="Local Events" t-thumbnail="/website/static/src/img/snippets_thumbs/s_local_events.png"/>
         <t t-install="website_mail_channel" string="Discussion Group" t-thumbnail="/website/static/src/img/snippets_thumbs/s_button_channel_subscribe.png"/>
-        <t t-install="mass_mailing" string="Newsletter" t-thumbnail="/website/static/src/img/snippets_thumbs/s_newsletter_subscribe_form.png"/>
+        <t id="newsletter_snippet" t-install="mass_mailing" string="Newsletter" t-thumbnail="/website/static/src/img/snippets_thumbs/s_newsletter_subscribe_form.png"/>
         <t id="s_products_searchbar_input" t-install="website_sale" string="Products Search Input" t-thumbnail="/website/static/src/img/snippets_thumbs/s_products_searchbar.png"/>
     </xpath>
 </template>
@@ -1078,6 +1080,8 @@
     <!-- Carousel | .s_carousel | .s_quotes_carousel -->
     <div data-js="carousel"
         data-selector=":not(.o_gallery > .container) > .carousel">
+        <a href="#" class="dropdown-item" data-add-slide="true" data-no-preview="true"><i class="fa fa-plus-circle"/>Add Slide</a>
+        <a href="#" class="dropdown-item" data-remove-slide="true" data-no-preview="true"><i class="fa fa-trash-o"/>Remove Slide</a>
         <div class="dropdown-submenu">
             <a tabindex="-2" href="#" class="dropdown-item"><i class="fa fa-clone"/>Transition</a>
             <div class="dropdown-menu" role="menu">
@@ -1108,30 +1112,11 @@
                 <a href="#" class="dropdown-item" role="menuitem" data-interval="0">Disable autoplay</a>
             </div>
         </div>
-        <a href="#" class="dropdown-item" data-add-slide="true" data-no-preview="true"><i class="fa fa-plus-circle"/>Add Slide</a>
-        <a href="#" class="dropdown-item" data-remove-slide="true" data-no-preview="true"><i class="fa fa-trash-o"/>Remove Slide</a>
     </div>
 
     <div data-js="navTabs" data-selector="section .row > div" data-target=".nav-tabs">
         <a href="#" class="dropdown-item" data-add-tab="1" data-no-preview="true"><i class="fa fa-plus"/>Add Tab</a>
         <a href="#" class="dropdown-item" data-remove-tab="1" data-no-preview="true"><i class="fa fa-minus"/>Remove Tab</a>
-    </div>
-
-    <!-- Parallax -->
-    <div data-js="parallax" data-selector=".parallax">
-        <div class="dropdown-submenu">
-            <a tabindex="-1" href="#" class="dropdown-item"><i class="fa fa-clock-o"/>Scroll Speed</a>
-            <div class="dropdown-menu" role="menu" name="parallax-scroll">
-                <a href="#" class="dropdown-item" role="menuitem" data-scroll="0">No-scroll</a>
-                <div class="dropdown-divider" role="separator"/>
-                <a href="#" class="dropdown-item" role="menuitem" data-scroll="1">Fixed</a>
-                <div class="dropdown-divider" role="separator"/>
-                <a href="#" class="dropdown-item" role="menuitem" data-scroll="0.6">Very Slow</a>
-                <a href="#" class="dropdown-item" role="menuitem" data-scroll="1.2">Slow</a>
-                <a href="#" class="dropdown-item" role="menuitem" data-scroll="1.6">Fast</a>
-                <a href="#" class="dropdown-item" role="menuitem" data-scroll="2">Very Fast</a>
-            </div>
-        </div>
     </div>
 
     <div data-js="gallery" data-selector=".o_gallery">
@@ -1230,7 +1215,7 @@
     </div>
 
     <!--  V-ALIGN -->
-    <div data-selector=".s_text_image, .s_image_text, .s_three_columns" data-target=".row">
+    <div id="row_valign_snippet_option" data-selector=".s_text_image, .s_image_text, .s_three_columns" data-target=".row">
         <div class="dropdown-submenu">
             <a tabindex="-2" href="#" class="dropdown-item"><i class="fa fa-arrows-v"/>Alignment</a>
             <div class="dropdown-menu" role="menu">
@@ -1254,6 +1239,23 @@
     <div data-js="background_position"
         data-selector="section, .parallax, :not(.o_gallery > .container) > .carousel">
         <a tabindex="-1" href="#" class="dropdown-item background_position_li" data-background-position="true" data-no-preview="true"><i class="fa fa-arrows"/>Background Image Sizing</a>
+    </div>
+
+    <!-- Parallax -->
+    <div data-js="parallax" data-selector=".parallax">
+        <div class="dropdown-submenu">
+            <a tabindex="-1" href="#" class="dropdown-item"><i class="fa fa-clock-o"/>Scroll Speed</a>
+            <div class="dropdown-menu" role="menu" name="parallax-scroll">
+                <a href="#" class="dropdown-item" role="menuitem" data-scroll="0">No-scroll</a>
+                <div class="dropdown-divider" role="separator"/>
+                <a href="#" class="dropdown-item" role="menuitem" data-scroll="1">Fixed</a>
+                <div class="dropdown-divider" role="separator"/>
+                <a href="#" class="dropdown-item" role="menuitem" data-scroll="0.6">Very Slow</a>
+                <a href="#" class="dropdown-item" role="menuitem" data-scroll="1.2">Slow</a>
+                <a href="#" class="dropdown-item" role="menuitem" data-scroll="1.6">Fast</a>
+                <a href="#" class="dropdown-item" role="menuitem" data-scroll="2">Very Fast</a>
+            </div>
+        </div>
     </div>
 
     <!-- Color | Section -->
@@ -1354,7 +1356,8 @@
 
     <!-- Anchor Name -->
     <div data-js="anchorName"
-        data-selector=":not(p).oe_structure > *, :not(p)[data-oe-type=html] > *, .row > div">
+        data-selector=":not(p).oe_structure > *, :not(p)[data-oe-type=html] > *, .row > div"
+        data-exclude=".modal *">
         <a tabindex="-1" href="#" class="dropdown-item" data-no-preview="true" data-open-anchor-dialog=""><i class="fa fa-anchor"/>Anchor Name</a>
     </div>
 </template>

@@ -16,8 +16,8 @@ var GraphRenderer = require('web.GraphRenderer');
 var _t = core._t;
 var _lt = core._lt;
 
-var GROUPABLE_TYPES =
-    ['many2one', 'char', 'boolean', 'selection', 'date', 'datetime'];
+var controlPanelViewParameters = require('web.controlPanelViewParameters');
+var GROUPABLE_TYPES = controlPanelViewParameters.GROUPABLE_TYPES;
 
 var GraphView = AbstractView.extend({
     display_name: _lt('Graph'),
@@ -25,11 +25,11 @@ var GraphView = AbstractView.extend({
     jsLibs: [
         '/web/static/lib/Chart/Chart.js',
     ],
-    config: {
+    config: _.extend({}, AbstractView.prototype.config, {
         Model: GraphModel,
         Controller: Controller,
         Renderer: GraphRenderer,
-    },
+    }),
     viewType: 'graph',
     searchMenuTypes: ['filter', 'groupBy', 'timeRange', 'favorite'],
 

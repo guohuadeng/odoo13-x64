@@ -2,9 +2,11 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 import datetime
 import dateutil
+import itertools
 import logging
 import time
 from collections import defaultdict, Mapping
+from operator import itemgetter
 
 from odoo import api, fields, models, SUPERUSER_ID, tools,  _
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -107,7 +109,7 @@ class IrModel(models.Model):
     transient = fields.Boolean(string="Transient Model")
     modules = fields.Char(compute='_in_modules', string='In Apps', help='List of modules in which the object is defined or inherited')
     view_ids = fields.One2many('ir.ui.view', compute='_view_ids', string='Views')
-    count = fields.Integer(compute='_compute_count', string="Count (incl. archived)",
+    count = fields.Integer(compute='_compute_count', string="Count (Incl. Archived)",
                            help="Total number of records in this model")
 
     @api.depends()
@@ -194,7 +196,6 @@ class IrModel(models.Model):
                 _logger.warning('The model %s could not be dropped because it did not exist in the registry.', model.model)
         return True
 
-    @api.multi
     def unlink(self):
         # Prevent manual deletion of module tables
         if not self._context.get(MODULE_UNINSTALL_FLAG):
@@ -218,7 +219,6 @@ class IrModel(models.Model):
 
         return res
 
-    @api.multi
     def write(self, vals):
         if '__last_update' in self._context:
             self = self.with_context({k: v for k, v in self._context.items() if k != '__last_update'})
@@ -280,14 +280,8 @@ class IrModel(models.Model):
 
         if model._module == self._context.get('module'):
             # self._module is the name of the module that last extended self
-            xmlid = 'model_' + model._name.replace('.', '_')
-            cr.execute("SELECT * FROM ir_model_data WHERE name=%s AND module=%s",
-                       (xmlid, self._context['module']))
-            if not cr.rowcount:
-                cr.execute(""" INSERT INTO ir_model_data (module, name, model, res_id, date_init, date_update)
-                               VALUES (%s, %s, %s, %s, (now() at time zone 'UTC'), (now() at time zone 'UTC')) """,
-                           (self._context['module'], xmlid, record._name, record.id))
-
+            xmlid = '%s.model_%s' % (model._module, model._name.replace('.', '_'))
+            self.env['ir.model.data']._update_xmlids([{'xml_id': xmlid, 'record': record}])
         return record
 
     @api.model
@@ -345,7 +339,7 @@ class IrModelFields(models.Model):
                             help="List of options for a selection field, "
                                  "specified as a Python expression defining a list of (key, label) pairs. "
                                  "For example: [('blue','Blue'),('yellow','Yellow')]")
-    copied = fields.Boolean(string='Copied', oldname='copy',
+    copied = fields.Boolean(string='Copied',
                             help="Whether the value is copied when duplicating a record.")
     related = fields.Char(string='Related Field', help="The corresponding related field, if any. This must be a dot-separated list of field names.")
     related_field_id = fields.Many2one('ir.model.fields', compute='_compute_related_field_id',
@@ -446,15 +440,15 @@ class IrModelFields(models.Model):
             model = model[name]
         return field
 
-    @api.one
     @api.constrains('related')
     def _check_related(self):
-        if self.state == 'manual' and self.related:
-            field = self._related_field()
-            if field.type != self.ttype:
-                raise ValidationError(_("Related field '%s' does not have type '%s'") % (self.related, self.ttype))
-            if field.relational and field.comodel_name != self.relation:
-                raise ValidationError(_("Related field '%s' does not have comodel '%s'") % (self.related, self.relation))
+        for rec in self:
+            if rec.state == 'manual' and rec.related:
+                field = rec._related_field()
+                if field.type != rec.ttype:
+                    raise ValidationError(_("Related field '%s' does not have type '%s'") % (rec.related, rec.ttype))
+                if field.relational and field.comodel_name != rec.relation:
+                    raise ValidationError(_("Related field '%s' does not have comodel '%s'") % (rec.related, rec.relation))
 
     @api.onchange('related')
     def _onchange_related(self):
@@ -494,11 +488,11 @@ class IrModelFields(models.Model):
             self.readonly = True
             self.copied = False
 
-    @api.one
     @api.constrains('relation_table')
     def _check_relation_table(self):
-        if self.relation_table:
-            models.check_pg_name(self.relation_table)
+        for rec in self:
+            if rec.relation_table:
+                models.check_pg_name(rec.relation_table)
 
     @api.model
     def _custom_many2many_names(self, model_name, comodel_name):
@@ -562,7 +556,6 @@ class IrModelFields(models.Model):
         result = self.env.cr.fetchone()
         return result and result[0]
 
-    @api.multi
     def _drop_column(self):
         tables_to_drop = set()
 
@@ -597,7 +590,6 @@ class IrModelFields(models.Model):
 
         return True
 
-    @api.multi
     def _prepare_update(self):
         """ Check whether the fields in ``self`` may be modified or removed.
             This method prevents the modification/deletion of many2one fields
@@ -654,7 +646,6 @@ class IrModelFields(models.Model):
             # the registry has been modified, restore it
             self.pool.setup_models(self._cr)
 
-    @api.multi
     def unlink(self):
         if not self:
             return True
@@ -713,7 +704,6 @@ class IrModelFields(models.Model):
 
         return res
 
-    @api.multi
     def write(self, vals):
         # if set, *one* column can be renamed here
         column_rename = None
@@ -751,7 +741,7 @@ class IrModelFields(models.Model):
                     else:
                         if column_rename:
                             raise UserError(_('Can only rename one field at a time!'))
-                        column_rename = (obj._table, item.name, vals['name'], item.index)
+                        column_rename = (obj._table, item.name, vals['name'], item.index, item.store)
 
                 # We don't check the 'state', because it might come from the context
                 # (thus be set for multiple fields) and will be ignored anyway.
@@ -769,10 +759,11 @@ class IrModelFields(models.Model):
 
         if column_rename:
             # rename column in database, and its corresponding index if present
-            table, oldname, newname, index = column_rename
-            self._cr.execute('ALTER TABLE "%s" RENAME COLUMN "%s" TO "%s"' % (table, oldname, newname))
-            if index:
-                self._cr.execute('ALTER INDEX "%s_%s_index" RENAME TO "%s_%s_index"' % (table, oldname, table, newname))
+            table, oldname, newname, index, stored = column_rename
+            if stored:
+                self._cr.execute('ALTER TABLE "%s" RENAME COLUMN "%s" TO "%s"' % (table, oldname, newname))
+                if index:
+                    self._cr.execute('ALTER INDEX "%s_%s_index" RENAME TO "%s_%s_index"' % (table, oldname, table, newname))
 
         if column_rename or patched_models:
             # setup models, this will reload all manual fields in registry
@@ -785,7 +776,6 @@ class IrModelFields(models.Model):
 
         return res
 
-    @api.multi
     def name_get(self):
         res = []
         for field in self:
@@ -855,7 +845,12 @@ class IrModelFields(models.Model):
                 self.pool.post_init(record.modified, keys)
                 old_vals.update(new_vals)
             if module and (module == model._original_module or module in field._modules):
-                to_xmlids.append(name)
+                # remove this and only keep the else clause if version >= saas-12.4
+                if field.manual:
+                    self.pool.loaded_xmlids.add(
+                        '%s.field_%s__%s' % (module, model._name.replace('.', '_'), name))
+                else:
+                    to_xmlids.append(name)
 
         if to_insert:
             # insert missing fields
@@ -973,25 +968,25 @@ class IrModelConstraint(models.Model):
     name = fields.Char(string='Constraint', required=True, index=True,
                        help="PostgreSQL constraint or foreign key name.")
     definition = fields.Char(help="PostgreSQL constraint definition")
+    message = fields.Char(help="Error message returned when the constraint is violated.", translate=True)
     model = fields.Many2one('ir.model', required=True, ondelete="cascade", index=True)
     module = fields.Many2one('ir.module.module', required=True, index=True)
     type = fields.Char(string='Constraint Type', required=True, size=1, index=True,
                        help="Type of the constraint: `f` for a foreign key, "
                             "`u` for other constraints.")
-    date_update = fields.Datetime(string='Update Date')
-    date_init = fields.Datetime(string='Initialization Date')
+    write_date = fields.Datetime()
+    create_date = fields.Datetime()
 
     _sql_constraints = [
         ('module_name_uniq', 'unique(name, module)',
          'Constraints with the same name are unique per module.'),
     ]
 
-    @api.multi
     def _module_data_uninstall(self):
         """
         Delete PostgreSQL foreign keys and constraints tracked by this model.
         """
-        if not (self._uid == SUPERUSER_ID or self.env.user.has_group('base.group_system')):
+        if not self.env.is_system():
             raise AccessError(_('Administrator access is required to uninstall a module'))
 
         ids_set = set(self.ids)
@@ -1030,15 +1025,15 @@ class IrModelConstraint(models.Model):
 
         self.unlink()
 
-    @api.multi
     def copy(self, default=None):
         default = dict(default or {})
         default['name'] = self.name + '_copy'
         return super(IrModelConstraint, self).copy(default)
 
-    def _reflect_constraint(self, model, conname, type, definition, module):
-        """ Reflect the given constraint, to make it possible to delete it later
-            when the module is uninstalled. ``type`` is either 'f' or 'u'
+    def _reflect_constraint(self, model, conname, type, definition, module, message=None):
+        """ Reflect the given constraint, and return its corresponding record.
+            The reflection makes it possible to remove a constraint when its
+            corresponding module is uninstalled. ``type`` is either 'f' or 'u'
             depending on the constraint being a foreign key or not.
         """
         if not module:
@@ -1047,23 +1042,34 @@ class IrModelConstraint(models.Model):
             return
         assert type in ('f', 'u')
         cr = self._cr
-        query = """ SELECT type, definition
+        query = """ SELECT c.id, type, definition, message
                     FROM ir_model_constraint c, ir_module_module m
                     WHERE c.module=m.id AND c.name=%s AND m.name=%s """
         cr.execute(query, (conname, module))
         cons = cr.dictfetchone()
         if not cons:
             query = """ INSERT INTO ir_model_constraint
-                            (name, date_init, date_update, module, model, type, definition)
-                        VALUES (%s, now() AT TIME ZONE 'UTC', now() AT TIME ZONE 'UTC',
-                            (SELECT id FROM ir_module_module WHERE name=%s),
-                            (SELECT id FROM ir_model WHERE model=%s), %s, %s) """
-            cr.execute(query, (conname, module, model._name, type, definition))
-        elif cons['type'] != type or (definition and cons['definition'] != definition):
+                            (name, create_date, write_date, create_uid, write_uid, module, model, type, definition, message)
+                        VALUES (%s,
+                                now() AT TIME ZONE 'UTC',
+                                now() AT TIME ZONE 'UTC',
+                                %s, %s,
+                                (SELECT id FROM ir_module_module WHERE name=%s),
+                                (SELECT id FROM ir_model WHERE model=%s),
+                                %s, %s, %s)
+                        RETURNING id"""
+            cr.execute(query,
+                (conname, self.env.uid, self.env.uid, module, model._name, type, definition, message))
+            return self.browse(cr.fetchone()[0])
+
+        cons_id = cons.pop('id')
+        if cons != dict(type=type, definition=definition, message=message):
             query = """ UPDATE ir_model_constraint
-                        SET date_update=now() AT TIME ZONE 'UTC', type=%s, definition=%s
-                        WHERE name=%s AND module=(SELECT id FROM ir_module_module WHERE name=%s) """
-            cr.execute(query, (type, definition, conname, module))
+                        SET write_date=now() AT TIME ZONE 'UTC',
+                            write_uid=%s, type=%s, definition=%s, message=%s
+                        WHERE id=%s"""
+            cr.execute(query, (self.env.uid, type, definition, message, cons_id))
+        return self.browse(cons_id)
 
     def _reflect_model(self, model):
         """ Reflect the _sql_constraints of the given model. """
@@ -1078,10 +1084,16 @@ class IrModelConstraint(models.Model):
             for constraint in getattr(cls, '_local_sql_constraints', ())
         }
 
-        for (key, definition, _) in model._sql_constraints:
+        data_list = []
+        for (key, definition, message) in model._sql_constraints:
             conname = '%s_%s' % (model._table, key)
             module = constraint_module.get(key)
-            self._reflect_constraint(model, conname, 'u', cons_text(definition), module)
+            record = self._reflect_constraint(model, conname, 'u', cons_text(definition), module, message)
+            if record:
+                xml_id = '%s.constraint_%s' % (module, conname)
+                data_list.append(dict(xml_id=xml_id, record=record))
+
+        self.env['ir.model.data']._update_xmlids(data_list)
 
 
 class IrModelRelation(models.Model):
@@ -1096,15 +1108,14 @@ class IrModelRelation(models.Model):
                        help="PostgreSQL table name implementing a many2many relation.")
     model = fields.Many2one('ir.model', required=True, index=True)
     module = fields.Many2one('ir.module.module', required=True, index=True)
-    date_update = fields.Datetime(string='Update Date')
-    date_init = fields.Datetime(string='Initialization Date')
+    write_date = fields.Datetime()
+    create_date = fields.Datetime()
 
-    @api.multi
     def _module_data_uninstall(self):
         """
         Delete PostgreSQL many2many relations tracked by this model.
         """
-        if not (self._uid == SUPERUSER_ID or self.env.user.has_group('base.group_system')):
+        if not self.env.is_system():
             raise AccessError(_('Administrator access is required to uninstall a module'))
 
         ids_set = set(self.ids)
@@ -1138,11 +1149,15 @@ class IrModelRelation(models.Model):
                     WHERE r.module=m.id AND r.name=%s AND m.name=%s """
         cr.execute(query, (table, module))
         if not cr.rowcount:
-            query = """ INSERT INTO ir_model_relation (name, date_init, date_update, module, model)
-                        VALUES (%s, now() AT TIME ZONE 'UTC', now() AT TIME ZONE 'UTC',
+            query = """ INSERT INTO ir_model_relation
+                            (name, create_date, write_date, create_uid, write_uid, module, model)
+                        VALUES (%s,
+                                now() AT TIME ZONE 'UTC',
+                                now() AT TIME ZONE 'UTC',
+                                %s, %s,
                                 (SELECT id FROM ir_module_module WHERE name=%s),
                                 (SELECT id FROM ir_model WHERE model=%s)) """
-            cr.execute(query, (table, module, model._name))
+            cr.execute(query, (table, self.env.uid, self.env.uid, module, model._name))
             self.invalidate_cache()
 
 
@@ -1194,20 +1209,24 @@ class IrModelAccess(models.Model):
         self._cr.execute(query, (model_name, tuple(group_ids)))
         return bool(self._cr.rowcount)
 
-    @api.model_cr
+    @api.model
     def group_names_with_access(self, model_name, access_mode):
         """ Return the names of visible groups which have been granted
             ``access_mode`` on the model ``model_name``.
            :rtype: list
         """
         assert access_mode in ('read', 'write', 'create', 'unlink'), 'Invalid access mode'
-        self._cr.execute("""SELECT c.name, g.name
-                            FROM ir_model_access a
-                                JOIN ir_model m ON (a.model_id=m.id)
-                                JOIN res_groups g ON (a.group_id=g.id)
-                                LEFT JOIN ir_module_category c ON (c.id=g.category_id)
-                            WHERE m.model=%s AND a.active IS TRUE AND a.perm_""" + access_mode,
-                         (model_name,))
+        self._cr.execute("""
+            SELECT c.name, g.name
+              FROM ir_model_access a
+              JOIN ir_model m ON (a.model_id = m.id)
+              JOIN res_groups g ON (a.group_id = g.id)
+         LEFT JOIN ir_module_category c ON (c.id = g.category_id)
+             WHERE m.model = %%s
+               AND a.active = TRUE
+               AND a.perm_%s = TRUE
+          ORDER BY c.name, g.name NULLS LAST
+        """ % access_mode, [model_name])
         return [('%s/%s' % x) if x[0] else x[1] for x in self._cr.fetchall()]
 
     # The context parameter is useful when the method translates error messages.
@@ -1215,9 +1234,9 @@ class IrModelAccess(models.Model):
     # not be really necessary as a cache key, unless the `ormcache_context`
     # decorator catches the exception (it does not at the moment.)
     @api.model
-    @tools.ormcache_context('self._uid', 'model', 'mode', 'raise_exception', keys=('lang',))
+    @tools.ormcache_context('self.env.uid', 'self.env.su', 'model', 'mode', 'raise_exception', keys=('lang',))
     def check(self, model, mode='read', raise_exception=True):
-        if self._uid == SUPERUSER_ID:
+        if self.env.su:
             # User root have all accesses
             return True
 
@@ -1270,6 +1289,7 @@ class IrModelAccess(models.Model):
                 msg_params['groups_list'] = groups
             else:
                 msg_tail = _("No group currently allows this operation.")
+            msg_tail += ' - ({} {}, {} {})'.format(_('Operation:'), mode, _('User:'), self._uid)
             _logger.info('Access Denied by ACLs for operation: %s, uid: %s, model: %s', mode, self._uid, model)
             msg = '%s %s' % (msg_heads[mode], msg_tail)
             raise AccessError(msg % msg_params)
@@ -1286,7 +1306,7 @@ class IrModelAccess(models.Model):
     def unregister_cache_clearing_method(cls, model, method):
         cls.__cache_clearing_methods.discard((model, method))
 
-    @api.model_cr
+    @api.model
     def call_cache_clearing_methods(self):
         self.invalidate_cache()
         self.check.clear_cache(self)    # clear the cache of check function
@@ -1302,12 +1322,10 @@ class IrModelAccess(models.Model):
         self.call_cache_clearing_methods()
         return super(IrModelAccess, self).create(vals_list)
 
-    @api.multi
     def write(self, values):
         self.call_cache_clearing_methods()
         return super(IrModelAccess, self).write(values)
 
-    @api.multi
     def unlink(self):
         self.call_cache_clearing_methods()
         return super(IrModelAccess, self).unlink()
@@ -1350,7 +1368,6 @@ class IrModelData(models.Model):
         for res in self:
             res.reference = "%s,%s" % (res.model, res.res_id)
 
-    @api.model_cr_context
     def _auto_init(self):
         res = super(IrModelData, self)._auto_init()
         tools.create_unique_index(self._cr, 'ir_model_data_module_name_uniq_index',
@@ -1359,7 +1376,6 @@ class IrModelData(models.Model):
                            self._table, ['model', 'res_id'])
         return res
 
-    @api.multi
     def name_get(self):
         model_id_name = defaultdict(dict)       # {res_model: {res_id: name}}
         for xid in self:
@@ -1455,7 +1471,6 @@ class IrModelData(models.Model):
         """
         return self.xmlid_to_object("%s.%s" % (module, xml_id), raise_if_not_found=True)
 
-    @api.multi
     def unlink(self):
         """ Regular unlink method, but make sure to clear the caches. """
         self.clear_caches()
@@ -1559,62 +1574,82 @@ class IrModelData(models.Model):
         ``ids`` along with their corresponding database backed (including
         dropping tables, columns, FKs, etc, as long as there is no other
         ir.model.data entry holding a reference to them (which indicates that
-        they are still owned by another module). 
+        they are still owned by another module).
         Attempts to perform the deletion in an appropriate order to maximize
         the chance of gracefully deleting all records.
         This step is performed as part of the full uninstallation of a module.
-        """ 
-        if not (self._uid == SUPERUSER_ID or self.env.user.has_group('base.group_system')):
+        """
+        if not self.env.is_system():
             raise AccessError(_('Administrator access is required to uninstall a module'))
 
         # enable model/field deletion
         # we deactivate prefetching to not try to read a column that has been deleted
         self = self.with_context(**{MODULE_UNINSTALL_FLAG: True, 'prefetch_fields': False})
 
-        datas = self.search([('module', 'in', modules_to_remove)])
-        to_unlink = tools.OrderedSet()
-        undeletable = self.browse([])
+        # determine records to unlink
+        records_items = []              # [(model, id)]
+        model_ids = []
+        field_ids = []
+        constraint_ids = []
 
-        for data in datas.sorted(key='id', reverse=True):
-            model = data.model
-            res_id = data.res_id
-            to_unlink.add((model, res_id))
+        module_data = self.search([('module', 'in', modules_to_remove)], order='id DESC')
+        for data in module_data:
+            if data.model == 'ir.model':
+                model_ids.append(data.res_id)
+            elif data.model == 'ir.model.fields':
+                field_ids.append(data.res_id)
+            elif data.model == 'ir.model.constraint':
+                constraint_ids.append(data.res_id)
+            else:
+                records_items.append((data.model, data.res_id))
 
-        def unlink_if_refcount(to_unlink):
-            undeletable = self.browse()
-            for model, res_id in to_unlink:
-                external_ids = self.search([('model', '=', model), ('res_id', '=', res_id)])
-                if external_ids - datas:
-                    # if other modules have defined this record, we must not delete it
-                    continue
-                if model == 'ir.model.fields':
-                    # Don't remove the LOG_ACCESS_COLUMNS unless _log_access
-                    # has been turned off on the model.
-                    field = self.env[model].browse(res_id).with_context(
-                        prefetch_fields=False,
-                    )
-                    if not field.exists():
-                        _logger.info('Deleting orphan external_ids %s', external_ids)
-                        external_ids.unlink()
-                        continue
-                    if field.name in models.LOG_ACCESS_COLUMNS and field.model in self.env and self.env[field.model]._log_access:
-                        continue
-                    if field.name == 'id':
-                        continue
-                _logger.info('Deleting %s@%s', res_id, model)
-                try:
-                    self._cr.execute('SAVEPOINT record_unlink_save')
-                    self.env[model].browse(res_id).unlink()
-                except Exception:
-                    _logger.info('Unable to delete %s@%s', res_id, model, exc_info=True)
-                    undeletable += external_ids
-                    self._cr.execute('ROLLBACK TO SAVEPOINT record_unlink_save')
+        # to collect external ids of records that cannot be deleted
+        undeletable_ids = []
+
+        def delete(records):
+            # do not delete records that have other external ids (and thus do
+            # not belong to the modules being installed)
+            ref_data = self.search([
+                ('model', '=', records._name),
+                ('res_id', 'in', records.ids),
+            ])
+            records -= records.browse((ref_data - module_data).mapped('res_id'))
+            if not records:
+                return
+
+            # special case for ir.model.fields
+            if records._name == 'ir.model.fields':
+                # do not remove LOG_ACCESS_COLUMNS unless _log_access is False
+                # on the model
+                records -= records.filtered(lambda f: f.name == 'id' or (
+                    f.name in models.LOG_ACCESS_COLUMNS and
+                    f.model in self.env and self.env[f.model]._log_access
+                ))
+                # delete orphan external ids right now
+                missing_ids = set(records.ids) - set(records.exists().ids)
+                orphans = ref_data.filtered(lambda r: r.res_id in missing_ids)
+                if orphans:
+                    _logger.info('Deleting orphan ir_model_data %s', orphans)
+                    orphans.unlink()
+
+            # now delete the records
+            _logger.info('Deleting %s', records)
+            try:
+                with self._cr.savepoint():
+                    records.unlink()
+            except Exception:
+                if len(records) <= 1:
+                    _logger.info('Unable to delete %s', records, exc_info=True)
+                    undeletable_ids.extend(ref_data._ids)
                 else:
-                    self._cr.execute('RELEASE SAVEPOINT record_unlink_save')
-            return undeletable
+                    # divide the batch in two, and recursively delete them
+                    half_size = len(records) // 2
+                    delete(records[:half_size])
+                    delete(records[half_size:])
 
-        # Remove non-model records first, then model fields, and finish with models
-        undeletable += unlink_if_refcount(item for item in to_unlink if item[0] not in ('ir.model', 'ir.model.fields', 'ir.model.constraint'))
+        # remove non-model records first, grouped by batches of the same model
+        for model, items in itertools.groupby(records_items, itemgetter(0)):
+            delete(self.env[model].browse(item[1] for item in items))
 
         # Remove copied views. This must happen after removing all records from
         # the modules to remove, otherwise ondelete='restrict' may prevent the
@@ -1624,20 +1659,21 @@ class IrModelData(models.Model):
         modules = self.env['ir.module.module'].search([('name', 'in', modules_to_remove)])
         modules._remove_copied_views()
 
-        undeletable += unlink_if_refcount(item for item in to_unlink if item[0] == 'ir.model.constraint')
-
+        # remove constraints
+        delete(self.env['ir.model.constraint'].browse(constraint_ids))
         constraints = self.env['ir.model.constraint'].search([('module', 'in', modules.ids)])
         constraints._module_data_uninstall()
 
-        undeletable += unlink_if_refcount(item for item in to_unlink if item[0] == 'ir.model.fields')
-
+        # remove fields and relations
+        delete(self.env['ir.model.fields'].browse(field_ids))
         relations = self.env['ir.model.relation'].search([('module', 'in', modules.ids)])
         relations._module_data_uninstall()
 
-        undeletable += unlink_if_refcount(item for item in to_unlink if item[0] == 'ir.model')
+        # remove models
+        delete(self.env['ir.model'].browse(model_ids))
 
-
-        (datas - undeletable).unlink()
+        # remove remaining module data records
+        (module_data - self.browse(undeletable_ids)).unlink()
 
     @api.model
     def _process_end(self, modules):
@@ -1656,9 +1692,9 @@ class IrModelData(models.Model):
         loaded_xmlids = self.pool.loaded_xmlids
 
         query = """ SELECT id, module || '.' || name, model, res_id FROM ir_model_data
-                    WHERE module IN %s AND res_id IS NOT NULL AND noupdate=%s ORDER BY id DESC
+                    WHERE module IN %s AND res_id IS NOT NULL AND COALESCE(noupdate, false) != %s ORDER BY id DESC
                 """
-        self._cr.execute(query, (tuple(modules), False))
+        self._cr.execute(query, (tuple(modules), True))
         for (id, xmlid, model, res_id) in self._cr.fetchall():
             if xmlid not in loaded_xmlids:
                 if model in self.env:
@@ -1698,7 +1734,6 @@ class WizardModelMenu(models.TransientModel):
     menu_id = fields.Many2one('ir.ui.menu', string='Parent Menu', required=True, ondelete='cascade')
     name = fields.Char(string='Menu Name', required=True)
 
-    @api.multi
     def menu_create(self):
         for menu in self:
             model = self.env['ir.model'].browse(self._context.get('model_id'))

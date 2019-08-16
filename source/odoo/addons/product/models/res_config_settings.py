@@ -7,14 +7,11 @@ from odoo import api, fields, models
 class ResConfigSettings(models.TransientModel):
     _inherit = 'res.config.settings'
 
-    company_share_product = fields.Boolean(
-        'Share product to all companies',
-        help="Share your product to all companies defined in your instance.\n"
-             " * Checked : Product are visible for every company, even if a company is defined on the partner.\n"
-             " * Unchecked : Each company can see only its product (product where company is defined). Product not related to a company are visible for all companies.")
+    group_discount_per_so_line = fields.Boolean("Discounts", implied_group='product.group_discount_per_so_line')
     group_uom = fields.Boolean("Units of Measure", implied_group='uom.group_uom')
     group_product_variant = fields.Boolean("Variants", implied_group='product.group_product_variant')
     module_sale_product_configurator = fields.Boolean("Product Configurator")
+    module_sale_product_matrix = fields.Boolean("Product Grid Configurator")
     group_stock_packaging = fields.Boolean('Product Packagings',
         implied_group='product.group_stock_packaging')
     group_sale_pricelist = fields.Boolean("Use pricelists to adapt your price per customers",
@@ -40,6 +37,8 @@ class ResConfigSettings(models.TransientModel):
         If the user disables the product variants -> disable the product configurator as well"""
         if self.module_sale_product_configurator and not self.group_product_variant:
             self.module_sale_product_configurator = False
+        if self.module_sale_product_matrix and not self.group_product_variant:
+            self.module_sale_product_matrix = False
 
     @api.onchange('module_sale_product_configurator')
     def _onchange_module_sale_product_configurator(self):
@@ -48,16 +47,15 @@ class ResConfigSettings(models.TransientModel):
         if self.module_sale_product_configurator and not self.group_product_variant:
             self.group_product_variant = True
 
-    @api.model
-    def get_values(self):
-        res = super(ResConfigSettings, self).get_values()
-        product_rule = self.env.ref('product.product_comp_rule')
-        res.update(
-            company_share_product=not bool(product_rule.active),
-        )
-        return res
-
     def set_values(self):
         super(ResConfigSettings, self).set_values()
-        product_rule = self.env.ref('product.product_comp_rule')
-        product_rule.write({'active': not bool(self.company_share_product)})
+        if not self.group_discount_per_so_line:
+            pl = self.env['product.pricelist'].search([('discount_policy', '=', 'without_discount')])
+            pl.write({'discount_policy': 'with_discount'})
+
+    @api.onchange('module_sale_product_matrix')
+    def _onchange_module_module_sale_product_matrix(self):
+        """The product Grid Configurator requires the product Configurator activated
+        If the user enables the Grid Configurator -> enable the product Configurator as well"""
+        if self.module_sale_product_matrix and not self.module_sale_product_configurator:
+            self.module_sale_product_configurator = True

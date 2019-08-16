@@ -28,7 +28,6 @@ class Lang(models.Model):
     name = fields.Char(required=True)
     code = fields.Char(string='Locale Code', required=True, help='This field is used to set/get locales for user')
     iso_code = fields.Char(string='ISO code', help='This ISO code is the name of po files to use for translations')
-    translatable = fields.Boolean()
     active = fields.Boolean()
     direction = fields.Selection([('ltr', 'Left-to-Right'), ('rtl', 'Right-to-Left')], required=True, default='ltr')
     date_format = fields.Char(string='Date Format', required=True, default=DEFAULT_DATE_FORMAT)
@@ -82,7 +81,6 @@ class Lang(models.Model):
             except Exception:
                 raise ValidationError(warning)
 
-    @api.model_cr
     def _register_hook(self):
         # check that there is at least one active language
         if not self.search_count([]):
@@ -142,7 +140,6 @@ class Lang(models.Model):
             'iso_code': iso_lang,
             'name': lang_name,
             'active': True,
-            'translatable': True,
             'date_format' : fix_datetime_format(locale.nl_langinfo(locale.D_FMT)),
             'time_format' : fix_datetime_format(locale.nl_langinfo(locale.T_FMT)),
             'decimal_point' : fix_xa0(str(conv['decimal_point'])),
@@ -167,7 +164,7 @@ class Lang(models.Model):
         """
         # config['load_language'] is a comma-separated list or None
         lang_code = (tools.config.get('load_language') or 'en_US').split(',')[0]
-        lang = self.search([('code', '=', lang_code)])
+        lang = self._lang_get(lang_code)
         if not lang:
             self.load_lang(lang_code)
         IrDefault = self.env['ir.default']
@@ -175,20 +172,17 @@ class Lang(models.Model):
         if default_value is None:
             IrDefault.set('res.partner', 'lang', lang_code)
             # set language of main company, created directly by db bootstrap SQL
-            partner = self.env.company_id.partner_id
+            partner = self.env.company.partner_id
             if not partner.lang:
                 partner.write({'lang': lang_code})
         return True
 
     @tools.ormcache('code')
     def _lang_get_id(self, code):
-        return (self.search([('code', '=', code)]) or
-                self.search([('code', '=', 'en_US')]) or
-                self.search([], limit=1)).id
+        return self.with_context(active_test=True).search([('code', '=', code)]).id
 
-    @api.model
-    @api.returns('self', lambda value: value.id)
     def _lang_get(self, code):
+        """ Return the language using this code if it is active """
         return self.browse(self._lang_get_id(code))
 
     @tools.ormcache('self.code', 'monetary')
@@ -213,12 +207,19 @@ class Lang(models.Model):
         langs = self.with_context(active_test=True).search([])
         return sorted([(lang.code, lang.name) for lang in langs], key=itemgetter(1))
 
+    def toggle_active(self):
+        super().toggle_active()
+        # Automatically load translation
+        active_lang = [lang.code for lang in self.filtered(lambda l: l.active)]
+        if active_lang:
+            mods = self.env['ir.module.module'].search([('state', '=', 'installed')])
+            mods._update_translations(filter_lang=active_lang)
+
     @api.model_create_multi
     def create(self, vals_list):
         self.clear_caches()
         return super(Lang, self).create(vals_list)
 
-    @api.multi
     def write(self, vals):
         lang_codes = self.mapped('code')
         if 'code' in vals and any(code != vals['code'] for code in lang_codes):
@@ -233,7 +234,6 @@ class Lang(models.Model):
         self.clear_caches()
         return res
 
-    @api.multi
     def unlink(self):
         for language in self:
             if language.code == 'en_US':
@@ -247,7 +247,6 @@ class Lang(models.Model):
         self.clear_caches()
         return super(Lang, self).unlink()
 
-    @api.multi
     def format(self, percent, value, grouping=False, monetary=False):
         """ Format() will return the language-specific output for float values"""
         self.ensure_one()

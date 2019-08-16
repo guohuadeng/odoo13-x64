@@ -88,7 +88,7 @@ var ChatterComposer = BasicComposer.extend({
             //      partner_id
             var def;
             if (namesToFind.length > 0) {
-                def = this._rpc({
+                def = self._rpc({
                     route: '/mail/get_partner_info',
                     params: {
                         model: self._model,
@@ -224,6 +224,9 @@ var ChatterComposer = BasicComposer.extend({
                         message.context = _.defaults({}, message.context, {
                             mail_post_autofollow: true,
                         });
+                        if (partnerIDs.length) {
+                            self.trigger_up('reset_suggested_partners');
+                        }
                         resolve(message);
                     });
                 } else {
@@ -297,7 +300,6 @@ var ChatterComposer = BasicComposer.extend({
                 type: 'ir.actions.act_window',
                 res_model: 'mail.compose.message',
                 view_mode: 'form',
-                view_type: 'form',
                 views: [[false, 'form']],
                 target: 'new',
                 context: context,

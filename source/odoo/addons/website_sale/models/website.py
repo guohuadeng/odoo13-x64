@@ -43,16 +43,13 @@ class Website(models.Model):
     shop_ppg = fields.Integer(default=20, string="Number of products in the grid on the shop")
     shop_ppr = fields.Integer(default=4, string="Number of grid columns on the shop")
 
-    @api.one
     def _compute_pricelist_ids(self):
-        """ Return the pricelists that can be used directly or indirectly on
-        the website.
-        """
-        Pricelist = self.env["product.pricelist"]
-        domain = Pricelist._get_website_pricelists_domain(self.id)
-        self.pricelist_ids = Pricelist.search(domain)
+        Pricelist = self.env['product.pricelist']
+        for website in self:
+            website.pricelist_ids = Pricelist.search(
+                Pricelist._get_website_pricelists_domain(website.id)
+            )
 
-    @api.multi
     def _compute_pricelist_id(self):
         for website in self:
             if website._context.get('website_id') != website.id:
@@ -118,11 +115,6 @@ class Website(models.Model):
         # This method is cached, must not return records! See also #8795
         return pricelists.ids
 
-    # DEPRECATED (Not used anymore) -> Remove me in master (saas12.3)
-    def _get_pl(self, country_code, show_visible, website_pl, current_pl, all_pl):
-        pl_ids = self._get_pl_partner_order(country_code, show_visible, website_pl, current_pl, all_pl)
-        return self.env['product.pricelist'].browse(pl_ids)
-
     def _get_pricelist_available(self, req, show_visible=False):
         """ Return the list of pricelists that can be used on website for the current user.
         Country restrictions will be detected with GeoIP (if installed).
@@ -139,7 +131,7 @@ class Website(models.Model):
         isocountry = req and req.session.geoip and req.session.geoip.get('country_code') or False
         partner = self.env.user.partner_id
         last_order_pl = partner.last_website_so_id.pricelist_id
-        partner_pl = partner.sudo(user=self.env.user).property_product_pricelist
+        partner_pl = partner.with_user(self.env.user).property_product_pricelist
         pricelists = website._get_pl_partner_order(isocountry, show_visible,
                                                    website.user_id.sudo().partner_id.property_product_pricelist.id,
                                                    req and req.session.get('website_sale_current_pl') or None,
@@ -197,7 +189,6 @@ class Website(models.Model):
             _logger.error('Fail to find pricelist for partner "%s" (id %s)', partner.name, partner.id)
         return pl
 
-    @api.multi
     def sale_product_domain(self):
         return [("sale_ok", "=", True)] + self.get_current_website().website_domain()
 
@@ -209,7 +200,6 @@ class Website(models.Model):
             self.env['account.payment.term'].sudo().search([('company_id', '=', self.company_id.id)], limit=1)
         ).id
 
-    @api.multi
     def _prepare_sale_order_values(self, partner, pricelist):
         self.ensure_one()
         affiliate_id = request.session.get('affiliate_id')
@@ -236,7 +226,6 @@ class Website(models.Model):
 
         return values
 
-    @api.multi
     def sale_get_order(self, force_create=False, code=None, update_pricelist=False, force_pricelist=False):
         """ Return the current sales order after mofications specified by params.
         :param bool force_create: Create sales order if not already existing
@@ -260,7 +249,8 @@ class Website(models.Model):
         sale_order = self.env['sale.order'].sudo().browse(sale_order_id).exists() if sale_order_id else None
 
         if not (sale_order or force_create or code):
-            request.session['sale_order_id'] = None
+            if request.session.get('sale_order_id'):
+                request.session['sale_order_id'] = None
             return self.env['sale.order']
 
         if self.env['product.pricelist'].browse(force_pricelist).exists():
@@ -341,7 +331,7 @@ class Website(models.Model):
             if code_pricelist:
                 pricelist_id = code_pricelist.id
                 update_pricelist = True
-        elif code is not None and sale_order.pricelist_id.code:
+        elif code is not None and sale_order.pricelist_id.code and code != sale_order.pricelist_id.code:
             # code is not None when user removes code and click on "Apply"
             pricelist_id = partner.property_product_pricelist.id
             update_pricelist = True

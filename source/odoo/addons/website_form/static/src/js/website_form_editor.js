@@ -10,6 +10,7 @@ odoo.define('website_form_editor', function (require) {
     var FormEditorRegistry = require('website_form.form_editor_registry');
     var options = require('web_editor.snippets.options');
     var wUtils = require('website.utils');
+    var Wysiwyg = require('web_editor.wysiwyg');
 
     var qweb = core.qweb;
 
@@ -442,7 +443,7 @@ odoo.define('website_form_editor', function (require) {
                 var self = this;
                 var select = this.$target.find('select');
                 select.hide();
-                this.editable_select = $('<div id="editable_select" class="form-control o_website_form_input"/>');
+                this.editable_select = $('<div id="editable_select" class="form-control o_website_form_input" contenteditable="true"/>');
                 _.each(select.children(), function (option) {
                     self.editable_select.append(
                         $('<div id="' + $(option).attr('value') + '" class="o_website_form_select_item">' + $(option).text().trim() + '</div>')
@@ -484,9 +485,29 @@ odoo.define('website_form_editor', function (require) {
                 if (this.$target.hasClass('o_website_form_field_hidden')) {
                     $new_select.addClass('o_website_form_field_hidden');
                 }
+                var labelClasses = this.$target.find('> div:first').attr('class');
+                var inputClasses = this.$target.find('> div:last').attr('class');
+                $new_select.find('> div:first').attr('class', labelClasses);
+                $new_select.find('> div:last').attr('class', inputClasses);
                 this.$target.replaceWith($new_select);
             }
         }
+    });
+
+    // allow breaking of form select items, to create new ones
+    Wysiwyg.include({
+        /**
+         * @override
+         */
+        _editorOptions: function () {
+            var options = this._super.apply(this, arguments);
+            var isUnbreakableNode = options.isUnbreakableNode;
+            options.isUnbreakableNode = function (node) {
+                var isSelItem = $(node).hasClass('o_website_form_select_item');
+                return isUnbreakableNode(node) && !isSelItem;
+            };
+            return options;
+        },
     });
 
     // Superclass for options that need to disable a button from the snippet overlay

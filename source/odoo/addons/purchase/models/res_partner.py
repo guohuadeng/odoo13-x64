@@ -9,7 +9,6 @@ class res_partner(models.Model):
     _name = 'res.partner'
     _inherit = 'res.partner'
 
-    @api.multi
     def _compute_purchase_order_count(self):
         # retrieve all children partners and prefetch 'parent_id' on them
         all_partners = self.search([('id', 'child_of', self.ids)])
@@ -26,13 +25,12 @@ class res_partner(models.Model):
                     partner.purchase_order_count += group['partner_id_count']
                 partner = partner.parent_id
 
-    @api.multi
     def _compute_supplier_invoice_count(self):
         # retrieve all children partners and prefetch 'parent_id' on them
         all_partners = self.search([('id', 'child_of', self.ids)])
         all_partners.read(['parent_id'])
 
-        supplier_invoice_groups = self.env['account.invoice'].read_group(
+        supplier_invoice_groups = self.env['account.move'].read_group(
             domain=[('partner_id', 'in', all_partners.ids),
                     ('type', 'in', ('in_invoice', 'in_refund'))],
             fields=['partner_id'], groupby=['partner_id']
@@ -55,3 +53,11 @@ class res_partner(models.Model):
     supplier_invoice_count = fields.Integer(compute='_compute_supplier_invoice_count', string='# Vendor Bills')
     purchase_warn = fields.Selection(WARNING_MESSAGE, 'Purchase Order', help=WARNING_HELP, default="no-message")
     purchase_warn_msg = fields.Text('Message for Purchase Order')
+
+    def _get_name_search_join_clause(self):
+        res = super()._get_name_search_join_clause()
+        partner_search_mode = self.env.context.get('res_partner_search_mode')
+        if partner_search_mode == 'supplier':
+            join_clause = "LEFT JOIN {table} ON res_partner.id = {table}.partner_id".format(table=self.env['purchase.order']._table)
+            return '%s %s' % (res, join_clause) if res else join_clause
+        return res

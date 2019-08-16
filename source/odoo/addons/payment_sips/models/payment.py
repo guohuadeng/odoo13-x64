@@ -60,13 +60,12 @@ class AcquirerSips(models.Model):
         # Test key provided by Worldine
         key = u'002001000000001_KEY1'
 
-        if self.environment == 'prod':
+        if self.state == 'enabled':
             key = getattr(self, 'sips_secret')
 
         shasign = sha256((data + key).encode('utf-8'))
         return shasign.hexdigest()
 
-    @api.multi
     def sips_form_generate_values(self, values):
         self.ensure_one()
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
@@ -75,7 +74,7 @@ class AcquirerSips(models.Model):
         if not currency_code:
             raise ValidationError(_('Currency not supported by Wordline'))
         amount = int(values['amount'] * 100)
-        if self.environment == 'prod':
+        if self.state == 'enabled':
             # For production environment, key version 2 is required
             merchant_id = getattr(self, 'sips_merchant_id')
             key_version = self.env['ir.config_parameter'].sudo().get_param('sips.key_version', '2')
@@ -107,10 +106,9 @@ class AcquirerSips(models.Model):
         sips_tx_values['Seal'] = shasign
         return sips_tx_values
 
-    @api.multi
     def sips_get_form_action_url(self):
         self.ensure_one()
-        return self.environment == 'prod' and self.sips_prod_url or self.sips_test_url
+        return self.state == 'enabled' and self.sips_prod_url or self.sips_test_url
 
 
 class TxSips(models.Model):
@@ -165,7 +163,6 @@ class TxSips(models.Model):
             raise ValidationError(error_msg)
         return payment_tx
 
-    @api.multi
     def _sips_form_get_invalid_parameters(self, data):
         invalid_parameters = []
 
@@ -180,7 +177,6 @@ class TxSips(models.Model):
 
         return invalid_parameters
 
-    @api.multi
     def _sips_form_validate(self, data):
         data = self._sips_data_to_object(data.get('Data'))
         status = data.get('responseCode')

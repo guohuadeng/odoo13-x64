@@ -43,17 +43,11 @@ class ResConfigSettings(models.TransientModel):
         "Show line subtotals with taxes (B2C)",
         implied_group='account.group_show_line_subtotals_tax_included',
         group='base.group_portal,base.group_user,base.group_public')
-    group_products_in_bills = fields.Boolean(string="Use products in vendor bills",
-        implied_group='account.group_products_in_bills',
-        group='base.group_user',
-        help="Disable this option to use a simplified versions of vendor bills, where products are hidden.")
     show_line_subtotals_tax_selection = fields.Selection([
         ('tax_excluded', 'Tax-Excluded'),
         ('tax_included', 'Tax-Included')], string="Line Subtotals Tax Display",
         required=True, default='tax_excluded',
         config_parameter='account.show_line_subtotals_tax_selection')
-    module_account_asset = fields.Boolean(string='Assets Management')
-    module_account_deferred_revenue = fields.Boolean(string="Revenue Recognition")
     module_account_budget = fields.Boolean(string='Budget Management')
     module_account_payment = fields.Boolean(string='Invoice Online Payment')
     module_account_reports = fields.Boolean("Dynamic Reports")
@@ -92,17 +86,15 @@ class ResConfigSettings(models.TransientModel):
     invoice_terms = fields.Text(related='company_id.invoice_terms', string="Terms & Conditions", readonly=False)
     use_invoice_terms = fields.Boolean(
         string='Default Terms & Conditions',
-        oldname='default_use_sale_note',
         config_parameter='account.use_invoice_terms')
 
-    @api.multi
     def set_values(self):
         super(ResConfigSettings, self).set_values()
         if self.group_multi_currency:
             self.env.ref('base.group_user').write({'implied_ids': [(4, self.env.ref('product.group_sale_pricelist').id)]})
         """ install a chart of accounts for the given company (if required) """
         if self.chart_template_id and self.chart_template_id != self.company_id.chart_template_id:
-            self.chart_template_id.load_for_current_company(15.0, 15.0)
+            self.chart_template_id._load(15.0, 15.0, self.env.company)
 
     @api.depends('company_id')
     def _compute_has_chart_of_accounts(self):
@@ -142,7 +134,7 @@ class ResConfigSettings(models.TransientModel):
     def _onchange_tax_exigibility(self):
         res = {}
         tax = self.env['account.tax'].search([
-            ('company_id', '=', self.env.company_id.id), ('tax_exigibility', '=', 'on_payment')
+            ('company_id', '=', self.env.company.id), ('tax_exigibility', '=', 'on_payment')
         ], limit=1)
         if not self.tax_exigibility and tax:
             self.tax_exigibility = True

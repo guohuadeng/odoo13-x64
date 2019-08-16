@@ -26,8 +26,7 @@ class TestTraceability(TestMrpCommon):
         stock_id = self.env.ref('stock.stock_location_stock').id
         inventory_adjustment = self.env['stock.inventory'].create({
             'name': 'Initial Inventory',
-            'location_id': stock_id,
-            'filter': 'partial',
+            'location_ids': [(4, stock_id)],
         })
         inventory_adjustment.action_start()
         inventory_adjustment.write({
@@ -105,7 +104,7 @@ class TestTraceability(TestMrpCommon):
             for line in lines:
                 tracking = line['columns'][1].split(' ')[1]
                 self.assertEqual(
-                    line['columns'][-1], "1.000 Unit(s)", 'Part with tracking type "%s", should have quantity = 1' % (tracking)
+                    line['columns'][-1], "1.000 Units", 'Part with tracking type "%s", should have quantity = 1' % (tracking)
                 )
                 unfoldable = False if tracking == 'none' else True
                 self.assertEqual(

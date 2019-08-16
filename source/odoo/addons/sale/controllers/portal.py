@@ -159,7 +159,7 @@ class CustomerPortal(CustomerPortal):
         if order_sudo and request.session.get('view_quote_%s' % order_sudo.id) != now and request.env.user.share and access_token:
             request.session['view_quote_%s' % order_sudo.id] = now
             body = _('Quotation viewed by customer %s') % order_sudo.partner_id.name
-            _message_post_helper('sale.order', order_sudo.id, body, token=order_sudo.access_token, message_type='notification', subtype="mail.mt_note", partner_ids=order_sudo.user_id.sudo().partner_id.ids)
+            _message_post_helper('sale.order', order_sudo.id, body, token=order_sudo.access_token, message_type='notification', subtype="mail.mt_note")
 
         values = {
             'sale_order': order_sudo,
@@ -175,8 +175,8 @@ class CustomerPortal(CustomerPortal):
 
         if order_sudo.has_to_be_paid():
             domain = expression.AND([
-                ['&', ('website_published', '=', True), ('company_id', '=', order_sudo.company_id.id)],
-                ['|', ('specific_countries', '=', False), ('country_ids', 'in', [order_sudo.partner_id.country_id.id])]
+                ['&', ('state', 'in', ['enabled', 'test']), ('company_id', '=', order_sudo.company_id.id)],
+                ['|', ('country_ids', '=', False), ('country_ids', 'in', [order_sudo.partner_id.country_id.id])]
             ])
             acquirers = request.env['payment.acquirer'].sudo().search(domain)
 

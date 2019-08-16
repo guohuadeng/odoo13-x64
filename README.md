@@ -12,7 +12,7 @@ http://nightly.odoocdn.com/master/nightly/src/odoo_13.0alpha1.latest.zip
 1. python 3.5.2, 64位
 2. postgresql 9.6.4 ,64位
 3. Nginx 1.15.5， 64位
-4. Odoo 13社区版，20190529版本
+4. Odoo 13社区版，20190816版本
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度
@@ -25,6 +25,9 @@ http://www.sunpop.cn/odoo_12_11_10_dev_with_pycharm_setup/
 
 ## odoo12 在线演示学习，请注册
 http://demo.odooapp.cn
+
+## odoo13 在线演示学习，请注册
+http://demo.erpapp.cn
 
 ## 操作说明
 - 启动odoo：执行 r.bat后，访问 http://localhost:8013  或者  http://localhost

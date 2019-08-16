@@ -14,7 +14,6 @@ _logger = logging.getLogger(__name__)
 class IrUiView(models.Model):
     _inherit = 'ir.ui.view'
 
-    @api.multi
     def render(self, values=None, engine='ir.qweb', minimal_qcontext=False):
         if values and values.get('editable'):
             try:
@@ -57,7 +56,6 @@ class IrUiView(models.Model):
             else:
                 Model.browse(int(el.get('data-oe-id'))).write({field: value})
 
-    @api.multi
     def save_oe_structure(self, el):
         self.ensure_one()
 
@@ -118,7 +116,6 @@ class IrUiView(models.Model):
             return False
         return all(self._are_archs_equal(arch1, arch2) for arch1, arch2 in zip(arch1, arch2))
 
-    @api.multi
     def replace_arch_section(self, section_xpath, replacement, replace_tail=False):
         # the root of the arch section shouldn't actually be replaced as it's
         # not really editable itself, only the content truly is editable.
@@ -163,7 +160,6 @@ class IrUiView(models.Model):
     def _set_noupdate(self):
         self.sudo().mapped('model_data_id').write({'noupdate': True})
 
-    @api.multi
     def save(self, value, xpath=None):
         """ Update a view section. The view section may embed fields to write
 
@@ -203,7 +199,7 @@ class IrUiView(models.Model):
             self.write({'arch': self._pretty_arch(new_arch)})
 
     @api.model
-    def _view_get_inherited_children(self, view, options):
+    def _view_get_inherited_children(self, view):
         return view.inherit_children_ids
 
     @api.model
@@ -220,7 +216,7 @@ class IrUiView(models.Model):
     # Used by translation mechanism, SEO and optional templates
 
     @api.model
-    def _views_get(self, view_id, options=True, bundles=False, root=True):
+    def _views_get(self, view_id, get_children=True, bundles=False, root=True):
         """ For a given view ``view_id``, should return:
                 * the view itself
                 * all views inheriting from it, enabled or not
@@ -249,17 +245,17 @@ class IrUiView(models.Model):
             except ValueError:
                 continue
             if called_view and called_view not in views_to_return:
-                views_to_return += self._views_get(called_view, options=options, bundles=bundles)
+                views_to_return += self._views_get(called_view, get_children=get_children, bundles=bundles)
 
-        extensions = self._view_get_inherited_children(view, options)
-        if not options:
-            # only active children
-            extensions = extensions.filtered(lambda view: view.active)
+        if not get_children:
+            return views_to_return
 
-        # Keep options in a deterministic order regardless of their applicability
+        extensions = self._view_get_inherited_children(view)
+
+        # Keep children in a deterministic order regardless of their applicability
         for extension in extensions.sorted(key=lambda v: v.id):
             # only return optional grandchildren if this child is enabled
-            for ext_view in self._views_get(extension, options=extension.active, root=False):
+            for ext_view in self._views_get(extension, get_children=extension.active, root=False):
                 if ext_view not in views_to_return:
                     views_to_return += ext_view
         return views_to_return

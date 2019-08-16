@@ -60,8 +60,9 @@
                                     <div class="row mt16" attrs="{'invisible': [('use_mail_schedule', '=', False)]}">
                                         <div class="col-lg-9">
                                             <field name="event_type_mail_ids">
-                                                <tree string="Email Schedule" editable="bottom">
-                                                    <field name="template_id"/>
+                                                <tree string="Communication" editable="bottom">
+                                                    <field name="notification_type" invisible="1"/>
+                                                    <field name="template_id" attrs="{'required': [('notification_type', '=', 'mail')]}"/>
                                                     <field name="interval_nbr" attrs="{'readonly':[('interval_unit', '=', 'now')]}"/>
                                                     <field name="interval_unit"/>
                                                     <field name="interval_type"/>
@@ -155,7 +156,6 @@
         <record model="ir.actions.act_window" id="action_event_type">
             <field name="name">Event Categories</field>
             <field name="res_model">event.type</field>
-            <field name="view_type">form</field>
         </record>
 
         <menuitem id="menu_event_configuration" name="Configuration" parent="event_main_menu"
@@ -165,7 +165,6 @@
         <!-- EVENT.REGISTRATION ACTIONS -->
         <record id="act_event_registration_from_event" model="ir.actions.act_window">
             <field name="res_model">event.registration</field>
-            <field name="view_type">form</field>
             <field name="name">Attendees</field>
             <field name="view_mode">tree,form,calendar,graph</field>
             <field name="context">{'search_default_event_id': active_id, 'default_event_id': active_id, 'search_default_expected': True}</field>
@@ -180,7 +179,6 @@
         <record id="event_event_action_pivot" model="ir.actions.act_window" >
             <field name="name">Events Analysis</field>
             <field name="res_model">event.event</field>
-            <field name="view_type">form</field>
             <field name="view_mode">pivot,graph</field>
         </record>
 
@@ -206,14 +204,8 @@
                                     help="Register with this event">
                                 <field name="seats_expected" widget="statinfo" string="Attendees"/>
                             </button>
-                            <button name="toggle_active"
-                                    type="object"
-                                    class="oe_stat_button"
-                                    icon="fa-archive">
-                                <field name="active" widget="boolean_button"
-                                    options='{"terminology": "archive"}'/>
-                            </button>
                         </div>
+                        <widget name="web_ribbon" text="Archived" bg_color="bg-danger" attrs="{'invisible': [('active', '=', True)]}"/>
                         <div class="oe_title">
                             <label for="name" class="oe_edit_only"/>
                             <h1><field name="name" placeholder="Event Name"/></h1>
@@ -222,6 +214,7 @@
                         </div>
                         <group>
                             <group>
+                                <field name="active" invisible="1"/>
                                 <field name="organizer_id"/>
                                 <field name="address_id"
                                     attrs="{'invisible': [('is_online', '=', True)]}"
@@ -240,8 +233,12 @@
                                 <field name="auto_confirm" groups="base.group_no_one"/>
                             </group>
                             <group>
-                                <field name="date_begin"/>
-                                <field name="date_end"/>
+                                <label for="date_begin" string="Date"/>
+                                <div class="o_row">
+                                    <field name="date_begin" widget="daterange" nolabel="1" class="oe_inline" options="{'related_end_date': 'date_end'}"/>
+                                    <i class="fa fa-long-arrow-right mx-2" aria-label="Arrow icon" title="Arrow"/>
+                                    <field name="date_end" widget="daterange" nolabel="1" class="oe_inline" options="{'related_start_date': 'date_begin'}"/>
+                                </div>
                                 <field name="date_tz"/>
                             </group>
                             <group>
@@ -257,11 +254,12 @@
                             </group>
                         </group>
                         <notebook>
-                            <page string="Email Schedule" name="event_mail_schedule">
+                            <page string="Communication" name="event_communication">
                                 <field name="event_mail_ids">
-                                    <tree string="Email Schedule" editable="bottom">
+                                    <tree string="Communication" editable="bottom">
                                         <field name="sequence" widget="handle"/>
-                                        <field name="template_id" />
+                                        <field name="notification_type" invisible="1"/>
+                                        <field name="template_id" attrs="{'required': [('notification_type', '=', 'mail')]}"/>
                                         <field name="interval_nbr" attrs="{'readonly':[('interval_unit','=','now')]}"/>
                                         <field name="interval_unit"/>
                                         <field name="interval_type"/>
@@ -295,6 +293,8 @@
                     <field name="user_id"/>
                     <field name="state"/>
                     <field name="message_needaction" invisible="1"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                    <field name="activity_exception_decoration" widget="activity_exception"/>
                 </tree>
             </field>
         </record>
@@ -315,7 +315,7 @@
                     <field name="color"/>
                     <templates>
                         <t t-name="kanban-box">
-                            <div t-attf-class="oe_kanban_color_#{kanban_getcolor(record.color.raw_value)} oe_kanban_card oe_kanban_global_click">
+                            <div t-attf-class="{{!selection_mode ? 'oe_kanban_color_' + kanban_getcolor(record.color.raw_value) : ''}} oe_kanban_card oe_kanban_global_click">
                                 <div class="o_dropdown_kanban dropdown">
 
                                     <a class="dropdown-toggle o-no-caret btn" role="button" data-toggle="dropdown" href="#" aria-label="Dropdown menu" title="Dropdown menu">
@@ -366,9 +366,13 @@
             <field name="model">event.event</field>
             <field eval="2" name="priority"/>
             <field name="arch" type="xml">
-                <calendar date_start="date_begin" date_stop="date_end" string="Event Organization" color="event_type_id">
-                    <field name="name"/>
-                    <field name="event_type_id"/>
+                <calendar date_start="date_begin" date_stop="date_end" string="Event Organization" mode="month" color="event_type_id" event_limit="5">
+                    <field name="user_id" avatar_field="image_small"/>
+                    <field name="state"/>
+                    <field name="seats_expected"/>
+                    <field name="seats_reserved"/>
+                    <field name="seats_used"/>
+                    <field name="seats_unconfirmed"/>
                 </calendar>
             </field>
         </record>
@@ -392,14 +396,15 @@
                     <field name="user_id"/>
                     <separator/>
                     <filter string="Archived" name="inactive" domain="[('active','=',False)]"/>
-                    <separator/>
-                    <filter string="Late Activities" name="activities_overdue"
+                    <filter invisible="1" string="Late Activities" name="activities_overdue"
                         domain="[('activity_ids.date_deadline', '&lt;', context_today().strftime('%Y-%m-%d'))]"
                         help="Show all records which has next action date is before today"/>
-                    <filter string="Today Activities" name="activities_today"
+                    <filter invisible="1" string="Today Activities" name="activities_today"
                         domain="[('activity_ids.date_deadline', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                    <filter string="Future Activities" name="activities_upcoming_all"
+                    <filter invisible="1" string="Future Activities" name="activities_upcoming_all"
                         domain="[('activity_ids.date_deadline', '&gt;', context_today().strftime('%Y-%m-%d'))]"/>
+                    <filter string="Exception Activities" name="activities_exception"
+                        domain="[('activity_exception_decoration', '!=', False)]"/>
                     <group expand="0" string="Group By">
                         <filter string="Responsible" name="responsible" context="{'group_by': 'user_id'}"/>
                         <filter string="Event Category" name="event_type_id" context="{'group_by':'event_type_id'}"/>
@@ -425,7 +430,6 @@
            <field name="name">Events</field>
            <field name="type">ir.actions.act_window</field>
            <field name="res_model">event.event</field>
-           <field name="view_type">form</field>
            <field name="view_mode">kanban,calendar,tree,form,pivot</field>
            <field name="context">{"search_default_upcoming":1}</field>
            <field name="search_view_id" ref="view_event_search"/>
@@ -459,10 +463,12 @@
                     <field name="email"/>
                     <field name="event_id" />
                     <field name="state"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
                     <field name="message_needaction" invisible="1"/>
                     <button name="confirm_registration" string="Confirm Registration" states="draft" type="object" icon="fa-check text-success"/>
                     <button name="button_reg_close" string="Attended the Event" states="open" type="object" icon="fa-level-down text-success"/>
                     <button name="button_reg_cancel" string="Cancel Registration" states="draft,open" type="object" icon="fa-times-circle text-danger"/>
+                    <field name="activity_exception_decoration" widget="activity_exception"/>
                 </tree>
             </field>
         </record>
@@ -485,8 +491,9 @@
                             <group string="Attendee" name="attendee">
                                 <field name="partner_id" attrs="{'readonly':[('state', '!=', 'draft')]}"/>
                                 <field name="name"/>
-                                <field name="phone"/>
                                 <field name="email"/>
+                                <field name="phone"/>
+                                <field name="mobile"/>
                             </group>
                             <group string="Event Information" name="event">
                                 <field name="event_id" attrs="{'readonly': [('state', '!=', 'draft')]}" options="{'no_open': True, 'no_create': True}"/>
@@ -509,7 +516,7 @@
             <field name="model">event.registration</field>
             <field eval="2" name="priority"/>
             <field name="arch" type="xml">
-                <calendar date_start="event_begin_date" date_stop="event_end_date" string="Event Registration" color="event_id">
+                <calendar date_start="event_begin_date" date_stop="event_end_date" string="Event Registration" color="event_id" event_limit="5">
                     <field name="event_id"/>
                     <field name="name"/>
                 </calendar>
@@ -555,14 +562,15 @@
                     <filter string="Attended Date" name="filter_date_closed" date="date_closed"/>
                     <field name="event_id"/>
                     <field name="partner_id"/>
-                    <separator/>
-                    <filter string="Late Activities" name="activities_overdue"
+                    <filter invisible="1" string="Late Activities" name="activities_overdue"
                         domain="[('activity_ids.date_deadline', '&lt;', context_today().strftime('%Y-%m-%d'))]"
                         help="Show all records which has next action date is before today"/>
-                    <filter string="Today Activities" name="activities_today"
+                    <filter invisible="1" string="Today Activities" name="activities_today"
                         domain="[('activity_ids.date_deadline', '=', context_today().strftime('%Y-%m-%d'))]"/>
-                    <filter string="Future Activities" name="activities_upcoming_all"
+                    <filter invisible="1" string="Future Activities" name="activities_upcoming_all"
                         domain="[('activity_ids.date_deadline', '&gt;', context_today().strftime('%Y-%m-%d'))]"/>
+                    <filter string="Exception Activities" name="activities_exception"
+                        domain="[('activity_exception_decoration', '!=', False)]"/>
                     <group expand="0" string="Group By">
                         <filter string="Partner" name="partner" domain="[]" context="{'group_by':'partner_id'}"/>
                         <filter string="Event" name="group_event" domain="[]" context="{'group_by':'event_id'}"/>
@@ -576,7 +584,6 @@
         <record model="ir.actions.act_window" id="action_registration">
           <field name="name">Attendees</field>
           <field name="res_model">event.registration</field>
-          <field name="view_type">form</field>
           <field name="domain"></field>
           <field name="view_mode">pivot,graph,tree,form</field>
           <field name="context">{}</field>
@@ -600,7 +607,8 @@
                         <group>
                             <group>
                                 <field name="event_id"/>
-                                <field name="template_id"/>
+                                <field name="notification_type" invisible="1"/>
+                                <field name="template_id" attrs="{'required': [('notification_type', '=', 'mail')]}"/>
                                 <field name="mail_sent"/>
                             </group>
                             <group>
@@ -635,7 +643,8 @@
             <field name="arch" type="xml">
                 <tree string="Event Mail Schedulers">
                     <field name="event_id"/>
-                    <field name="template_id"/>
+                    <field name="notification_type" invisible="1"/>
+                    <field name="template_id" attrs="{'required': [('notification_type', '=', 'mail')]}"/>
                     <field name="scheduled_date"/>
                     <field name="mail_sent"/>
                     <field name="done"/>
@@ -646,7 +655,6 @@
         <record model="ir.actions.act_window" id="action_event_mail">
             <field name="name">Events Mail Schedulers</field>
             <field name="res_model">event.mail</field>
-            <field name="view_type">form</field>
         </record>
 
         <menuitem name="Mail Schedulers" id="menu_event_mail_schedulers" action="action_event_mail" parent="menu_event_configuration" groups="base.group_no_one"/>

@@ -17,7 +17,6 @@ class CRMRevealView(models.Model):
     reveal_state = fields.Selection([('to_process', 'To Process'), ('not_found', 'Not Found')], default='to_process', string="State", index=True)
     create_date = fields.Datetime(index=True)
 
-    @api.model_cr
     def init(self):
         self._cr.execute('SELECT indexname FROM pg_indexes WHERE indexname = %s', ('crm_reveal_view_ip_rule_id',))
         if not self._cr.fetchone():
@@ -40,9 +39,9 @@ class CRMRevealView(models.Model):
         domain.append(('create_date', '<', fields.Datetime.to_string(datetime.date.today() - relativedelta(weeks=weeks_valid))))
         self.search(domain).unlink()
 
-    def _create_reveal_view(self, url, ip_address, country_code, state_code, rules_excluded):
+    def _create_reveal_view(self, website_id, url, ip_address, country_code, state_code, rules_excluded):
         # we are avoiding reveal if reveal_view already created for this IP
-        rules = self.env['crm.reveal.rule']._match_url(url, country_code, state_code, rules_excluded)
+        rules = self.env['crm.reveal.rule']._match_url(website_id, url, country_code, state_code, rules_excluded)
         if rules:
             query = """
                     INSERT INTO crm_reveal_view (reveal_ip, reveal_rule_id, reveal_state, create_date)

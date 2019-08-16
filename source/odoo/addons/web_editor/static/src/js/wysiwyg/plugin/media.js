@@ -44,6 +44,7 @@ var MediaPlugin = AbstractPlugin.extend({
     },
 
     mousePosition: {},
+    _modalOpen: false,
 
     //--------------------------------------------------------------------------
     // Public
@@ -53,6 +54,10 @@ var MediaPlugin = AbstractPlugin.extend({
      * Open the image dialog and listen to its saved/closed events.
      */
     showImageDialog: function () {
+        if (this._modalOpen) {
+            return;
+        }
+        this._modalOpen = true;
         this.context.invoke('editor.saveRange');
         var media = this.context.invoke('editor.restoreTarget');
 
@@ -61,7 +66,14 @@ var MediaPlugin = AbstractPlugin.extend({
             media = $mediaParent[0];
             $mediaParent = $mediaParent.parent();
         }
+
+        // If the image is for a field the model should handle the resize so we
+        // use an arbitrary high size of 1920 instead of using the width of the
+        // the element.
+        var mediaWidth = $(media).parent().data('oeField') ? 1920 : $(media).width();
+
         var mediaDialog = new weWidgets.MediaDialog(this.options.parent, {
+            mediaWidth: mediaWidth,
             onlyImages: $mediaParent.data('oeField') === 'image' || $mediaParent.data('oeType') === 'image',
         },
             $(media).clone()[0]
@@ -72,6 +84,7 @@ var MediaPlugin = AbstractPlugin.extend({
         });
         mediaDialog.on('closed', this, function () {
             this.context.invoke('editor.restoreRange');
+            this._modalOpen = false;
         });
         mediaDialog.open();
     },
@@ -793,7 +806,6 @@ var ImagePlugin = AbstractMediaPlugin.extend({
                         res_model: resModel,
                         res_id: resID,
                         name: name,
-                        datas_fname: name,
                         datas: datas,
                         mimetype: mimetype,
                         url: originalSrc, // To save the original image that was cropped
@@ -925,7 +937,7 @@ _.extend(wysiwygTranslation.image, {
 dom.isVideo = function (node) {
     node = node && !node.tagName ? node.parentNode : node;
     return (node.tagName === "IFRAME" || node.tagName === "DIV") &&
-        (node.parentNode.className && node.parentNode.className.indexOf('media_iframe_video') !== -1 ||
+        (node.parentNode && node.parentNode.className && node.parentNode.className.indexOf('media_iframe_video') !== -1 ||
             node.className.indexOf('media_iframe_video') !== -1);
 };
 

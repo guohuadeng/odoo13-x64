@@ -46,7 +46,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
         total = []
         partner_clause = ''
         cr = self.env.cr
-        user_company = self.env.company_id
+        user_company = self.env.company
         user_currency = user_company.currency_id
         company_ids = self._context.get('company_ids') or [user_company.id]
         move_state = ['draft', 'posted']
@@ -140,7 +140,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
                     if partial_line.max_date <= date_from:
                         line_amount -= partial_line.company_id.currency_id._convert(partial_line.amount, user_currency, user_company, date_from)
 
-                if not self.env.company_id.currency_id.is_zero(line_amount):
+                if not self.env.company.currency_id.is_zero(line_amount):
                     partners_amount[partner_id] += line_amount
                     lines.setdefault(partner_id, [])
                     lines[partner_id].append({
@@ -178,7 +178,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
             for partial_line in line.matched_credit_ids:
                 if partial_line.max_date <= date_from:
                     line_amount -= partial_line.company_id.currency_id._convert(partial_line.amount, user_currency, user_company, date_from)
-            if not self.env.company_id.currency_id.is_zero(line_amount):
+            if not self.env.company.currency_id.is_zero(line_amount):
                 undue_amounts[partner_id] += line_amount
                 lines.setdefault(partner_id, [])
                 lines[partner_id].append({
@@ -198,7 +198,7 @@ class ReportAgedPartnerBalance(models.AbstractModel):
 
             total[6] = total[6] + undue_amt
             values['direction'] = undue_amt
-            if not float_is_zero(values['direction'], precision_rounding=self.env.company_id.currency_id.rounding):
+            if not float_is_zero(values['direction'], precision_rounding=self.env.company.currency_id.rounding):
                 at_least_one_amount = True
 
             for i in range(5):
@@ -208,14 +208,15 @@ class ReportAgedPartnerBalance(models.AbstractModel):
                 # Adding counter
                 total[(i)] = total[(i)] + (during and during[0] or 0)
                 values[str(i)] = during and during[0] or 0.0
-                if not float_is_zero(values[str(i)], precision_rounding=self.env.company_id.currency_id.rounding):
+                if not float_is_zero(values[str(i)], precision_rounding=self.env.company.currency_id.rounding):
                     at_least_one_amount = True
             values['total'] = sum([values['direction']] + [values[str(i)] for i in range(5)])
             ## Add for total
             total[(i + 1)] += values['total']
             values['partner_id'] = partner['partner_id']
             if partner['partner_id']:
-                browsed_partner = self.env['res.partner'].browse(partner['partner_id'])
+                #browse the partner name and trust field in sudo, as we may not have full access to the record (but we still have to see it in the report)
+                browsed_partner = self.env['res.partner'].sudo().browse(partner['partner_id'])
                 values['name'] = browsed_partner.name and len(browsed_partner.name) >= 45 and browsed_partner.name[0:40] + '...' or browsed_partner.name
                 values['trust'] = browsed_partner.trust
             else:

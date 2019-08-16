@@ -11,6 +11,7 @@ import logging
 import optparse
 import os
 import sys
+import tempfile
 import odoo
 from .. import release, conf, loglevels
 from . import appdirs
@@ -117,6 +118,9 @@ class configmanager(object):
         group.add_option("--addons-path", dest="addons_path",
                          help="specify additional addons paths (separated by commas).",
                          action="callback", callback=self._check_addons_path, nargs=1, type="string")
+        group.add_option("--upgrades-paths", dest="upgrades_paths",
+                         help="specify an additional upgrades path.",
+                         action="callback", callback=self._check_upgrades_paths, nargs=1, type="string")
         group.add_option("--load", dest="server_wide_modules", help="Comma-separated list of server-wide modules.", my_default='base,web')
 
         group.add_option("-D", "--data-dir", dest="data_dir", my_default=_get_default_datadir(),
@@ -160,8 +164,22 @@ class configmanager(object):
                          dest='test_enable',
                          help="Enable unit tests.")
         group.add_option("--test-tags", dest="test_tags",
-                         help="Comma separated list of tags to filter which tests to execute. Enable unit tests if set.")
+                         help="""Comma separated list of spec to filter which tests to execute. Enable unit tests if set.
+                         A filter spec has the format: [-][tag][/module][:class][.method]
+                         The '-' specifies if we want to include or exclude tests matching this spec.
+                         The tag will match tags added on a class with a @tagged decorator. By default tag value is 'standard' when not
+                         given on include mode. '*' will match all tags. Tag will also match module name (deprecated, use /module)
+                         The module, class, and method will respectively match the module name, test class name and test method name.
+                         examples: :TestClass.test_func,/test_module,external
+                         """)
 
+        group.add_option("--screencasts", dest="screencasts", action="store", my_default=None,
+                         metavar='DIR',
+                         help="Screencasts will go in DIR/{db_name}/screencasts. '1' can be used to force the same dir as for screenshots.")
+        temp_tests_dir = os.path.join(tempfile.gettempdir(), 'odoo_tests')
+        group.add_option("--screenshots", dest="screenshots", action="store", my_default=temp_tests_dir,
+                         metavar='DIR',
+                         help="Screenshots will go in DIR/{db_name}/screenshots. Defaults to %s." % temp_tests_dir)
         parser.add_option_group(group)
 
         # Logging Group
@@ -378,7 +396,7 @@ class configmanager(object):
 
             die(os.path.isfile(rcfilepath) and os.path.isfile(old_rcfilepath),
                 "Found '.odoorc' and '.openerp_serverrc' in your path. Please keep only one of "\
-                "them, preferrably '.odoorc'.")
+                "them, preferably '.odoorc'.")
 
             if not os.path.isfile(rcfilepath) and os.path.isfile(old_rcfilepath):
                 rcfilepath = old_rcfilepath
@@ -405,8 +423,8 @@ class configmanager(object):
                 'db_name', 'db_user', 'db_password', 'db_host', 'db_sslmode',
                 'db_port', 'db_template', 'logfile', 'pidfile', 'smtp_port',
                 'email_from', 'smtp_server', 'smtp_user', 'smtp_password',
-                'db_maxconn', 'import_partial', 'addons_path',
-                'syslog', 'without_demo',
+                'db_maxconn', 'import_partial', 'addons_path', 'upgrades_paths',
+                'syslog', 'without_demo', 'screencasts', 'screenshots',
                 'dbfilter', 'log_level', 'log_db',
                 'log_db_level', 'geoip_database', 'dev_mode', 'shell_interface'
         ]
@@ -470,6 +488,13 @@ class configmanager(object):
                     os.path.abspath(os.path.expanduser(os.path.expandvars(x.strip())))
                       for x in self.options['addons_path'].split(','))
 
+        self.options['upgrades_paths'] = (
+            ",".join(os.path.abspath(os.path.expanduser(os.path.expandvars(x.strip())))
+                for x in self.options['upgrades_paths'].split(','))
+            if self.options['upgrades_paths']
+            else ""
+        )
+
         self.options['data_dir'] = os.path.abspath(os.path.expanduser(os.path.expandvars(self.options['data_dir'].strip())))
 
         self.options['init'] = opt.init and dict.fromkeys(opt.init.split(','), 1) or {}
@@ -523,6 +548,16 @@ class configmanager(object):
             ad_paths.append(res)
 
         setattr(parser.values, option.dest, ",".join(ad_paths))
+
+    def _check_upgrades_paths(self, option, opt, value, parser):
+        upgrades_paths = []
+        for path in value.split(','):
+            path = path.strip()
+            res = os.path.abspath(os.path.expanduser(os.path.expandvars(path)))
+            if not os.path.isdir(res):
+                raise optparse.OptionValueError("option %s: no such directory: %r" % (opt, path))
+            upgrades_paths.append(res)
+        setattr(parser.values, option.dest, ",".join(upgrades_paths))
 
     def _test_enable_callback(self, option, opt, value, parser):
         if not parser.values.test_tags:

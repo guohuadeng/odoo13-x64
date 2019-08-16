@@ -3,6 +3,7 @@
 
 import babel.messages.pofile
 import base64
+import copy
 import datetime
 import functools
 import glob
@@ -19,16 +20,15 @@ import re
 import sys
 import tempfile
 import time
-import zlib
 
 import werkzeug
 import werkzeug.exceptions
 import werkzeug.utils
 import werkzeug.wrappers
 import werkzeug.wsgi
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from werkzeug.urls import url_decode, iri_to_uri
-from xml.etree import ElementTree
+from lxml import etree
 import unicodedata
 
 
@@ -36,14 +36,13 @@ import odoo
 import odoo.modules.registry
 from odoo.api import call_kw, Environment
 from odoo.modules import get_module_path, get_resource_path
-from odoo.tools import image_process, topological_sort, html_escape, pycompat, ustr
+from odoo.tools import image_process, topological_sort, html_escape, pycompat, ustr, apply_inheritance_specs
 from odoo.tools.mimetypes import guess_mimetype
 from odoo.tools.translate import _
-from odoo.tools.misc import str2bool, xlwt, file_open
+from odoo.tools.misc import str2bool, xlsxwriter, file_open
 from odoo.tools.safe_eval import safe_eval
 from odoo import http, tools
-from odoo.http import content_disposition, dispatch_rpc, request, \
-    serialize_exception as _serialize_exception, Response
+from odoo.http import content_disposition, dispatch_rpc, request, Response
 from odoo.exceptions import AccessError, UserError, AccessDenied
 from odoo.models import check_method_name
 from odoo.service import db, security
@@ -68,6 +67,8 @@ CONTENT_MAXAGE = 60 * 60 * 24 * 356
 
 DBNAME_PATTERN = '^[a-zA-Z0-9][a-zA-Z0-9_.-]+$'
 
+COMMENT_PATTERN = r'Modified by [\s\w\-.]+ from [\s\w\-.]+'
+
 #----------------------------------------------------------
 # Odoo Web helpers
 #----------------------------------------------------------
@@ -83,7 +84,7 @@ def serialize_exception(f):
             return f(*args, **kwargs)
         except Exception as e:
             _logger.exception("An exception occured during an http request")
-            se = _serialize_exception(e)
+            se = request.registry['ir.http'].serialize_exception(e)
             error = {
                 'code': 200,
                 'message': "Odoo Server Error",
@@ -196,37 +197,6 @@ def module_boot(db=None):
     addons = serverside + dbside
     return addons
 
-def concat_xml(file_list):
-    """Concatenate xml files
-
-    :param list(str) file_list: list of files to check
-    :returns: (concatenation_result, checksum)
-    :rtype: (str, str)
-    """
-    checksum = hashlib.new('sha1')
-    if not file_list:
-        return '', checksum.hexdigest()
-
-    root = None
-    for fname in file_list:
-        with open(fname, 'rb') as fp:
-            contents = fp.read()
-            checksum.update(contents)
-            fp.seek(0)
-            try:
-                xml = ElementTree.parse(fp).getroot()
-            except ElementTree.ParseError as e:
-                _logger.error("Could not parse file %s: %s" % (fname, e.msg))
-                raise e
-
-        if root is None:
-            root = ElementTree.Element(xml.tag)
-        #elif root.tag != xml.tag:
-        #    raise ValueError("Root tags missmatch: %r != %r" % (root.tag, xml.tag))
-
-        for child in xml.getchildren():
-            root.append(child)
-    return ElementTree.tostring(root, 'utf-8'), checksum.hexdigest()
 
 def fs2web(path):
     """convert FS path into web path"""
@@ -235,8 +205,7 @@ def fs2web(path):
 def manifest_glob(extension, addons=None, db=None, include_remotes=False):
     if addons is None:
         addons = module_boot(db=db)
-    else:
-        addons = addons.split(',')
+
     r = []
     for addon in addons:
         manifest = http.addons_manifest.get(addon, None)
@@ -248,11 +217,12 @@ def manifest_glob(extension, addons=None, db=None, include_remotes=False):
         for pattern in globlist:
             if pattern.startswith(('http://', 'https://', '//')):
                 if include_remotes:
-                    r.append((None, pattern))
+                    r.append((None, pattern, addon))
             else:
                 for path in glob.glob(os.path.normpath(os.path.join(addons_path, addon, pattern))):
-                    r.append((path, fs2web(path[len(addons_path):])))
+                    r.append((path, fs2web(path[len(addons_path):]), addon))
     return r
+
 
 def manifest_list(extension, mods=None, db=None, debug=None):
     """ list resources to load specifying either:
@@ -261,8 +231,9 @@ def manifest_list(extension, mods=None, db=None, debug=None):
     """
     if debug is not None:
         _logger.warning("odoo.addons.web.main.manifest_list(): debug parameter is deprecated")
+    mods = mods.split(',')
     files = manifest_glob(extension, addons=mods, db=db, include_remotes=True)
-    return [wp for _fp, wp in files]
+    return [wp for _fp, wp, addon in files]
 
 def get_last_modified(files):
     """ Returns the modification time of the most recently modified
@@ -451,6 +422,191 @@ def _admin_password_warn(uid):
             subtype='mail.mt_comment'
         )
 
+
+class HomeStaticTemplateHelpers(object):
+    """
+    Helper Class that wraps the reading of static qweb templates files
+    and xpath inheritance applied to those templates
+    /!\ Template inheritance order is defined by ir.module.module natural order
+        which is "sequence, name"
+        Then a topological sort is applied, which just puts dependencies
+        of a module before that module
+    """
+    NAME_TEMPLATE_DIRECTIVE = 't-name'
+    STATIC_INHERIT_DIRECTIVE = 't-inherit'
+    STATIC_INHERIT_MODE_DIRECTIVE = 't-inherit-mode'
+    PRIMARY_MODE = 'primary'
+    EXTENSION_MODE = 'extension'
+    DEFAULT_MODE = PRIMARY_MODE
+
+    def __init__(self, addons, db, checksum_only=False, debug=False):
+        '''
+        :param str|list addons: plain list or comma separated list of addons
+        :param str db: the current db we are working on
+        :param bool checksum_only: only computes the checksum of all files for addons
+        :param str debug: the debug mode of the session
+        '''
+        super(HomeStaticTemplateHelpers, self).__init__()
+        self.addons = addons.split(',') if isinstance(addons, str) else addons
+        self.db = db
+        self.debug = debug
+        self.checksum_only = checksum_only
+        self.template_dict = OrderedDict()
+
+    def _get_parent_template(self, addon, template):
+        """Computes the real addon name and the template name
+        of the parent template (the one that is inherited from)
+
+        :param str addon: the addon the template is declared in
+        :param etree template: the current template we are are handling
+        :returns: (str, str)
+        """
+        original_template_name = template.attrib[self.STATIC_INHERIT_DIRECTIVE]
+        split_name_attempt = original_template_name.split('.', 1)
+        parent_addon, parent_name = tuple(split_name_attempt) if len(split_name_attempt) == 2 else (addon, original_template_name)
+        if parent_addon not in self.template_dict:
+            if original_template_name in self.template_dict[addon]:
+                parent_addon = addon
+                parent_name = original_template_name
+            else:
+                raise ValueError(_('Module %s not loaded or inexistent, or templates of addon being loaded (%s) are misordered') % (parent_addon, addon))
+
+        if parent_name not in self.template_dict[parent_addon]:
+            raise ValueError(_("No template found to inherit from. Module %s and template name %s") % (parent_addon, parent_name))
+
+        return parent_addon, parent_name
+
+    def _compute_xml_tree(self, addon, file_name, source):
+        """Computes the xml tree that 'source' contains
+        Applies inheritance specs in the process
+
+        :param str addon: the current addon we are reading files for
+        :param str file_name: the current name of the file we are reading
+        :param str source: the content of the file
+        :returns: etree
+        """
+        try:
+            all_templates_tree = etree.parse(io.BytesIO(source), parser=etree.XMLParser(remove_comments=True)).getroot()
+        except etree.ParseError as e:
+            _logger.error("Could not parse file %s: %s" % (file_name, e.msg))
+            raise e
+
+        self.template_dict.setdefault(addon, OrderedDict())
+        for template_tree in list(all_templates_tree):
+            if self.NAME_TEMPLATE_DIRECTIVE in template_tree.attrib:
+                template_name = template_tree.attrib[self.NAME_TEMPLATE_DIRECTIVE]
+            else:
+                # self.template_dict[addon] grows after processing each template
+                template_name = 'anonymous_template_%s' % len(self.template_dict[addon])
+            if self.STATIC_INHERIT_DIRECTIVE in template_tree.attrib:
+                inherit_mode = template_tree.attrib.get(self.STATIC_INHERIT_MODE_DIRECTIVE, self.DEFAULT_MODE)
+                if inherit_mode not in [self.PRIMARY_MODE, self.EXTENSION_MODE]:
+                    raise ValueError(_("Invalid inherit mode. Module %s and template name %s") % (addon, template_name))
+
+                parent_addon, parent_name = self._get_parent_template(addon, template_tree)
+
+                # After several performance tests, we found out that deepcopy is the most efficient
+                # solution in this case (compared with copy, xpath with '.' and stringifying).
+                parent_tree = copy.deepcopy(self.template_dict[parent_addon][parent_name])
+                parent_tag = parent_tree.tag
+                # replace temporarily the parent tag so it is never the target of the inheritance
+                parent_tree.tag = 't'
+                xpaths = list(template_tree)
+                if self.debug and inherit_mode == self.EXTENSION_MODE:
+                    for xpath in xpaths:
+                        xpath.insert(0, etree.Comment(" Modified by %s from %s " % (template_name, addon)))
+                inherited_template = apply_inheritance_specs(parent_tree, xpaths)
+                inherited_template.tag = parent_tag
+
+                if inherit_mode == self.PRIMARY_MODE:  # New template_tree: A' = B(A)
+                    inherited_template.set(self.NAME_TEMPLATE_DIRECTIVE, template_name)
+                    inherited_template.set(self.STATIC_INHERIT_DIRECTIVE, template_tree.attrib[self.STATIC_INHERIT_DIRECTIVE])
+                    if self.debug:
+                        self._remove_inheritance_comments(inherited_template)
+                    self.template_dict[addon][template_name] = inherited_template
+
+                else:  # Modifies original: A = B(A)
+                    self.template_dict[parent_addon][parent_name] = inherited_template
+            else:
+                if template_name in self.template_dict[addon]:
+                    raise ValueError(_("Template %s already exists in module %s") % (template_name, addon))
+                self.template_dict[addon][template_name] = template_tree
+        return all_templates_tree
+
+    def _remove_inheritance_comments(self, inherited_template):
+        '''Remove the comments added in the template already, they come from other templates extending
+        the base of this inheritance
+
+        :param inherited_template:
+        '''
+        for comment in inherited_template.xpath('//comment()'):
+            if re.match(COMMENT_PATTERN, comment.text.strip()):
+                comment.getparent().remove(comment)
+
+    def _manifest_glob(self):
+        '''Proxy for manifest_glob
+        Usefull to make 'self' testable'''
+        return manifest_glob('qweb', self.addons, self.db)
+
+    def _read_addon_file(self, file_path):
+        """Reads the content of a file given by file_path
+        Usefull to make 'self' testable
+        :param str file_path:
+        :returns: str
+        """
+        with open(file_path, 'rb') as fp:
+            contents = fp.read()
+        return contents
+
+    def _concat_xml(self, file_dict):
+        """Concatenate xml files
+
+        :param dict(list) file_dict:
+            key: addon name
+            value: list of files for an addon
+        :returns: (concatenation_result, checksum)
+        :rtype: (bytes, str)
+        """
+        checksum = hashlib.new('sha1')
+        if not file_dict:
+            return b'', checksum.hexdigest()
+
+        root = None
+        for addon, fnames in file_dict.items():
+            for fname in fnames:
+                contents = self._read_addon_file(fname)
+                checksum.update(contents)
+                if not self.checksum_only:
+                    xml = self._compute_xml_tree(addon, fname, contents)
+
+                    if root is None:
+                        root = etree.Element(xml.tag)
+
+        for addon in self.template_dict.values():
+            for template in addon.values():
+                root.append(template)
+
+        return etree.tostring(root, encoding='utf-8') if root is not None else b'', checksum.hexdigest()
+
+    def _get_qweb_templates(self):
+        """One and only entry point that gets and evaluates static qweb templates
+
+        :rtype: (str, str)
+        """
+        files = OrderedDict([(addon, list()) for addon in self.addons])
+        [files[f[2]].append(f[0]) for f in self._manifest_glob()]
+        content, checksum = self._concat_xml(files)
+        return content, checksum
+
+    @classmethod
+    def get_qweb_templates_checksum(cls, addons, db=None, debug=False):
+        return cls(addons, db, checksum_only=True, debug=debug)._get_qweb_templates()[1]
+
+    @classmethod
+    def get_qweb_templates(cls, addons, db=None, debug=False):
+        return cls(addons, db, debug=debug)._get_qweb_templates()[0]
+
+
 #----------------------------------------------------------
 # Odoo Web web Controllers
 #----------------------------------------------------------
@@ -485,7 +641,7 @@ class Home(http.Controller):
         :param unique: this parameters is not used, but mandatory: it is used by the HTTP stack to make a unique request
         :return: the menus (including the images in Base64)
         """
-        menus = request.env["ir.ui.menu"].load_menus(request.debug)
+        menus = request.env["ir.ui.menu"].load_menus(request.session.debug)
         body = json.dumps(menus, default=ustr)
         response = request.make_response(body, [
             # this method must specify a content-type application/json instead of using the default text/html set because
@@ -542,12 +698,6 @@ class Home(http.Controller):
         if not odoo.tools.config['list_db']:
             values['disable_database_manager'] = True
 
-        # otherwise no real way to test debug mode in template as ?debug =>
-        # values['debug'] = '' but that's also the fallback value when
-        # missing variables in qweb
-        if 'debug' in values:
-            values['debug'] = True
-
         response = request.render('web.login', values)
         response.headers['X-Frame-Options'] = 'DENY'
         return response
@@ -596,8 +746,8 @@ class WebClient(http.Controller):
 
     @http.route('/web/webclient/qweb/<string:unique>', type='http', auth="none", cors="*")
     def qweb(self, unique, mods=None, db=None):
-        files = [f[0] for f in manifest_glob('qweb', addons=mods, db=db)]
-        content, _dummy = concat_xml(files)
+        content = HomeStaticTemplateHelpers.get_qweb_templates(mods, db, debug=request.session.debug)
+
         return request.make_response(content, [
                 ('Content-Type', 'text/xml'),
                 ('Cache-Control','public, max-age=' + str(CONTENT_MAXAGE))
@@ -626,7 +776,7 @@ class WebClient(http.Controller):
         return {"modules": translations_per_module,
                 "lang_parameters": None}
 
-    @http.route('/web/webclient/translations/<string:unique>', type='http', auth="none")
+    @http.route('/web/webclient/translations/<string:unique>', type='http', auth="public")
     def translations(self, unique, mods=None, lang=None):
         """
         Load the translations for the specified language and modules
@@ -643,6 +793,7 @@ class WebClient(http.Controller):
         translations_per_module, lang_params = request.env["ir.translation"].get_translations_for_webclient(mods, lang)
 
         body = json.dumps({
+            'lang': lang,
             'lang_parameters': lang_params,
             'modules': translations_per_module,
             'multi_lang': len(request.env['res.lang'].sudo().get_installed()) > 1,
@@ -1015,7 +1166,7 @@ class Binary(http.Controller):
         '/web/content/<string:model>/<int:id>/<string:field>',
         '/web/content/<string:model>/<int:id>/<string:field>/<string:filename>'], type='http', auth="public")
     def content_common(self, xmlid=None, model='ir.attachment', id=None, field='datas',
-                       filename=None, filename_field='datas_fname', unique=None, mimetype=None,
+                       filename=None, filename_field='name', unique=None, mimetype=None,
                        download=None, data=None, token=None, access_token=None, **kw):
 
         status, headers, content = request.env['ir.http'].binary_content(
@@ -1036,7 +1187,7 @@ class Binary(http.Controller):
         '/web/partner_image/<int:rec_id>',
         '/web/partner_image/<int:rec_id>/<string:field>',
         '/web/partner_image/<int:rec_id>/<string:field>/<string:model>/'], type='http', auth="public")
-    def content_image_partner(self, rec_id, field='image_small', model='res.partner', **kwargs):
+    def content_image_partner(self, rec_id, field='image_64', model='res.partner', **kwargs):
         # other kwargs are ignored on purpose
         return self._content_image(id=rec_id, model='res.partner', field=field,
             placeholder='user_placeholder.jpg')
@@ -1059,31 +1210,32 @@ class Binary(http.Controller):
         '/web/image/<int:id>-<string:unique>/<int:width>x<int:height>',
         '/web/image/<int:id>-<string:unique>/<int:width>x<int:height>/<string:filename>'], type='http', auth="public")
     def content_image(self, xmlid=None, model='ir.attachment', id=None, field='datas',
-                      filename_field='datas_fname', unique=None, filename=None, mimetype=None,
+                      filename_field='name', unique=None, filename=None, mimetype=None,
                       download=None, width=0, height=0, crop=False, access_token=None,
                       **kwargs):
         # other kwargs are ignored on purpose
         return self._content_image(xmlid=xmlid, model=model, id=id, field=field,
             filename_field=filename_field, unique=unique, filename=filename, mimetype=mimetype,
-            download=download, width=width, height=height, crop=crop, access_token=access_token)
+            download=download, width=width, height=height, crop=crop,
+            quality=int(kwargs.get('quality', 0)), access_token=access_token)
 
     def _content_image(self, xmlid=None, model='ir.attachment', id=None, field='datas',
-                       filename_field='datas_fname', unique=None, filename=None, mimetype=None,
-                       download=None, width=0, height=0, crop=False, access_token=None,
+                       filename_field='name', unique=None, filename=None, mimetype=None,
+                       download=None, width=0, height=0, crop=False, quality=0, access_token=None,
                        placeholder='placeholder.png', **kwargs):
         status, headers, image_base64 = request.env['ir.http'].binary_content(
             xmlid=xmlid, model=model, id=id, field=field, unique=unique, filename=filename,
             filename_field=filename_field, download=download, mimetype=mimetype,
             default_mimetype='image/png', access_token=access_token)
 
-        if status == 301 or (status != 200 and download):
+        if status in [301, 304] or (status != 200 and download):
             return request.env['ir.http']._response_by_status(status, headers, image_base64)
         if not image_base64:
             image_base64 = base64.b64encode(self.placeholder(image=placeholder))
             if not (width or height):
                 width, height = odoo.tools.image_guess_size_from_field_name(field)
 
-        image_base64 = image_process(image_base64, size=(int(width), int(height)), crop=crop)
+        image_base64 = image_process(image_base64, size=(int(width), int(height)), crop=crop, quality=int(quality))
 
         content = base64.b64decode(image_base64)
         headers = http.set_safe_image_headers(headers, content)
@@ -1139,7 +1291,6 @@ class Binary(http.Controller):
                 attachment = Model.create({
                     'name': filename,
                     'datas': base64.encodestring(ufile.read()),
-                    'datas_fname': filename,
                     'res_model': model,
                     'res_id': int(id)
                 })
@@ -1291,7 +1442,7 @@ class Export(http.Controller):
         :rtype: [(str, str)]
         """
         return [
-            {'tag': 'xls', 'label': 'Excel', 'error': None if xlwt else "XLWT 1.3.0 required"},
+            {'tag': 'xlsx', 'label': 'XLSX', 'error': None if xlsxwriter else "XlsxWriter 0.9.3 required"},
             {'tag': 'csv', 'label': 'CSV'},
         ]
 
@@ -1305,23 +1456,21 @@ class Export(http.Controller):
                    import_compat=True, parent_field_type=None,
                    parent_field=None, exclude=None):
 
-        if import_compat and parent_field_type in ['many2one', 'many2many']:
-            fields = self.fields_get(model)
-            fields = {k: v for k, v in fields.items() if k in ['id', 'name']}
+        fields = self.fields_get(model)
+        if import_compat:
+            if parent_field_type in ['many2one', 'many2many']:
+                fields = {'id': fields['id'], 'name': fields['name']}
         else:
-            fields = self.fields_get(model)
+            fields['.id'] = {**fields['id']}
 
-        if not import_compat:
-            fields['.id'] = fields.pop('id', {'string': 'ID'})
-        else:
-            fields['id']['string'] = _('External ID')
+        fields['id']['string'] = _('External ID')
 
         if parent_field:
             parent_field['string'] = _('External ID')
             fields['id'] = parent_field
 
         fields_sequence = sorted(fields.items(),
-            key=lambda field: (field[0] not in ['id', '.id', 'display_name', 'name'], odoo.tools.ustr(field[1].get('string', ''))))
+            key=lambda field: odoo.tools.ustr(field[1].get('string', '').lower()))
 
         records = []
         for field_name, field in fields_sequence:
@@ -1337,12 +1486,13 @@ class Export(http.Controller):
                 continue
 
             id = prefix + (prefix and '/'or '') + field_name
+            val = id
             if field_name == 'name' and import_compat and parent_field_type in ['many2one', 'many2many']:
                 # Add name field when expand m2o and m2m fields in import-compatible mode
-                id = prefix
+                val = prefix
             name = parent_name + (parent_name and '/' or '') + field['string']
             record = {'id': id, 'string': name,
-                      'value': id, 'children': False,
+                      'value': val, 'children': False,
                       'field_type': field.get('type'),
                       'required': field.get('required'),
                       'relation_field': field.get('relation_field')}
@@ -1426,7 +1576,6 @@ class Export(http.Controller):
             for k, v in self.fields_info(model, export_fields).items())
 
 class ExportFormat(object):
-    raw_data = False
 
     @property
     def content_type(self):
@@ -1462,7 +1611,7 @@ class ExportFormat(object):
             fields = [field for field in fields if field['name'] != 'id']
 
         field_names = [f['name'] for f in fields]
-        import_data = records.export_data(field_names, self.raw_data).get('datas',[])
+        import_data = records.export_data(field_names).get('datas',[])
 
         if import_compat:
             columns_headers = field_names
@@ -1508,66 +1657,62 @@ class CSVExport(ExportFormat, http.Controller):
         return fp.getvalue()
 
 class ExcelExport(ExportFormat, http.Controller):
-    # Excel needs raw data to correctly handle numbers and date values
-    raw_data = True
 
-    @http.route('/web/export/xls', type='http', auth="user")
+    @http.route('/web/export/xlsx', type='http', auth="user")
     @serialize_exception
     def index(self, data, token):
         return self.base(data, token)
 
     @property
     def content_type(self):
-        return 'application/vnd.ms-excel'
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
     def filename(self, base):
-        return base + '.xls'
+        return base + '.xlsx'
 
     def from_data(self, fields, rows):
-        if len(rows) > 65535:
-            raise UserError(_('There are too many rows (%s rows, limit: 65535) to export as Excel 97-2003 (.xls) format. Consider splitting the export.') % len(rows))
-
-        workbook = xlwt.Workbook()
-        worksheet = workbook.add_sheet('Sheet 1')
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        worksheet = workbook.add_worksheet()
+        if len(rows) > worksheet.xls_rowmax:
+            raise UserError(_('There are too many rows (%s rows, limit: %s) to export as Excel 2007-2013 (.xlsx) format. Consider splitting the export.') % (len(rows), worksheet.xls_rowmax))
 
         for i, fieldname in enumerate(fields):
             worksheet.write(0, i, fieldname)
-            worksheet.col(i).width = 8000 # around 220 pixels
+        worksheet.set_column(0, len(fields)-1, 30) # around 220 pixels
 
-        base_style = xlwt.easyxf('align: wrap yes')
-        date_style = xlwt.easyxf('align: wrap yes', num_format_str='YYYY-MM-DD')
-        datetime_style = xlwt.easyxf('align: wrap yes', num_format_str='YYYY-MM-DD HH:mm:SS')
+        base_style = workbook.add_format({'text_wrap': True})
+        date_style = workbook.add_format({'text_wrap': True, 'num_format': 'yyyy-mm-dd'})
+        datetime_style = workbook.add_format({'text_wrap': True, 'num_format': 'yyyy-mm-dd hh:mm:ss'})
 
         for row_index, row in enumerate(rows):
             for cell_index, cell_value in enumerate(row):
                 cell_style = base_style
 
-                if isinstance(cell_value, bytes) and not isinstance(cell_value, str):
-                    # because xls uses raw export, we can get a bytes object
-                    # here. xlwt does not support bytes values in Python 3 ->
-                    # assume this is base64 and decode to a string, if this
-                    # fails note that you can't export
+                if isinstance(cell_value, bytes):
                     try:
+                        # because xlsx uses raw export, we can get a bytes object
+                        # here. xlsxwriter does not support bytes values in Python 3 ->
+                        # assume this is base64 and decode to a string, if this
+                        # fails note that you can't export
                         cell_value = pycompat.to_text(cell_value)
                     except UnicodeDecodeError:
                         raise UserError(_("Binary fields can not be exported to Excel unless their content is base64-encoded. That does not seem to be the case for %s.") % fields[cell_index])
 
                 if isinstance(cell_value, str):
-                    cell_value = re.sub("\r", " ", pycompat.to_text(cell_value))
-                    # Excel supports a maximum of 32767 characters in each cell:
-                    cell_value = cell_value[:32767]
+                    if len(cell_value) > worksheet.xls_strmax:
+                        cell_value = _("The content of this cell is too long for an XLSX file (more than %s characters). Please use the CSV format for this export.") % worksheet.xls_strmax
+                    else:
+                        cell_value = cell_value.replace("\r", " ")
                 elif isinstance(cell_value, datetime.datetime):
                     cell_style = datetime_style
                 elif isinstance(cell_value, datetime.date):
                     cell_style = date_style
                 worksheet.write(row_index + 1, cell_index, cell_value, cell_style)
 
-        fp = io.BytesIO()
-        workbook.save(fp)
-        fp.seek(0)
-        data = fp.read()
-        fp.close()
-        return data
+        workbook.close()
+        with output:
+            return output.getvalue()
 
 class Apps(http.Controller):
     @http.route('/apps/<app>', auth='user')
@@ -1589,8 +1734,7 @@ class Apps(http.Controller):
             action['views'] = [(False, u'form')]
 
         sakey = Session().save_session_action(action)
-        debug = '?debug' if req.debug else ''
-        return werkzeug.utils.redirect('/web{0}#sa={1}'.format(debug, sakey))
+        return werkzeug.utils.redirect('/web#sa={0}'.format(sakey))
 
 
 class ReportController(http.Controller):
@@ -1635,7 +1779,7 @@ class ReportController(http.Controller):
     # Misc. route utils
     #------------------------------------------------------
     @http.route(['/report/barcode', '/report/barcode/<type>/<path:value>'], type='http', auth="public")
-    def report_barcode(self, type, value, width=600, height=100, humanreadable=0):
+    def report_barcode(self, type, value, width=600, height=100, humanreadable=0, quiet=1):
         """Contoller able to render barcode images thanks to reportlab.
         Samples:
             <img t-att-src="'/report/barcode/QR/%s' % o.name"/>
@@ -1647,9 +1791,12 @@ class ReportController(http.Controller):
         'UPCA', 'USPS_4State'
         :param humanreadable: Accepted values: 0 (default) or 1. 1 will insert the readable value
         at the bottom of the output image
+        :param quiet: Accepted values: 0 (default) or 1. 1 will display white
+        margins on left and right.
         """
         try:
-            barcode = request.env['ir.actions.report'].barcode(type, value, width=width, height=height, humanreadable=humanreadable)
+            barcode = request.env['ir.actions.report'].barcode(type, value, width=width,
+                height=height, humanreadable=humanreadable, quiet=quiet)
         except (ValueError, AttributeError):
             raise werkzeug.exceptions.HTTPException(description='Cannot convert into barcode.')
 
@@ -1701,7 +1848,7 @@ class ReportController(http.Controller):
             else:
                 return
         except Exception as e:
-            se = _serialize_exception(e)
+            se = request.env['ir.http'].serialize_exception(e)
             error = {
                 'code': 200,
                 'message': "Odoo Server Error",

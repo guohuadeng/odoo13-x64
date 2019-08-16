@@ -10,18 +10,19 @@ class ResPartnerGrade(models.Model):
     _inherit = ['website.published.mixin']
     _description = 'Partner Grade'
 
-    website_published = fields.Boolean(default=True)
     sequence = fields.Integer('Sequence')
     active = fields.Boolean('Active', default=lambda *args: 1)
     name = fields.Char('Level Name', translate=True)
     partner_weight = fields.Integer('Level Weight', default=1,
         help="Gives the probability to assign a lead to this partner. (0 means no assignation.)")
 
-    @api.multi
     def _compute_website_url(self):
         super(ResPartnerGrade, self)._compute_website_url()
         for grade in self:
             grade.website_url = "/partners/grade/%s" % (slug(grade))
+
+    def _default_is_published(self):
+        return True
 
 
 class ResPartnerActivation(models.Model):
@@ -54,10 +55,10 @@ class ResPartner(models.Model):
     )
     implemented_count = fields.Integer(compute='_compute_implemented_partner_count', store=True)
 
-    @api.one
     @api.depends('implemented_partner_ids', 'implemented_partner_ids.website_published', 'implemented_partner_ids.active')
     def _compute_implemented_partner_count(self):
-        self.implemented_count = len(self.implemented_partner_ids.filtered('website_published'))
+        for partner in self:
+            partner.implemented_count = len(partner.implemented_partner_ids.filtered('website_published'))
 
     @api.onchange('grade_id')
     def _onchange_grade_id(self):

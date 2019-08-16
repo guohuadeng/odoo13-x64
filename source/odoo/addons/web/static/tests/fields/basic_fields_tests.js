@@ -42,6 +42,7 @@ QUnit.module('basic_fields', {
                     selection: {string: "Selection", type: "selection", searchable:true,
                         selection: [['normal', 'Normal'],['blocked', 'Blocked'],['done', 'Done']]},
                     document: {string: "Binary", type: "binary"},
+                    hex_color: {string: "hexadecimal color", type: "char"},
                 },
                 records: [{
                     id: 1,
@@ -57,6 +58,7 @@ QUnit.module('basic_fields', {
                     trululu: 4,
                     selection: 'blocked',
                     document: 'coucou==\n',
+                    hex_color: '#ff0000',
                 }, {
                     id: 2,
                     display_name: "second record",
@@ -320,39 +322,6 @@ QUnit.module('basic_fields', {
         list.destroy();
     });
 
-
-    QUnit.module('FieldBooleanButton');
-
-    QUnit.test('use custom terminology in form view', async function (assert) {
-        assert.expect(2);
-        var terminology = {
-            string_true: "Production Environment",
-            hover_true: "Switch to test environment",
-            string_false: "Test Environment",
-            hover_false: "Switch to production environment"
-        };
-        var form = await createView({
-            View: FormView,
-            model: 'partner',
-            data: this.data,
-            arch: '<form>' +
-                    '<div name="button_box" class="oe_button_box">' +
-                        '<button type="object" class="oe_stat_button" icon="fa-check-square">' +
-                            '<field name="bar" widget="boolean_button" options=\'{"terminology": ' +
-                                JSON.stringify(terminology) + '}\'/>' +
-                        '</button>' +
-                    '</div>' +
-                '</form>',
-            res_id: 2,
-        });
-
-        assert.containsOnce(form, ".o_stat_text.o_not_hover:contains(Production Environment)",
-            "button should contain correct string");
-        assert.containsOnce(form, ".o_stat_text.o_hover:contains(Switch to test environment)",
-            "button should display correct string when hovering");
-        form.destroy();
-    });
-
     QUnit.module('FieldBooleanToggle');
 
     QUnit.test('use boolean toggle widget in form view', async function (assert) {
@@ -560,6 +529,86 @@ QUnit.module('basic_fields', {
         await testUtils.form.clickSave(form);
         assert.strictEqual(form.$('.o_field_widget').first().text(), '18.896',
             'The new value should be rounded properly.');
+
+        form.destroy();
+    });
+
+    QUnit.test('float field using formula in form view', async function (assert) {
+        assert.expect(4);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch:'<form string="Partners">' +
+                    '<sheet>' +
+                        '<field name="qux" widget="float" digits="[5,3]"/>' +
+                    '</sheet>' +
+                '</form>',
+            res_id: 2,
+        });
+
+        // Test computation with priority of operation
+        await testUtils.form.clickEdit(form);
+        await testUtils.fields.editInput(form.$('input[name=qux]'), '=20+3*2');
+        await testUtils.form.clickSave(form);
+        assert.strictEqual(form.$('.o_field_widget').first().text(), '26.000',
+            'The new value should be calculated properly.');
+
+        // Test computation with ** operand
+        await testUtils.form.clickEdit(form);
+        await testUtils.fields.editInput(form.$('input[name=qux]'), '=2**3');
+        await testUtils.form.clickSave(form);
+        assert.strictEqual(form.$('.o_field_widget').first().text(), '8.000',
+            'The new value should be calculated properly.');
+
+        // Test computation with ^ operant which should do the same as **
+        await testUtils.form.clickEdit(form);
+        await testUtils.fields.editInput(form.$('input[name=qux]'), '=2^3');
+        await testUtils.form.clickSave(form);
+        assert.strictEqual(form.$('.o_field_widget').first().text(), '8.000',
+            'The new value should be calculated properly.');
+
+        // Test computation and rounding
+        await testUtils.form.clickEdit(form);
+        await testUtils.fields.editInput(form.$('input[name=qux]'), '=100/3');
+        await testUtils.form.clickSave(form);
+        assert.strictEqual(form.$('.o_field_widget').first().text(), '33.333',
+            'The new value should be calculated properly.');
+
+        form.destroy();
+    });
+
+    QUnit.test('float field using incorrect formula in form view', async function (assert) {
+        assert.expect(4);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch:'<form string="Partners">' +
+                    '<sheet>' +
+                        '<field name="qux" widget="float" digits="[5,3]"/>' +
+                    '</sheet>' +
+                '</form>',
+            res_id: 2,
+        });
+
+        // Test that incorrect value is not computed
+        await testUtils.form.clickEdit(form);
+        await testUtils.fields.editInput(form.$('input[name=qux]'), '=abc');
+        await testUtils.form.clickSave(form);
+        assert.hasClass(form.$('.o_form_view'),'o_form_editable',
+            "form view should still be editable");
+        assert.hasClass(form.$('input[name=qux]'),'o_field_invalid',
+            "fload field should be displayed as invalid");
+
+        await testUtils.fields.editInput(form.$('input[name=qux]'), '=3:2?+4');
+        await testUtils.form.clickSave(form);
+        assert.hasClass(form.$('.o_form_view'),'o_form_editable',
+            "form view should still be editable");
+        assert.hasClass(form.$('input[name=qux]'),'o_field_invalid',
+            "float field should be displayed as invalid");
 
         form.destroy();
     });
@@ -1998,6 +2047,36 @@ QUnit.module('basic_fields', {
         list.destroy();
     });
 
+    QUnit.test("binary fields input value is empty whean clearing after uploading", async function (assert) {
+        assert.expect(2);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners">' +
+                '<field name="document" filename="foo"/>' +
+                '<field name="foo"/>' +
+                '</form>',
+            res_id: 1,
+        });
+
+        await testUtils.form.clickEdit(form);
+
+        // // We need to convert the input type since we can't programmatically set the value of a file input
+        form.$('.o_input_file').attr('type', 'text').val('coucou.txt');
+
+        assert.strictEqual(form.$('.o_input_file').val(), 'coucou.txt',
+            "input value should be changed to \"coucou.txt\"");
+
+        await testUtils.dom.click(form.$('.o_field_binary_file > .o_clear_file_button'));
+
+        assert.strictEqual(form.$('.o_input_file').val(), '',
+            "input value should be empty");
+
+        form.destroy();
+    });
+
     QUnit.test('field text in editable list view', async function (assert) {
         assert.expect(1);
 
@@ -2501,6 +2580,174 @@ QUnit.module('basic_fields', {
     });
 
 
+    QUnit.module('FieldDateRange');
+
+    QUnit.test('Datetime field', async function (assert) {
+        assert.expect(19);
+
+        this.data.partner.fields.datetime_end = {string: 'Datetime End', type: 'datetime'};
+        this.data.partner.records[0].datetime_end = '2017-03-13 00:00:00';
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form>' +
+                    '<field name="datetime" widget="daterange" options="{\'related_end_date\': \'datetime_end\'}"/>' +
+                    '<field name="datetime_end" widget="daterange" options="{\'related_start_date\': \'datetime\'}"/>' +
+                '</form>',
+            res_id: 1,
+            session: {
+                getTZOffset: function () {
+                    return 330;
+                },
+            },
+        });
+
+        // Check date display correctly in readonly
+        assert.strictEqual(form.$('.o_field_date_range:first').text(), '02/08/2017 15:30:00',
+            "the start date should be correctly displayed in readonly");
+        assert.strictEqual(form.$('.o_field_date_range:last').text(), '03/13/2017 05:30:00',
+            "the end date should be correctly displayed in readonly");
+
+        // Edit
+        await testUtils.form.clickEdit(form);
+
+        // Check date range picker initialization
+        assert.containsN(document.body, '.daterangepicker', 2,
+            "should initialize 2 date range picker");
+        assert.strictEqual($('.daterangepicker:first').css('display'), 'block',
+            "date range picker should be opened initially");
+        assert.strictEqual($('.daterangepicker:last').css('display'), 'none',
+            "date range picker should be closed initially");
+        assert.strictEqual($('.daterangepicker:first .drp-calendar.left .active.start-date').text(), '8',
+            "active start date should be '8' in date range picker");
+        assert.strictEqual($('.daterangepicker:first .drp-calendar.left .hourselect').val(), '15',
+            "active start date hour should be '15' in date range picker");
+        assert.strictEqual($('.daterangepicker:first .drp-calendar.left .minuteselect').val(), '30',
+            "active start date minute should be '30' in date range picker");
+        assert.strictEqual($('.daterangepicker:first .drp-calendar.right .active.end-date').text(), '13',
+            "active end date should be '13' in date range picker");
+        assert.strictEqual($('.daterangepicker:first .drp-calendar.right .hourselect').val(), '5',
+            "active end date hour should be '5' in date range picker");
+        assert.strictEqual($('.daterangepicker:first .drp-calendar.right .minuteselect').val(), '30',
+            "active end date minute should be '30' in date range picker");
+
+        // Close picker
+        await testUtils.dom.click($('.daterangepicker:first .cancelBtn'));
+        assert.strictEqual($('.daterangepicker:first').css('display'), 'none',
+            "date range picker should be closed");
+
+        // Try to check with end date
+        await testUtils.dom.click(form.$('.o_field_date_range:last'));
+        assert.strictEqual($('.daterangepicker:last').css('display'), 'block',
+            "date range picker should be opened");
+        assert.strictEqual($('.daterangepicker:last .drp-calendar.left .active.start-date').text(), '8',
+            "active start date should be '8' in date range picker");
+        assert.strictEqual($('.daterangepicker:last .drp-calendar.left .hourselect').val(), '15',
+            "active start date hour should be '15' in date range picker");
+        assert.strictEqual($('.daterangepicker:last .drp-calendar.left .minuteselect').val(), '30',
+            "active start date minute should be '30' in date range picker");
+        assert.strictEqual($('.daterangepicker:last .drp-calendar.right .active.end-date').text(), '13',
+            "active end date should be '13' in date range picker");
+        assert.strictEqual($('.daterangepicker:last .drp-calendar.right .hourselect').val(), '5',
+            "active end date hour should be '5' in date range picker");
+        assert.strictEqual($('.daterangepicker:last .drp-calendar.right .minuteselect').val(), '30',
+            "active end date minute should be '30' in date range picker");
+
+        form.destroy();
+    });
+
+    QUnit.test('Date field', async function (assert) {
+        assert.expect(18);
+
+        this.data.partner.fields.date_end = {string: 'Date End', type: 'date'};
+        this.data.partner.records[0].date_end = '2017-02-08';
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form>' +
+                    '<field name="date" widget="daterange" options="{\'related_end_date\': \'date_end\'}"/>' +
+                    '<field name="date_end" widget="daterange" options="{\'related_start_date\': \'date\'}"/>' +
+                '</form>',
+            res_id: 1,
+            session: {
+                getTZOffset: function () {
+                    return 330;
+                },
+            },
+        });
+
+        // Check date display correctly in readonly
+        assert.strictEqual(form.$('.o_field_date_range:first').text(), '02/03/2017',
+            "the start date should be correctly displayed in readonly");
+        assert.strictEqual(form.$('.o_field_date_range:last').text(), '02/08/2017',
+            "the end date should be correctly displayed in readonly");
+
+        // Edit
+        await testUtils.form.clickEdit(form);
+
+        // Check date range picker initialization
+        assert.containsN(document.body, '.daterangepicker', 2,
+            "should initialize 2 date range picker");
+        assert.strictEqual($('.daterangepicker:first').css('display'), 'block',
+            "date range picker should be opened initially");
+        assert.strictEqual($('.daterangepicker:last').css('display'), 'none',
+            "date range picker should be closed initially");
+        assert.strictEqual($('.daterangepicker:first .active.start-date').text(), '3',
+            "active start date should be '3' in date range picker");
+        assert.strictEqual($('.daterangepicker:first .active.end-date').text(), '8',
+            "active end date should be '8' in date range picker");
+
+        // Change date
+        await testUtils.dom.triggerMouseEvent($('.daterangepicker:first .drp-calendar.left .available:contains("16")'), 'mousedown');
+        await testUtils.dom.triggerMouseEvent($('.daterangepicker:first .drp-calendar.right .available:contains("12")'), 'mousedown');
+        await testUtils.dom.click($('.daterangepicker:first .applyBtn'));
+
+        // Check date after change
+        assert.strictEqual($('.daterangepicker:first').css('display'), 'none',
+            "date range picker should be closed");
+        assert.strictEqual(form.$('.o_field_date_range:first').val(), '02/16/2017',
+            "the date should be '02/16/2017'");
+        assert.strictEqual(form.$('.o_field_date_range:last').val(), '03/12/2017',
+            "'the date should be '03/12/2017'");
+
+        // Try to change range with end date
+        await testUtils.dom.click(form.$('.o_field_date_range:last'));
+        assert.strictEqual($('.daterangepicker:last').css('display'), 'block',
+            "date range picker should be opened");
+        assert.strictEqual($('.daterangepicker:last .active.start-date').text(), '16',
+            "start date should be a 16 in date range picker");
+        assert.strictEqual($('.daterangepicker:last .active.end-date').text(), '12',
+            "end date should be a 12 in date range picker");
+
+        // Change date
+        await testUtils.dom.triggerMouseEvent($('.daterangepicker:last .drp-calendar.left .available:contains("13")'), 'mousedown');
+        await testUtils.dom.triggerMouseEvent($('.daterangepicker:last .drp-calendar.right .available:contains("18")'), 'mousedown');
+        await testUtils.dom.click($('.daterangepicker:last .applyBtn'));
+
+        // Check date after change
+        assert.strictEqual($('.daterangepicker:last').css('display'), 'none',
+            "date range picker should be closed");
+        assert.strictEqual(form.$('.o_field_date_range:first').val(), '02/13/2017',
+            "the start date should be '02/13/2017'");
+        assert.strictEqual(form.$('.o_field_date_range:last').val(), '03/18/2017',
+            "the end date should be '03/18/2017'");
+
+        // Save
+        await testUtils.form.clickSave(form);
+
+        // Check date after save
+        assert.strictEqual(form.$('.o_field_date_range:first').text(), '02/13/2017',
+            "the start date should be '02/13/2017' after save");
+        assert.strictEqual(form.$('.o_field_date_range:last').text(), '03/18/2017',
+            "the end date should be '03/18/2017' after save");
+
+        form.destroy();
+    });
+
     QUnit.module('FieldDate');
 
     QUnit.test('date field: toggle datepicker [REQUIRE FOCUS]', async function (assert) {
@@ -2546,6 +2793,25 @@ QUnit.module('basic_fields', {
         var $span = form.$('span.o_field_widget');
         assert.strictEqual($span.length, 1, "should have one span in the form view");
         assert.strictEqual($span.text(), "", "and it should be empty");
+        form.destroy();
+    });
+
+    QUnit.test('date field should remove the date  if the date is not valid', async function (assert) {
+        assert.expect(1);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: '<form string="Partners"><field name="date"/></form>',
+            res_id: 4,
+        });
+        // switch to edit mode
+        await testUtils.form.clickEdit(form);
+        // set an invalid date
+        var $input = form.$('.o_field_widget[name=date] input');
+        $input.val('mmmh').trigger('change');
+        assert.strictEqual($input.text(), "", "The date field should be empty");
         form.destroy();
     });
 
@@ -2676,7 +2942,7 @@ QUnit.module('basic_fields', {
 
         await testUtils.form.clickEdit(form);
         await testUtils.dom.openDatepicker(form.$('.o_datepicker'));
-        
+
         assert.containsOnce($('body'), '.bootstrap-datetimepicker-widget', "datepicker should be opened");
 
         form.el.dispatchEvent(new Event('scroll'));
@@ -3341,6 +3607,35 @@ QUnit.module('basic_fields', {
         form.destroy();
     });
 
+    QUnit.test('monetary field rounding using formula in form view', async function (assert) {
+        assert.expect(1);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch:'<form string="Partners">' +
+                    '<sheet>' +
+                        '<field name="qux" widget="monetary"/>' +
+                        '<field name="currency_id" invisible="1"/>' +
+                    '</sheet>' +
+                '</form>',
+            res_id: 5,
+            session: {
+                currencies: _.indexBy(this.data.currency.records, 'id'),
+            },
+        });
+
+        // Test computation and rounding
+        await testUtils.form.clickEdit(form);
+        await testUtils.fields.editInput(form.$('.o_field_monetary input'), '=100/3');
+        await testUtils.form.clickSave(form);
+        assert.strictEqual(form.$('.o_field_widget').first().text(), '$\u00a033.33',
+            'The new value should be calculated and rounded properly.');
+
+        form.destroy();
+    });
+
     QUnit.test('monetary field with currency symbol after', async function (assert) {
         assert.expect(5);
 
@@ -3747,6 +4042,27 @@ QUnit.module('basic_fields', {
         await testUtils.form.clickSave(form);
         assert.strictEqual(form.$('.o_field_widget').text(), '-18',
             'The new value should be saved and displayed properly.');
+
+        form.destroy();
+    });
+
+    QUnit.test('integer field rounding using formula in form view', async function (assert) {
+        assert.expect(1);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch:'<form string="Partners"><field name="int_field"/></form>',
+            res_id: 2,
+        });
+
+        // Test computation and rounding
+        await testUtils.form.clickEdit(form);
+        await testUtils.fields.editInput(form.$('input[name=int_field]'), '=100/3');
+        await testUtils.form.clickSave(form);
+        assert.strictEqual(form.$('.o_field_widget').first().text(), '33',
+            'The new value should be calculated properly.');
 
         form.destroy();
     });
@@ -5429,6 +5745,36 @@ QUnit.module('basic_fields', {
         form.destroy();
     });
 
+    QUnit.test('field context is propagated when opening selection', async function (assert) {
+        assert.expect(1);
+
+        this.data.partner.records[0].foo = "[]";
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch: `
+                <form>
+                    <field name="foo" widget="domain" options="{'model': 'partner_type'}" context="{'tree_view_ref': 3}"/>
+                </form>
+            `,
+            archs: {
+                'partner_type,false,list': '<tree><field name="display_name"/></tree>',
+                'partner_type,3,list': '<tree><field name="id"/></tree>',
+                'partner_type,false,search': '<search><field name="name" string="Name"/></search>',
+            },
+            res_id: 1,
+        });
+
+        await testUtils.dom.click(form.$(".o_domain_show_selection_button"));
+
+        assert.strictEqual($('.modal .o_data_row').text(), '1214',
+            "should have picked the correct list view");
+
+        form.destroy();
+    });
+
     QUnit.module('FieldProgressBar');
 
     QUnit.test('Field ProgressBar: max_value should update', async function (assert) {
@@ -5467,6 +5813,68 @@ QUnit.module('basic_fields', {
 
         assert.strictEqual(form.$('.o_progressbar_value').text(), '999 / 5',
             'The value of the progress bar should be correct after the update');
+
+        form.destroy();
+    });
+
+    QUnit.module('FieldColor');
+
+    QUnit.test('Field Color: default widget state', async function (assert) {
+        assert.expect(3);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch:
+                '<form>' +
+                    '<field name="hex_color" widget="color" />' +
+                '</form>',
+            res_id: 1,
+            viewOptions: {
+                mode: 'edit',
+            },
+        });
+
+        await testUtils.dom.click(form.$('.o_field_color'));
+        await testUtils.nextTick();
+        assert.containsOnce($, '.modal');
+        assert.containsNone($('.modal'), '.o_opacity_slider',
+            "Opacity slider should not be present");
+        assert.containsNone($('.modal'), '.o_opacity_input',
+            "Opacity input should not be present");
+
+        await testUtils.dom.click($('.modal .btn:contains("Discard")'));
+
+        form.destroy();
+    });
+
+    QUnit.test('Field Color: pick and reset colors', async function (assert) {
+        assert.expect(2);
+
+        var form = await createView({
+            View: FormView,
+            model: 'partner',
+            data: this.data,
+            arch:
+                '<form>' +
+                    '<field name="hex_color" widget="color" />' +
+                '</form>',
+            res_id: 1,
+            viewOptions: {
+                mode: 'edit',
+            },
+        });
+
+        assert.strictEqual($('.o_field_color').css('backgroundColor'), 'rgb(255, 0, 0)',
+            "Background of the color field should be initially red");
+
+        await testUtils.dom.click(form.$('.o_field_color'));
+        await testUtils.fields.editAndTrigger($('.modal .o_hex_input'), '#00ff00', ['change']);
+        await testUtils.dom.click($('.modal .btn:contains("Choose")'));
+
+        assert.strictEqual($('.o_field_color').css('backgroundColor'), 'rgb(0, 255, 0)',
+            "Background of the color field should be updated to green");
 
         form.destroy();
     });

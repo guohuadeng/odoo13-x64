@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from collections import defaultdict
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools import float_compare, float_round
-from odoo.addons import decimal_precision as dp
 
 
 class MrpWorkorder(models.Model):
@@ -34,11 +33,11 @@ class MrpWorkorder(models.Model):
         related='production_id.state',
         help='Technical: used in views only.')
     qty_production = fields.Float('Original Production Quantity', readonly=True, related='production_id.product_qty')
-    qty_remaining = fields.Float('Quantity To Be Produced', compute='_compute_qty_remaining', digits=dp.get_precision('Product Unit of Measure'))
+    qty_remaining = fields.Float('Quantity To Be Produced', compute='_compute_qty_remaining', digits='Product Unit of Measure')
     qty_produced = fields.Float(
         'Quantity', default=0.0,
         readonly=True,
-        digits=dp.get_precision('Product Unit of Measure'),
+        digits='Product Unit of Measure',
         help="The number of products already handled by this work order")
     is_produced = fields.Boolean(string="Has Been Produced",
         compute='_compute_is_produced')
@@ -56,14 +55,14 @@ class MrpWorkorder(models.Model):
         'Scheduled Date Start',
         compute='_compute_dates_planned',
         inverse='_set_dates_planned',
-        search='_search_date_planned_start',
-        states={'done': [('readonly', True)], 'cancel': [('readonly', True)]})
+        states={'done': [('readonly', True)], 'cancel': [('readonly', True)]},
+        store=True)
     date_planned_finished = fields.Datetime(
         'Scheduled Date Finished',
         compute='_compute_dates_planned',
         inverse='_set_dates_planned',
-        search='_search_date_planned_finished',
-        states={'done': [('readonly', True)], 'cancel': [('readonly', True)]})
+        states={'done': [('readonly', True)], 'cancel': [('readonly', True)]},
+        store=True)
     date_start = fields.Datetime(
         'Effective Start Date',
         states={'done': [('readonly', True)], 'cancel': [('readonly', True)]})
@@ -89,6 +88,10 @@ class MrpWorkorder(models.Model):
         'mrp.routing.workcenter', 'Operation')  # Should be used differently as BoM can change in the meantime
     worksheet = fields.Binary(
         'Worksheet', related='operation_id.worksheet', readonly=True)
+    worksheet_type = fields.Selection(
+        'Worksheet Type', related='operation_id.worksheet_type', readonly=True)
+    worksheet_google_slide = fields.Char(
+        'Worksheet URL', related='operation_id.worksheet_google_slide', readonly=True)
     move_raw_ids = fields.One2many(
         'stock.move', 'workorder_id', 'Raw Moves',
         domain=[('raw_material_production_id', '!=', False), ('production_id', '=', False)])
@@ -128,8 +131,7 @@ class MrpWorkorder(models.Model):
     # fields Changes. As the ORM doesn't batch the write on related fields and instead
     # makes multiple call, the constraint check_dates() is raised.
     # That's why the compute and set methods are needed. to ensure the dates are updated
-    # in the same time. The two next search method are needed as the field are non stored and
-    # not direct related fields.
+    # in the same time.
     @api.depends('leave_id')
     def _compute_dates_planned(self):
         for workorder in self:
@@ -137,18 +139,20 @@ class MrpWorkorder(models.Model):
             workorder.date_planned_finished = workorder.leave_id.date_to
 
     def _set_dates_planned(self):
-        date_from = self.date_planned_start[0]
-        date_to = self.date_planned_finished[0]
+        date_from = self[0].date_planned_start
+        date_to = self[0].date_planned_finished
         self.mapped('leave_id').write({
             'date_from': date_from,
             'date_to': date_to,
         })
 
-    def _search_date_planned_start(self, operator, value):
-        return [('leave_id.date_from', operator, value)]
-
-    def _search_date_planned_finished(self, operator, value):
-        return [('leave_id.date_to', operator, value)]
+    @api.onchange('date_planned_start')
+    def _onchange_date_planned_start(self):
+        if self.duration_expected:
+            time_delta = timedelta(minutes=self.duration_expected)
+        else:
+            time_delta = timedelta(hours=1)
+        self.update({'date_planned_finished': self.date_planned_start + time_delta})
 
     @api.onchange('finished_lot_id')
     def _onchange_finished_lot_id(self):
@@ -200,25 +204,30 @@ class MrpWorkorder(models.Model):
                 else:
                     workorder.allowed_lots_domain = allowed_lot_ids
 
-    @api.multi
     def name_get(self):
         return [(wo.id, "%s - %s - %s" % (wo.production_id.name, wo.product_id.name, wo.name)) for wo in self]
 
-    @api.one
+    def unlink(self):
+        # Removes references to workorder to avoid Validation Error
+        (self.mapped('move_raw_ids') | self.mapped('move_finished_ids')).write({'workorder_id': False})
+        self.mapped('leave_id').unlink()
+        return super(MrpWorkorder, self).unlink()
+
     @api.depends('production_id.product_qty', 'qty_produced')
     def _compute_is_produced(self):
-        rounding = self.production_id.product_uom_id.rounding
-        self.is_produced = float_compare(self.qty_produced, self.production_id.product_qty, precision_rounding=rounding) >= 0
+        for order in self:
+            rounding = order.production_id.product_uom_id.rounding
+            order.is_produced = float_compare(order.qty_produced, order.production_id.product_qty, precision_rounding=rounding) >= 0
 
-    @api.one
     @api.depends('time_ids.duration', 'qty_produced')
     def _compute_duration(self):
-        self.duration = sum(self.time_ids.mapped('duration'))
-        self.duration_unit = round(self.duration / max(self.qty_produced, 1), 2)  # rounding 2 because it is a time
-        if self.duration_expected:
-            self.duration_percent = 100 * (self.duration_expected - self.duration) / self.duration_expected
-        else:
-            self.duration_percent = 0
+        for order in self:
+            order.duration = sum(order.time_ids.mapped('duration'))
+            order.duration_unit = round(order.duration / max(order.qty_produced, 1), 2)  # rounding 2 because it is a time
+            if order.duration_expected:
+                order.duration_percent = 100 * (order.duration_expected - order.duration) / order.duration_expected
+            else:
+                order.duration_percent = 0
 
     def _compute_working_users(self):
         """ Checks whether the current user is working, all the users currently working and the last user that worked. """
@@ -233,14 +242,12 @@ class MrpWorkorder(models.Model):
             else:
                 order.is_user_working = False
 
-    @api.multi
     def _compute_scrap_move_count(self):
         data = self.env['stock.scrap'].read_group([('workorder_id', 'in', self.ids)], ['workorder_id'], ['workorder_id'])
         count_data = dict((item['workorder_id'][0], item['workorder_id_count']) for item in data)
         for workorder in self:
             workorder.scrap_count = count_data.get(workorder.id, 0)
 
-    @api.multi
     @api.depends('date_planned_finished', 'production_id.date_planned_finished')
     def _compute_color(self):
         late_orders = self.filtered(lambda x: x.production_id.date_planned_finished and x.date_planned_finished > x.production_id.date_planned_finished)
@@ -249,7 +256,6 @@ class MrpWorkorder(models.Model):
         for order in (self - late_orders):
             order.color = 2
 
-    @api.multi
     def write(self, values):
         if list(values.keys()) != ['time_ids'] and any(workorder.state == 'done' for workorder in self):
             raise UserError(_('You can not change the finished work order.'))
@@ -259,6 +265,16 @@ class MrpWorkorder(models.Model):
                 end_date = fields.Datetime.to_datetime(values.get('date_planned_finished')) or workorder.date_planned_finished
                 if start_date and end_date and start_date > end_date:
                     raise UserError(_('The planned end date of the work order cannot be prior to the planned start date, please correct this to save the work order.'))
+                # Update MO dates if the start date of the first WO or the
+                # finished date of the last WO is update.
+                if workorder == workorder.production_id.workorder_ids[0] and 'date_planned_start' in values:
+                    workorder.production_id.with_context(force_date=True).write({
+                        'date_planned_start': values['date_planned_start']
+                    })
+                if workorder == workorder.production_id.workorder_ids[-1] and 'date_planned_finished' in values:
+                    workorder.production_id.with_context(force_date=True).write({
+                        'date_planned_finished': values['date_planned_finished']
+                    })
         return super(MrpWorkorder, self).write(values)
 
     def _generate_wo_lines(self):
@@ -332,7 +348,6 @@ class MrpWorkorder(models.Model):
                 return True
         return False
 
-    @api.multi
     def record_production(self):
         if not self:
             return True
@@ -437,7 +452,6 @@ class MrpWorkorder(models.Model):
         else:
             current_lot_lines.qty_done += self.qty_producing
 
-    @api.multi
     def _start_nextworkorder(self):
         rounding = self.product_id.uom_id.rounding
         if self.next_work_order_id.state == 'pending' and (
@@ -447,7 +461,6 @@ class MrpWorkorder(models.Model):
                  float_compare(self.operation_id.batch_size, self.qty_produced, precision_rounding=rounding) <= 0)):
             self.next_work_order_id.state = 'ready'
 
-    @api.multi
     def button_start(self):
         self.ensure_one()
         # As button_start is automatically called in the new view
@@ -480,13 +493,11 @@ class MrpWorkorder(models.Model):
                     'date_start': datetime.now(),
         })
 
-    @api.multi
     def button_finish(self):
         self.ensure_one()
         self.end_all()
         return self.write({'state': 'done', 'date_finished': fields.Datetime.now()})
 
-    @api.multi
     def end_previous(self, doall=False):
         """
         @param: doall:  This will close all open time lines on the open work orders when doall = True, otherwise
@@ -519,26 +530,21 @@ class MrpWorkorder(models.Model):
             not_productive_timelines.write({'loss_id': loss_id.id})
         return True
 
-    @api.multi
     def end_all(self):
         return self.end_previous(doall=True)
 
-    @api.multi
     def button_pending(self):
         self.end_previous()
         return True
 
-    @api.multi
     def button_unblock(self):
         for order in self:
             order.workcenter_id.unblock()
         return True
 
-    @api.multi
     def action_cancel(self):
         return self.write({'state': 'cancel'})
 
-    @api.multi
     def button_done(self):
         if any([x.state in ('done', 'cancel') for x in self]):
             raise UserError(_('A Manufacturing Order is already done or cancelled.'))
@@ -546,29 +552,27 @@ class MrpWorkorder(models.Model):
         return self.write({'state': 'done',
                     'date_finished': datetime.now()})
 
-    @api.multi
     def button_scrap(self):
         self.ensure_one()
         return {
             'name': _('Scrap'),
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'stock.scrap',
             'view_id': self.env.ref('stock.stock_scrap_form_view2').id,
             'type': 'ir.actions.act_window',
-            'context': {'default_workorder_id': self.id, 'default_production_id': self.production_id.id, 'product_ids': (self.production_id.move_raw_ids.filtered(lambda x: x.state not in ('done', 'cancel')) | self.production_id.move_finished_ids.filtered(lambda x: x.state == 'done')).mapped('product_id').ids},
-            # 'context': {'product_ids': self.move_raw_ids.filtered(lambda x: x.state not in ('done', 'cancel')).mapped('product_id').ids + [self.production_id.product_id.id]},
+            'context': {'default_company_id': self.production_id.company_id.id,
+                        'default_workorder_id': self.id,
+                        'default_production_id': self.production_id.id,
+                        'product_ids': (self.production_id.move_raw_ids.filtered(lambda x: x.state not in ('done', 'cancel')) | self.production_id.move_finished_ids.filtered(lambda x: x.state == 'done')).mapped('product_id').ids},
             'target': 'new',
         }
 
-    @api.multi
     def action_see_move_scrap(self):
         self.ensure_one()
         action = self.env.ref('stock.action_stock_scrap').read()[0]
         action['domain'] = [('workorder_id', '=', self.id)]
         return action
 
-    @api.multi
     @api.depends('qty_production', 'qty_produced')
     def _compute_qty_remaining(self):
         for wo in self:
@@ -580,8 +584,10 @@ class MrpWorkorderLine(models.Model):
     _inherit = ["mrp.abstract.workorder.line"]
     _description = "Workorder move line"
 
-    raw_workorder_id = fields.Many2one('mrp.workorder', 'Component for Workorder')
-    finished_workorder_id = fields.Many2one('mrp.workorder', 'Finished Product for Workorder')
+    raw_workorder_id = fields.Many2one('mrp.workorder', 'Component for Workorder',
+        ondelete='cascade')
+    finished_workorder_id = fields.Many2one('mrp.workorder', 'Finished Product for Workorder',
+        ondelete='cascade')
 
     @api.model
     def _get_raw_workorder_inverse_name(self):

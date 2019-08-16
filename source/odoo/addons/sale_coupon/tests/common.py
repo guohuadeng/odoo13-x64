@@ -1,13 +1,18 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from openerp.tests import common
+from odoo.addons.sale.tests.test_sale_product_attribute_value_config import TestSaleProductAttributeValueSetup
 
 
-class TestSaleCouponCommon(common.TransactionCase):
+class TestSaleCouponCommon(TestSaleProductAttributeValueSetup):
 
     def setUp(self):
         super(TestSaleCouponCommon, self).setUp()
+
+        # set currency to not rely on demo data and avoid possible race condition
+        self.currency_ratio = 1.0
+        pricelist = self.env.ref('product.list0')
+        pricelist.currency_id = self._setup_currency(self.currency_ratio)
 
         # Set all the existing programs to active=False to avoid interference
         self.env['sale.coupon.program'].search([]).write({'active': False})
@@ -15,7 +20,6 @@ class TestSaleCouponCommon(common.TransactionCase):
         # create partner for sale order.
         self.steve = self.env['res.partner'].create({
             'name': 'Steve Bucknor',
-            'customer': True,
             'email': 'steve.bucknor@example.com',
         })
 
@@ -55,6 +59,14 @@ class TestSaleCouponCommon(common.TransactionCase):
             'taxes_id': [(6, 0, [self.tax_15pc_excl.id])],
         })
 
+        self.product_C = self.env['product.product'].create({
+            'name': 'Product C',
+            'list_price': 100,
+            'sale_ok': True,
+            'taxes_id': [(6, 0, [])],
+
+        })
+
         # Immediate Program By A + B: get B free
         # No Conditions
         self.immediate_promotion_program = self.env['sale.coupon.program'].create({
@@ -73,4 +85,15 @@ class TestSaleCouponCommon(common.TransactionCase):
             'reward_product_id': self.product_A.id,
             'rule_products_domain': "[('id', 'in', [%s])]" % (self.product_A.id),
             'active': True,
+        })
+
+        self.code_promotion_program_with_discount = self.env['sale.coupon.program'].create({
+            'name': 'Buy 1 C + Enter code, 10 percent discount on C',
+            'promo_code_usage': 'code_needed',
+            'reward_type': 'discount',
+            'discount_type': 'percentage',
+            'discount_percentage': 10,
+            'rule_products_domain': "[('id', 'in', [%s])]" % (self.product_C.id),
+            'active': True,
+            'discount_apply_on': 'on_order',
         })

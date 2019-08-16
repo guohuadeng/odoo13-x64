@@ -4,7 +4,6 @@
 from odoo import api, exceptions, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools import float_compare, float_round
-from odoo.addons import decimal_precision as dp
 
 
 class StockMoveLine(models.Model):
@@ -14,7 +13,7 @@ class StockMoveLine(models.Model):
     production_id = fields.Many2one('mrp.production', 'Production Order')
     lot_produced_ids = fields.Many2many('stock.production.lot', string='Finished Lot/Serial Number')
     lot_produced_qty = fields.Float(
-        'Quantity Finished Product', digits=dp.get_precision('Product Unit of Measure'),
+        'Quantity Finished Product', digits='Product Unit of Measure',
         help="Informative, not used in matching")
     done_move = fields.Boolean('Move Done', related='move_id.is_done', readonly=False, store=True)  # TDE FIXME: naming
 
@@ -39,7 +38,6 @@ class StockMoveLine(models.Model):
                 return False
         return super(StockMoveLine, self)._reservation_is_updatable(quantity, reserved_quant)
 
-    @api.multi
     def write(self, vals):
         for move_line in self:
             if move_line.move_id.production_id and 'lot_id' in vals:
@@ -136,12 +134,6 @@ class StockMove(models.Model):
                                                'workorder_id': move.workorder_id.id,})
         return res
 
-    def _action_cancel(self):
-        if any(move.quantity_done and (move.raw_material_production_id or move.production_id) for move in self):
-            raise exceptions.UserError(_('You cannot cancel a manufacturing order if you have already consumed material.\
-             If you want to cancel this MO, please change the consumed quantities to 0.'))
-        return super(StockMove, self)._action_cancel()
-
     def _action_confirm(self, merge=True, merge_into=False):
         moves = self.env['stock.move']
         for move in self:
@@ -224,10 +216,15 @@ class StockMove(models.Model):
         return self.env['stock.move']
 
     def _get_upstream_documents_and_responsibles(self, visited):
-            if self.created_production_id and self.created_production_id.state not in ('done', 'cancel'):
-                return [(self.created_production_id, self.created_production_id.user_id, visited)]
+            if self.production_id and self.production_id.state not in ('done', 'cancel'):
+                return [(self.production_id, self.production_id.user_id, visited)]
             else:
                 return super(StockMove, self)._get_upstream_documents_and_responsibles(visited)
+
+    def _delay_alert_get_documents(self):
+        res = super(StockMove, self)._delay_alert_get_documents()
+        productions = self.mapped('raw_material_production_id')
+        return res + list(productions)
 
     def _should_be_assigned(self):
         res = super(StockMove, self)._should_be_assigned()

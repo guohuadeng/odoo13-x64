@@ -52,6 +52,7 @@ var KanbanRecord = Widget.extend({
         this.editable = options.editable;
         this.deletable = options.deletable;
         this.read_only_mode = options.read_only_mode;
+        this.selectionMode = options.selectionMode;
         this.qweb = options.qweb;
         this.subWidgets = {};
 
@@ -245,7 +246,7 @@ var KanbanRecord = Widget.extend({
                     if (Widget) {
                         widget = self._processWidget($field, field_name, Widget);
                         self.subWidgets[field_name] = widget;
-                    } else if (config.debug) {
+                    } else if (config.isDebug()) {
                         // the widget is not implemented
                         $field.replaceWith($('<span>', {
                             text: _.str.sprintf(_t('[No widget %s]'), field_widget),
@@ -345,6 +346,10 @@ var KanbanRecord = Widget.extend({
         this.$el.addClass('o_kanban_record').attr("tabindex", 0);
         this.$el.attr('role', 'article');
         this.$el.data('record', this);
+        // forcefully add class oe_kanban_global_click to have clickable record always to select it
+        if (this.selectionMode) {
+            this.$el.addClass('oe_kanban_global_click');
+        }
         if (this.$el.hasClass('oe_kanban_global_click') ||
             this.$el.hasClass('oe_kanban_global_click_edit')) {
             this.$el.on('click', this._onGlobalClick.bind(this));
@@ -502,6 +507,7 @@ var KanbanRecord = Widget.extend({
             kanban_getcolor: this._getColorID.bind(this),
             kanban_getcolorname: this._getColorname.bind(this),
             kanban_compute_domain: this._computeDomain.bind(this),
+            selection_mode: this.selectionMode,
             read_only_mode: this.read_only_mode,
             record: this.record,
             user_context: this.getSession().user_context,
@@ -665,8 +671,10 @@ var KanbanRecord = Widget.extend({
                 break;
             case 'action':
             case 'object':
+                var attrs = $action.data();
+                attrs.confirm = $action.attr('confirm');
                 this.trigger_up('button_clicked', {
-                    attrs: $action.data(),
+                    attrs: attrs,
                     record: this.state,
                 });
                 break;
@@ -695,9 +703,11 @@ var KanbanRecord = Widget.extend({
     _onKeyDownCard: function (event) {
         switch (event.keyCode) {
             case $.ui.keyCode.ENTER:
-                event.preventDefault();
-                this._onGlobalClick(event);
-                break;
+                if ($(event.target).hasClass('oe_kanban_global_click')) {
+                    event.preventDefault();
+                    this._onGlobalClick(event);
+                    break;
+                }
         }
     },
     /**

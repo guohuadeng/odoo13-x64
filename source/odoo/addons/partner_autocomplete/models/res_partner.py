@@ -90,12 +90,12 @@ class ResPartner(models.Model):
         params.update({
             'db_uuid': self.env['ir.config_parameter'].sudo().get_param('database.uuid'),
             'account_token': account.account_token,
-            'country_code': self.env.company_id.country_id.code,
-            'zip': self.env.company_id.zip,
+            'country_code': self.env.company.country_id.code,
+            'zip': self.env.company.zip,
         })
         try:
             return jsonrpc(url=url, params=params, timeout=timeout), False
-        except (ConnectionError, HTTPError, exceptions.AccessError) as exception:
+        except (ConnectionError, HTTPError, exceptions.AccessError, exceptions.UserError) as exception:
             _logger.error('Autocomplete API error: %s' % str(exception))
             return False, str(exception)
         except InsufficientCreditError as exception:
@@ -186,7 +186,6 @@ class ResPartner(models.Model):
 
         return partners
 
-    @api.multi
     def write(self, values):
         res = super(ResPartner, self).write(values)
         if len(self) == 1:

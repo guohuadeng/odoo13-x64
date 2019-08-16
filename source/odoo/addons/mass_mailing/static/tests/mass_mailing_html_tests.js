@@ -14,7 +14,7 @@ QUnit.module('mass_mailing', {}, function () {
 QUnit.module('field html', {
     beforeEach: function () {
         this.data = weTestUtils.wysiwygData({
-            'mail.mass_mailing': {
+            'mailing.mailing': {
                 fields: {
                     display_name: {
                         string: "Displayed name",
@@ -68,7 +68,7 @@ QUnit.test('save arch and html', async function (assert) {
 
     var form = await testUtils.createView({
         View: FormView,
-        model: 'mail.mass_mailing',
+        model: 'mailing.mailing',
         data: this.data,
         arch: '<form>' +
             '   <field name="body_html" class="oe_read_only" widget="html"'+
@@ -152,11 +152,11 @@ QUnit.test('save and edit arch wysiwyg', async function (assert) {
 
     var form = await testUtils.createView({
         View: FormView,
-        model: 'mail.mass_mailing',
+        model: 'mailing.mailing',
         data: this.data,
         arch: '<form>' +
             '   <header style="min-height:31px;">' +
-            '       <button name="put_in_queue" type="object" class="oe_highlight" string="Send Now"/>' +
+            '       <button name="action_put_in_queue" type="object" class="oe_highlight" string="Send Now"/>' +
             '   </header>' +
             '   <field name="body_arch" class="oe_edit_only" widget="mass_mailing_html"' +
             '       options="{' +
@@ -174,14 +174,14 @@ QUnit.test('save and edit arch wysiwyg', async function (assert) {
         },
     });
 
-    await testUtils.dom.click($('[name=put_in_queue]'));
+    await testUtils.dom.click($('[name=action_put_in_queue]'));
     await testUtils.form.clickEdit(form);
     var $fieldEdit = form.$('.oe_form_field[name="body_arch"]');
     var $iframe = $fieldEdit.find('iframe');
 
     await $iframe.data('loadDef');
     await testUtils.nextTick();
-    await testUtils.dom.click($('[name=put_in_queue]'));
+    await testUtils.dom.click($('[name=action_put_in_queue]'));
     assert.verifySteps(["MassMailingFieldHtml", "FieldHtml", "MassMailingFieldHtml"]);
 
     testUtils.mock.unpatch(FieldHtml);

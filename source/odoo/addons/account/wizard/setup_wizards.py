@@ -40,9 +40,24 @@ class FinancialYearOpeningWizard(models.TransientModel):
                     (wiz.fiscalyear_last_month, wiz.fiscalyear_last_day)
                 )
 
-    @api.multi
+    def write(self, vals):
+        # Amazing workaround: non-stored related fields on company are a BAD idea since the 3 fields
+        # must follow the constraint '_check_fiscalyear_last_day'. The thing is, in case of related
+        # fields, the inverse write is done one value at a time, and thus the constraint is verified
+        # one value at a time... so it is likely to fail.
+        for wiz in self:
+            wiz.company_id.write({
+                'account_opening_date': vals.get('opening_date') or wiz.company_id.account_opening_date,
+                'fiscalyear_last_day': vals.get('fiscalyear_last_day') or wiz.company_id.fiscalyear_last_day,
+                'fiscalyear_last_month': vals.get('fiscalyear_last_month') or wiz.company_id.fiscalyear_last_month,
+            })
+        vals.pop('opening_date', None)
+        vals.pop('fiscalyear_last_day', None)
+        vals.pop('fiscalyear_last_month', None)
+        return super().write(vals)
+
     def action_save_onboarding_fiscal_year(self):
-        self.env.company_id.set_onboarding_step_done('account_setup_fy_data_state')
+        self.env.company.set_onboarding_step_done('account_setup_fy_data_state')
 
 
 class SetupBarBankConfigWizard(models.TransientModel):
@@ -71,7 +86,7 @@ class SetupBarBankConfigWizard(models.TransientModel):
     def _onchange_new_journal_code(self):
         for record in self:
             if not record.linked_journal_id:
-                record.new_journal_code = self.env['account.journal'].get_next_bank_cash_default_code('bank', self.env.company_id.id)
+                record.new_journal_code = self.env['account.journal'].get_next_bank_cash_default_code('bank', self.env.company.id)
             else:
                 record.new_journal_code = self.linked_journal_id.code
 
@@ -81,7 +96,7 @@ class SetupBarBankConfigWizard(models.TransientModel):
         company, so we always inject the corresponding partner when creating
         the model.
         """
-        vals['partner_id'] = self.env.company_id.partner_id.id
+        vals['partner_id'] = self.env.company.partner_id.id
         return super(SetupBarBankConfigWizard, self).create(vals)
 
     @api.onchange('linked_journal_id')
@@ -105,7 +120,7 @@ class SetupBarBankConfigWizard(models.TransientModel):
         for record in self:
             selected_journal = record.linked_journal_id
             if record.num_journals_without_account == 0:
-                company = self.env.company_id
+                company = self.env.company
                 selected_journal = self.env['account.journal'].create({
                     'name': record.new_journal_name,
                     'code': record.new_journal_code,

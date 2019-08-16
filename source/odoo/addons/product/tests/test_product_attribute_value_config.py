@@ -2,9 +2,12 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import time
+from psycopg2 import IntegrityError
 
+from odoo.exceptions import UserError, ValidationError
 from odoo.tests import tagged
 from odoo.tests.common import TransactionCase
+from odoo.tools import mute_logger
 
 
 class TestProductAttributeValueSetup(TransactionCase):
@@ -156,7 +159,7 @@ class TestProductAttributeValueSetup(TransactionCase):
         """
         if not model:
             model = self.computer
-        return model._get_valid_product_template_attribute_lines().filtered(
+        return model.valid_product_template_attribute_line_ids.filtered(
             lambda l: l.attribute_id == product_attribute_value.attribute_id
         ).product_template_value_ids.filtered(
             lambda v: v.product_attribute_value_id == product_attribute_value
@@ -311,6 +314,21 @@ class TestProductAttributeValueConfig(TestProductAttributeValueSetup):
         # CASE: deleted combination
         variant.unlink()
         self.assertFalse(self.computer._is_combination_possible(computer_ssd_256 + computer_ram_8 + computer_hdd_1))
+
+        # CASE: if multiple variants exist for the same combination and at least
+        # one of them is not archived, the combination is possible
+        values = self.ssd_256 + self.ram_8 + self.hdd_1
+        self.env['product.product'].create({
+            'product_tmpl_id': self.computer.id,
+            'attribute_value_ids': [(6, 0, values.ids)],
+            'active': False,
+        })
+        self.env['product.product'].create({
+            'product_tmpl_id': self.computer.id,
+            'attribute_value_ids': [(6, 0, values.ids)],
+            'active': True,
+        })
+        self.assertTrue(self.computer._is_combination_possible(computer_ssd_256 + computer_ram_8 + computer_hdd_1))
 
     def test_get_first_possible_combination(self):
         computer_ssd_256 = self._get_product_template_attribute_value(self.ssd_256)
@@ -489,3 +507,49 @@ class TestProductAttributeValueConfig(TestProductAttributeValueSetup):
         # CASE: clear_caches in product.product write
         variant.attribute_value_ids = False
         self.assertFalse(self.computer._get_variant_id_for_combination(attribute_values))
+
+    def test_constraints(self):
+        """The goal of this test is to make sure constraints are correct."""
+        with self.assertRaises(UserError, msg="can't change variants creation mode of attribute used on product"):
+            self.ram_attribute.create_variant = 'no_variant'
+
+        with self.assertRaises(UserError, msg="can't delete attribute used on product"):
+            self.ram_attribute.unlink()
+
+        with self.assertRaises(UserError, msg="can't change the attribute of an value used on product"):
+            self.ram_32.attribute_id = self.hdd_attribute.id
+
+        with self.assertRaises(UserError, msg="can't delete value used on product"):
+            self.ram_32.unlink()
+
+        with self.assertRaises(ValidationError, msg="can't have attribute without value on product"):
+            self.env['product.template.attribute.line'].create({
+                'product_tmpl_id': self.computer_case.id,
+                'attribute_id': self.hdd_attribute.id,
+                'value_ids': [(6, 0, [])],
+            })
+
+        with self.assertRaises(ValidationError, msg="value attribute must match line attribute"):
+            self.env['product.template.attribute.line'].create({
+                'product_tmpl_id': self.computer_case.id,
+                'attribute_id': self.ram_attribute.id,
+                'value_ids': [(6, 0, [self.ssd_256.id])],
+            })
+
+        with self.assertRaises(UserError, msg="can't change the attribute of an attribute line"):
+            self.computer_ssd_attribute_lines.attribute_id = self.hdd_attribute.id
+
+        with self.assertRaises(UserError, msg="can't change the product of an attribute line"):
+            self.computer_ssd_attribute_lines.product_tmpl_id = self.computer_case.id
+
+        with self.assertRaises(UserError, msg="can't change the value of a product template attribute value"):
+            self.computer_ram_attribute_lines.product_template_value_ids[0].product_attribute_value_id = self.hdd_1
+
+        with self.assertRaises(UserError, msg="can't change the product of a product template attribute value"):
+            self.computer_ram_attribute_lines.product_template_value_ids[0].product_tmpl_id = self.computer_case.id
+
+        with mute_logger('odoo.sql_db'), self.assertRaises(IntegrityError, msg="can't have two values with the same name for the same attribute"):
+            self.env['product.attribute.value'].create({
+                'name': '32 GB',
+                'attribute_id': self.ram_attribute.id,
+            })

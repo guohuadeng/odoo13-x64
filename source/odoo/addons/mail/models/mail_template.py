@@ -6,10 +6,9 @@ import base64
 import copy
 import datetime
 import dateutil.relativedelta as relativedelta
+import functools
 import logging
 
-import functools
-import lxml
 from werkzeug import urls
 
 from odoo import _, api, fields, models, tools
@@ -18,59 +17,18 @@ from odoo.exceptions import UserError
 _logger = logging.getLogger(__name__)
 
 
-def format_date(env, date, pattern=False):
-    if not date:
-        return ''
+def format_date(env, date, pattern=False, lang_code=False):
     try:
-        return tools.format_date(env, date, date_format=pattern)
+        return tools.format_date(env, date, date_format=pattern, lang_code=lang_code)
     except babel.core.UnknownLocaleError:
         return date
 
 
-def format_tz(env, dt, tz=False, format=False):
-    record_user_timestamp = env.user.sudo().with_context(tz=tz or env.user.sudo().tz or 'UTC')
-    timestamp = fields.Datetime.from_string(dt)
-
-    ts = fields.Datetime.context_timestamp(record_user_timestamp, timestamp)
-
-    # Babel allows to format datetime in a specific language without change locale
-    # So month 1 = January in English, and janvier in French
-    # Be aware that the default value for format is 'medium', instead of 'short'
-    #     medium:  Jan 5, 2016, 10:20:31 PM |   5 janv. 2016 22:20:31
-    #     short:   1/5/16, 10:20 PM         |   5/01/16 22:20
-    if env.context.get('use_babel'):
-        # Formatting available here : http://babel.pocoo.org/en/latest/dates.html#date-fields
-        from babel.dates import format_datetime
-        return format_datetime(ts, format or 'medium', locale=env.context.get("lang") or 'en_US')
-
-    if format:
-        return str(ts.strftime(format))
-    else:
-        lang = env.context.get("lang")
-        langs = env['res.lang']
-        if lang:
-            langs = env['res.lang'].search([("code", "=", lang)])
-        format_date = langs.date_format or '%B-%d-%Y'
-        format_time = langs.time_format or '%I-%M %p'
-
-        fdate = ts.strftime(format_date)
-        ftime = ts.strftime(format_time)
-        return "%s %s%s" % (fdate, ftime, (' (%s)' % tz) if tz else '')
-
-def format_amount(env, amount, currency):
-    fmt = "%.{0}f".format(currency.decimal_places)
-    lang = env['res.lang']._lang_get(env.context.get('lang') or 'en_US')
-
-    formatted_amount = lang.format(fmt, currency.round(amount), grouping=True, monetary=True)\
-        .replace(r' ', u'\N{NO-BREAK SPACE}').replace(r'-', u'-\N{ZERO WIDTH NO-BREAK SPACE}')
-
-    pre = post = u''
-    if currency.position == 'before':
-        pre = u'{symbol}\N{NO-BREAK SPACE}'.format(symbol=currency.symbol or '')
-    else:
-        post = u'\N{NO-BREAK SPACE}{symbol}'.format(symbol=currency.symbol or '')
-
-    return u'{pre}{0}{post}'.format(formatted_amount, pre=pre, post=post)
+def format_datetime(env, dt, tz=False, dt_format='medium', lang_code=False):
+    try:
+        return tools.format_datetime(env, dt, tz=tz, dt_format=dt_format, lang_code=lang_code)
+    except babel.core.UnknownLocaleError:
+        return dt
 
 try:
     # We use a jinja2 sandboxed environment to render mako templates.
@@ -155,7 +113,7 @@ class MailTemplate(models.Model):
              "- partner (using id on a partner or the partner_id field) OR\n"
              "- email (using email_from or email field)")
     email_to = fields.Char('To (Emails)', help="Comma-separated recipient addresses (placeholders may be used here)")
-    partner_to = fields.Char('To (Partners)', oldname='email_recipients',
+    partner_to = fields.Char('To (Partners)',
                              help="Comma-separated ids of recipient partners (placeholders may be used here)")
     email_cc = fields.Char('Cc', help="Carbon copy recipients (placeholders may be used here)")
     reply_to = fields.Char('Reply-To', help="Preferred response address (placeholders may be used here)")
@@ -236,26 +194,22 @@ class MailTemplate(models.Model):
             self.sub_model_object_field = False
             self.null_value = False
 
-    @api.multi
     def unlink(self):
         self.unlink_action()
         return super(MailTemplate, self).unlink()
 
-    @api.multi
     @api.returns('self', lambda value: value.id)
     def copy(self, default=None):
         default = dict(default or {},
                        name=_("%s (copy)") % self.name)
         return super(MailTemplate, self).copy(default=default)
 
-    @api.multi
     def unlink_action(self):
         for template in self:
             if template.ref_ir_act_window:
                 template.ref_ir_act_window.unlink()
         return True
 
-    @api.multi
     def create_action(self):
         ActWindow = self.env['ir.actions.act_window']
         view = self.env.ref('mail.email_compose_message_wizard_form')
@@ -266,7 +220,6 @@ class MailTemplate(models.Model):
                 'name': button_name,
                 'type': 'ir.actions.act_window',
                 'res_model': 'mail.compose.message',
-                'view_type': 'form',
                 'context': "{'default_composition_mode': 'mass_mail', 'default_template_id' : %d, 'default_use_template': True}" % (template.id),
                 'view_mode': 'form,tree',
                 'view_id': view.id,
@@ -321,9 +274,10 @@ class MailTemplate(models.Model):
         for record in records:
             res_to_rec[record.id] = record
         variables = {
-            'format_date': lambda date, format=False, context=self._context: format_date(self.env, date, format),
-            'format_tz': lambda dt, tz=False, format=False, context=self._context: format_tz(self.env, dt, tz, format),
-            'format_amount': lambda amount, currency, context=self._context: format_amount(self.env, amount, currency),
+            'format_date': lambda date, date_format=False, lang_code=False: format_date(self.env, date, date_format, lang_code),
+            'format_datetime': lambda dt, tz=False, dt_format=False, lang_code=False: format_datetime(self.env, dt, tz, dt_format, lang_code),
+            'format_amount': lambda amount, currency, lang_code=False: tools.format_amount(self.env, amount, currency, lang_code),
+            'format_duration': lambda value: tools.format_duration(value),
             'user': self.env.user,
             'ctx': self._context,  # context kw would clash with mako internals
         }
@@ -344,7 +298,6 @@ class MailTemplate(models.Model):
 
         return multi_mode and results or results[res_ids[0]]
 
-    @api.multi
     def get_email_template(self, res_ids):
         multi_mode = True
         if isinstance(res_ids, int):
@@ -374,7 +327,6 @@ class MailTemplate(models.Model):
 
         return multi_mode and results or results[res_ids[0]]
 
-    @api.multi
     def generate_recipients(self, results, res_ids):
         """Generates the recipients of the template. Default values can ben generated
         instead of the template values if requested by template or context.
@@ -412,7 +364,6 @@ class MailTemplate(models.Model):
             results[res_id]['partner_ids'] = partner_ids
         return results
 
-    @api.multi
     def generate_email(self, res_ids, fields=None):
         """Generates an email from the template for given the given model based on
         records given by res_ids.
@@ -501,7 +452,10 @@ class MailTemplate(models.Model):
 
         return multi_mode and results or results[res_ids[0]]
 
-    @api.multi
+    # ----------------------------------------
+    # EMAIL
+    # ----------------------------------------
+
     def send_mail(self, res_id, force_send=False, raise_exception=False, email_values=None, notif_layout=False):
         """ Generates a new mail.mail. Template is rendered on record given by
         res_id and model coming from template.
@@ -539,7 +493,8 @@ class MailTemplate(models.Model):
                 template_ctx = {
                     'message': self.env['mail.message'].sudo().new(dict(body=values['body_html'], record_name=record.display_name)),
                     'model_description': self.env['ir.model']._get(record._name).display_name,
-                    'company': 'company_id' in record and record['company_id'] or self.env.company_id,
+                    'company': 'company_id' in record and record['company_id'] or self.env.company,
+                    'record': record,
                 }
                 body = template.render(template_ctx, engine='ir.qweb', minimal_qcontext=True)
                 values['body_html'] = self.env['mail.thread']._replace_local_links(body)
@@ -549,7 +504,6 @@ class MailTemplate(models.Model):
         for attachment in attachments:
             attachment_data = {
                 'name': attachment[0],
-                'datas_fname': attachment[0],
                 'datas': attachment[1],
                 'type': 'binary',
                 'res_model': 'mail.message',

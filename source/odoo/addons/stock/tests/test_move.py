@@ -15,7 +15,7 @@ class StockMove(SavepointCase):
         cls.pack_location = cls.env.ref('stock.location_pack_zone')
         cls.pack_location.active = True
         cls.transit_location = cls.env['stock.location'].search([
-            ('company_id', '=', cls.env.company_id.id),
+            ('company_id', '=', cls.env.company.id),
             ('usage', '=', 'transit'),
         ], limit=1)
         cls.uom_unit = cls.env.ref('uom.product_uom_unit')
@@ -134,7 +134,7 @@ class StockMove(SavepointCase):
             self.assertNotEqual(quant.in_date, False)
 
     def test_in_3(self):
-        """ Receive 5 serial-tracked products from a supplier. The system should create 5 differents
+        """ Receive 5 serial-tracked products from a supplier. The system should create 5 different
         move line.
         """
         # creation
@@ -715,7 +715,7 @@ class StockMove(SavepointCase):
         })
         # putaway from stock to shelf1
         putaway = self.env['stock.putaway.rule'].create({
-            'product_id': self.env.ref('product.product_product_5').id,
+            'product_id': self.product.id,
             'location_in_id': self.stock_location.id,
             'location_out_id': shelf1_location.id,
         })
@@ -728,7 +728,7 @@ class StockMove(SavepointCase):
             'name': 'test_putaway_2',
             'location_id': self.supplier_location.id,
             'location_dest_id': self.stock_location.id,
-            'product_id': self.env.ref('product.product_product_5').id,
+            'product_id': self.product.id,
             'product_uom': self.uom_unit.id,
             'product_uom_qty': 100.0,
         })
@@ -766,7 +766,7 @@ class StockMove(SavepointCase):
             'location_out_id': shelf1_location.id,
         })
         putaway_product = self.env['stock.putaway.rule'].create({
-            'product_id': self.env.ref('stock.product_cable_management_box').id,
+            'product_id': self.product.id,
             'location_in_id': self.supplier_location.id,
             'location_out_id': shelf2_location.id,
         })
@@ -782,8 +782,8 @@ class StockMove(SavepointCase):
             'name': 'test_putaway_3',
             'location_id': self.supplier_location.id,
             'location_dest_id': self.stock_location.id,
-            'product_id': self.env.ref('stock.product_cable_management_box').id,
-            'product_uom': self.env.ref('uom.product_uom_kgm').id,
+            'product_id': self.product.id,
+            'product_uom': self.uom_unit.id,
             'product_uom_qty': 100.0,
         })
         move1._action_confirm()
@@ -822,7 +822,7 @@ class StockMove(SavepointCase):
             'location_out_id': shelf1_location.id,
         })
         putaway_product = self.env['stock.putaway.rule'].create({
-            'product_id': self.env.ref('stock.product_cable_management_box').id,
+            'product_id': self.product_consu.id,
             'location_in_id': self.stock_location.id,
             'location_out_id': shelf2_location.id,
         })
@@ -876,14 +876,13 @@ class StockMove(SavepointCase):
                 putaway.id,
             ])],
         })
-
         # creation
         move1 = self.env['stock.move'].create({
             'name': 'test_putaway_5',
             'location_id': self.supplier_location.id,
             'location_dest_id': self.stock_location.id,
-            'product_id': self.env.ref('stock.product_cable_management_box').id,
-            'product_uom': self.env.ref('uom.product_uom_kgm').id,
+            'product_id': self.product.id,
+            'product_uom': self.uom_unit.id,
             'product_uom_qty': 100.0,
         })
         move1._action_confirm()
@@ -904,6 +903,10 @@ class StockMove(SavepointCase):
         # This test will apply two putaway strategies by category. We check here
         # that the most specific putaway takes precedence.
 
+        child_category = self.env['product.category'].create({
+            'name': 'child_category',
+            'parent_id': self.ref('product.product_category_all'),
+        })
         shelf1_location = self.env['stock.location'].create({
             'name': 'shelf1',
             'usage': 'internal',
@@ -920,7 +923,7 @@ class StockMove(SavepointCase):
             'location_out_id': shelf1_location.id,
         })
         putaway_category_office_furn = self.env['stock.putaway.rule'].create({
-            'category_id': self.env.ref('product.product_category_5').id,
+            'category_id': child_category.id,
             'location_in_id': self.supplier_location.id,
             'location_out_id': shelf2_location.id,
         })
@@ -930,14 +933,15 @@ class StockMove(SavepointCase):
                 putaway_category_office_furn.id,
             ])],
         })
+        self.product.categ_id = child_category
 
         # creation
         move1 = self.env['stock.move'].create({
             'name': 'test_putaway_6',
             'location_id': self.supplier_location.id,
             'location_dest_id': self.stock_location.id,
-            'product_id': self.env.ref('stock.product_cable_management_box').id,
-            'product_uom': self.env.ref('uom.product_uom_kgm').id,
+            'product_id': self.product.id,
+            'product_uom': self.uom_unit.id,
             'product_uom_qty': 100.0,
         })
         move1._action_confirm()

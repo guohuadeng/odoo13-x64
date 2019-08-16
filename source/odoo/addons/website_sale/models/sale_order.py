@@ -29,18 +29,16 @@ class SaleOrder(models.Model):
     website_id = fields.Many2one('website', string='Website', readonly=True,
                                  help='Website through which this order was placed.')
 
-    @api.one
     def _compute_website_order_line(self):
-        self.website_order_line = self.order_line
+        for order in self:
+            order.website_order_line = order.order_line
 
-    @api.multi
     @api.depends('website_order_line.product_uom_qty', 'website_order_line.product_id')
     def _compute_cart_info(self):
         for order in self:
             order.cart_quantity = int(sum(order.mapped('website_order_line.product_uom_qty')))
             order.only_services = all(l.product_id.type in ('service', 'digital') for l in order.website_order_line)
 
-    @api.multi
     @api.depends('website_id', 'date_order', 'order_line', 'state', 'partner_id')
     def _compute_abandoned_cart(self):
         for order in self:
@@ -70,7 +68,6 @@ class SaleOrder(models.Model):
             return abandoned_domain
         return expression.distribute_not(['!'] + abandoned_domain)  # negative domain
 
-    @api.multi
     def _cart_find_product_line(self, product_id=None, line_id=None, **kwargs):
         """Find the cart line matching the given parameters.
 
@@ -98,7 +95,6 @@ class SaleOrder(models.Model):
 
         return self.env['sale.order.line']
 
-    @api.multi
     def _website_product_id_change(self, order_id, product_id, qty=0):
         order = self.sudo().browse(order_id)
         product_context = dict(self.env.context)
@@ -144,7 +140,6 @@ class SaleOrder(models.Model):
             'discount': discount,
         }
 
-    @api.multi
     def _cart_update(self, product_id=None, line_id=None, add_qty=0, set_qty=0, **kwargs):
         """ Add or set product quantity, add_qty can be negative """
         self.ensure_one()
@@ -305,21 +300,15 @@ class SaleOrder(models.Model):
 
             return random.sample(accessory_products, len(accessory_products))
 
-    @api.multi
     def action_recovery_email_send(self):
         for order in self:
             order._portal_ensure_token()
         composer_form_view_id = self.env.ref('mail.email_compose_message_wizard_form').id
-        try:
-            default_template = self.env.ref('website_sale.mail_template_sale_cart_recovery', raise_if_not_found=False)
-            default_template_id = default_template.id if default_template else False
-            template_id = (self.filtered('website_id') == self and
-                           self.mapped('website_id')[-1:1].cart_recovery_mail_template_id.id) or default_template_id
-        except:
-            template_id = False
+
+        template_id = self._get_cart_recovery_template().id
+
         return {
             'type': 'ir.actions.act_window',
-            'view_type': 'form',
             'view_mode': 'form',
             'res_model': 'mail.compose.message',
             'view_id': composer_form_view_id,
@@ -335,12 +324,31 @@ class SaleOrder(models.Model):
             },
         }
 
-    @api.multi
-    def get_base_url(self):
-        """When using multi-website, we want the user to be redirected to the
-        most appropriate website if possible."""
-        res = super(SaleOrder, self).get_base_url()
-        return self.website_id and self.website_id._get_http_domain() or res
+    def _get_cart_recovery_template(self):
+        """
+        Return the cart recovery template record for a set of orders.
+        If they all belong to the same website, we return the website-specific template;
+        otherwise we return the default template.
+        If the default is not found, the empty ['mail.template'] is returned.
+        """
+        websites = self.mapped('website_id')
+        template = websites.cart_recovery_mail_template_id if len(websites) == 1 else False
+        template = template or self.env.ref('website_sale.mail_template_sale_cart_recovery', raise_if_not_found=False)
+        return template or self.env['mail.template']
+
+    def _cart_recovery_email_send(self):
+        """Send the cart recovery email on the current recordset,
+        making sure that the portal token exists to avoid broken links, and marking the email as sent.
+        Similar method to action_recovery_email_send, made to be called in automated actions.
+        Contrary to the former, it will use the website-specific template for each order."""
+        sent_orders = self.env['sale.order']
+        for order in self:
+            template = order._get_cart_recovery_template()
+            if template:
+                order._portal_ensure_token()
+                template.send_mail(order.id)
+                sent_orders |= order
+        sent_orders.write({'cart_recovery_email_sent': True})
 
 
 class SaleOrderLine(models.Model):
@@ -351,7 +359,6 @@ class SaleOrderLine(models.Model):
     linked_line_id = fields.Many2one('sale.order.line', string='Linked Order Line', domain="[('order_id', '!=', order_id)]", ondelete='cascade')
     option_line_ids = fields.One2many('sale.order.line', 'linked_line_id', string='Options Linked')
 
-    @api.multi
     @api.depends('product_id.display_name')
     def _compute_name_short(self):
         """ Compute a short name for this sale order line, to be used on the website where we don't have much space.

@@ -167,7 +167,6 @@ class Challenge(models.Model):
 
         return super(Challenge, self).create(vals)
 
-    @api.multi
     def write(self, vals):
         if vals.get('user_domain'):
             users = self._get_challenger_users(ustr(vals.get('user_domain')))
@@ -299,12 +298,10 @@ class Challenge(models.Model):
 
         return True
 
-    @api.multi
     def action_start(self):
         """Start a challenge"""
         return self.write({'state': 'inprogress'})
 
-    @api.multi
     def action_check(self):
         """Check a challenge
 
@@ -317,7 +314,6 @@ class Challenge(models.Model):
 
         return self._update_all()
 
-    @api.multi
     def action_report_progress(self):
         """Manual report of a goal, does not influence automatic report frequency"""
         for challenge in self:
@@ -567,7 +563,7 @@ class Challenge(models.Model):
                 body=body_html,
                 partner_ids=challenge.mapped('user_ids.partner_id.id'),
                 subtype='mail.mt_comment',
-                notif_layout='mail.mail_notification_light',
+                email_layout_xmlid='mail.mail_notification_light',
                 )
             if challenge.report_message_group_id:
                 challenge.report_message_group_id.message_post(
@@ -581,28 +577,27 @@ class Challenge(models.Model):
                 if not lines:
                     continue
 
-                body_html = MailTemplates.sudo(user).with_context(challenge_lines=lines)._render_template(
+                body_html = MailTemplates.with_user(user).with_context(challenge_lines=lines)._render_template(
                     challenge.report_template_id.body_html,
                     'gamification.challenge',
                     challenge.id)
 
-                # send message only to users, not on the challenge
-                self.env['gamification.challenge'].message_post(
+                # notify message only to users, do not post on the challenge
+                challenge.message_notify(
                     body=body_html,
-                    partner_ids=[(4, user.partner_id.id)],
+                    partner_ids=[user.partner_id.id],
                     subtype='mail.mt_comment',
-                    notif_layout='mail.mail_notification_light',
+                    email_layout_xmlid='mail.mail_notification_light',
                 )
                 if challenge.report_message_group_id:
                     challenge.report_message_group_id.message_post(
                         body=body_html,
                         subtype='mail.mt_comment',
-                        notif_layout='mail.mail_notification_light',
+                        email_layout_xmlid='mail.mail_notification_light',
                     )
         return challenge.write({'last_report_date': fields.Date.today()})
 
     ##### Challenges #####
-    @api.multi
     def accept_challenge(self):
         user = self.env.user
         sudoed = self.sudo()
@@ -610,7 +605,6 @@ class Challenge(models.Model):
         sudoed.write({'invited_user_ids': [(3, user.id)], 'user_ids': [(4, user.id)]})
         return sudoed._generate_goals_from_challenge()
 
-    @api.multi
     def discard_challenge(self):
         """The user discard the suggested challenge"""
         user = self.env.user

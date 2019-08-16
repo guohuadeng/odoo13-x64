@@ -3,6 +3,7 @@ odoo.define('point_of_sale.models', function (require) {
 
 var ajax = require('web.ajax');
 var BarcodeParser = require('barcodes.BarcodeParser');
+var BarcodeReader = require('point_of_sale.BarcodeReader');
 var PosDB = require('point_of_sale.DB');
 var devices = require('point_of_sale.devices');
 var concurrency = require('web.concurrency');
@@ -41,24 +42,22 @@ exports.PosModel = Backbone.Model.extend({
         this.gui    = attributes.gui;
 
         this.proxy = new devices.ProxyDevice(this);              // used to communicate to the hardware devices via a local proxy
-        this.barcode_reader = new devices.BarcodeReader({'pos': this, proxy:this.proxy});
+        this.barcode_reader = new BarcodeReader({'pos': this, proxy:this.proxy});
 
         this.proxy_queue = new devices.JobQueue();           // used to prevent parallels communications to the proxy
         this.db = new PosDB();                       // a local database used to search trough products and categories & store pending orders
-        this.debug = config.debug; //debug mode
+        this.debug = config.isDebug(); //debug mode
 
         // Business data; loaded from the server at launch
         this.company_logo = null;
         this.company_logo_base64 = '';
         this.currency = null;
-        this.shop = null;
         this.company = null;
         this.user = null;
         this.users = [];
         this.employee = {name: null, id: null, barcode: null, user_id:null, pin:null};
         this.employees = [];
         this.partners = [];
-        this.cashregisters = [];
         this.taxes = [];
         this.pos_session = null;
         this.config = null;
@@ -182,8 +181,8 @@ exports.PosModel = Backbone.Model.extend({
         },
     },{
         model:  'res.company',
-        fields: [ 'currency_id', 'email', 'website', 'company_registry', 'vat', 'name', 'phone', 'partner_id' , 'country_id', 'tax_calculation_rounding_method'],
-        ids:    function(self){ return [self.user.company_id[0]]; },
+        fields: [ 'currency_id', 'email', 'website', 'company_registry', 'vat', 'name', 'phone', 'partner_id' , 'country_id', 'state_id', 'tax_calculation_rounding_method'],
+        ids:    function(self){ return [session.user_context.allowed_company_ids[0]]; },
         loaded: function(self,companies){ self.company = companies[0]; },
     },{
         model:  'decimal.precision',
@@ -211,10 +210,15 @@ exports.PosModel = Backbone.Model.extend({
         fields: ['name','street','city','state_id','country_id','vat',
                  'phone','zip','mobile','email','barcode','write_date',
                  'property_account_position_id','property_product_pricelist'],
-        domain: [['customer','=',true]],
         loaded: function(self,partners){
             self.partners = partners;
             self.db.add_partners(partners);
+        },
+    },{
+        model:  'res.country.state',
+        fields: ['name', 'country_id'],
+        loaded: function(self,states){
+            self.states = states;
         },
     },{
         model:  'res.country',
@@ -246,10 +250,11 @@ exports.PosModel = Backbone.Model.extend({
         },
     },{
         model:  'pos.session',
-        fields: ['id', 'journal_ids','name','user_id','config_id','start_at','stop_at','sequence_number','login_number'],
+        fields: ['id', 'name', 'user_id', 'config_id', 'start_at', 'stop_at', 'sequence_number', 'login_number', 'payment_method_ids'],
         domain: function(self){ return [['state','=','opened'],['user_id','=',session.uid]]; },
-        loaded: function(self,pos_sessions){
+        loaded: function(self,pos_sessions,tmp){
             self.pos_session = pos_sessions[0];
+            tmp.payment_method_ids = pos_sessions[0].payment_method_ids;
         },
     },{
         model: 'pos.config',
@@ -264,10 +269,6 @@ exports.PosModel = Backbone.Model.extend({
                                     self.config.iface_cashdrawer       ||
                                     self.config.iface_customer_facing_display;
 
-            if (self.config.company_id[0] !== self.user.company_id[0]) {
-                throw new Error(_t("Error: The Point of Sale User must belong to the same company as the Point of Sale. You are probably trying to load the point of sale as an administrator in a multi-company setup, with the administrator account set to the wrong company."));
-            }
-
             self.db.set_uuid(self.config.uuid);
             self.set_cashier(self.get_cashier());
             // We need to do it here, since only then the local storage has the correct uuid
@@ -278,11 +279,6 @@ exports.PosModel = Backbone.Model.extend({
                 self.pos_session.sequence_number = Math.max(self.pos_session.sequence_number, orders[i].data.sequence_number+1);
             }
        },
-    },{
-        model: 'stock.location',
-        fields: [],
-        ids:    function(self){ return [self.config.stock_location_id[0]]; },
-        loaded: function(self, locations){ self.shop = locations[0]; },
     },{
         model:  'product.pricelist',
         fields: ['name', 'display_name', 'discount_policy'],
@@ -351,7 +347,7 @@ exports.PosModel = Backbone.Model.extend({
                  'product_tmpl_id','tracking'],
         order:  _.map(['sequence','default_code','name'], function (name) { return {name: name}; }),
         domain: function(self){
-            var domain = [['sale_ok','=',true],['available_in_pos','=',true]];
+            var domain = [['sale_ok','=',true],['available_in_pos','=',true],'|',['company_id','=',self.config.company_id[0]],['company_id','=',false]];
             if (self.config.limit_categories &&  self.config.iface_available_categ_ids.length) {
                 domain.push(['pos_categ_id', 'in', self.config.iface_available_categ_ids]);
             }
@@ -370,54 +366,28 @@ exports.PosModel = Backbone.Model.extend({
             }));
         },
     },{
-        model:  'account.bank.statement',
-        fields: ['account_id','currency_id','journal_id','state','name','user_id','pos_session_id'],
-        domain: function(self){ return [['state', '=', 'open'],['pos_session_id', '=', self.pos_session.id]]; },
-        loaded: function(self, cashregisters, tmp){
-            self.cashregisters = cashregisters;
-
-            tmp.journals = [];
-            _.each(cashregisters,function(statement){
-                tmp.journals.push(statement.journal_id[0]);
-            });
+        model:  'pos.payment.method',
+        fields: ['name', 'is_cash_count'],
+        domain: function(self, tmp) {
+            return [['id', 'in', tmp.payment_method_ids]];
         },
-    },{
-        model:  'account.journal',
-        fields: ['type', 'sequence'],
-        domain: function(self,tmp){ return [['id','in',tmp.journals]]; },
-        loaded: function(self, journals){
-            var i;
-            self.journals = journals;
-
-            // associate the bank statements with their journals.
-            var cashregisters = self.cashregisters;
-            var ilen = cashregisters.length;
-            for(i = 0; i < ilen; i++){
-                for(var j = 0, jlen = journals.length; j < jlen; j++){
-                    if(cashregisters[i].journal_id[0] === journals[j].id){
-                        cashregisters[i].journal = journals[j];
-                    }
-                }
-            }
-
-            self.cashregisters_by_id = {};
-            for (i = 0; i < self.cashregisters.length; i++) {
-                self.cashregisters_by_id[self.cashregisters[i].id] = self.cashregisters[i];
-            }
-
-            self.cashregisters = self.cashregisters.sort(function(a,b){
-                // prefer cashregisters to be first in the list
-                if (a.journal.type == "cash" && b.journal.type != "cash") {
+        loaded: function(self, payment_methods) {
+            self.payment_methods = payment_methods.sort(function(a,b){
+                // prefer cash payment_method to be first in the list
+                if (a.is_cash_count && !b.is_cash_count) {
                     return -1;
-                } else if (a.journal.type != "cash" && b.journal.type == "cash") {
+                } else if (!a.is_cash_count && b.is_cash_count) {
                     return 1;
                 } else {
-                    return a.journal.sequence - b.journal.sequence;
+                    return a.id - b.id;
                 }
             });
-
-        },
-    },  {
+            self.payment_methods_by_id = {}
+            _.each(self.payment_methods, function(payment_method) {
+                self.payment_methods_by_id[payment_method.id] = payment_method
+            })
+        }
+    },{
         model:  'account.fiscal.position',
         fields: [],
         domain: function(self){ return [['id','in',self.config.fiscal_position_ids]]; },
@@ -590,13 +560,17 @@ exports.PosModel = Backbone.Model.extend({
         return loaded;
     },
 
+    prepare_new_partners_domain: function(){
+        return [['write_date','>', this.db.get_partner_write_date()]];
+    },
+
     // reload the list of partner, returns as a promise that resolves if there were
     // updated partners, and fails if not
     load_new_partners: function(){
         var self = this;
         return new Promise(function (resolve, reject) {
             var fields = _.find(self.models, function(model){ return model.label === 'load_partners'; }).fields;
-            var domain = [['customer','=',true],['write_date','>',self.db.get_partner_write_date()]];
+            var domain = self.prepare_new_partners_domain();
             rpc.query({
                 model: 'res.partner',
                 method: 'search_read',
@@ -642,18 +616,23 @@ exports.PosModel = Backbone.Model.extend({
         this.set('cashier', employee);
         this.db.set_cashier(this.get('cashier'));
     },
-    //creates a new empty order and sets it as the current order
+    // creates a new empty order and sets it as the current order
     add_new_order: function(){
         var order = new exports.Order({},{pos:this});
         this.get('orders').add(order);
         this.set('selectedOrder', order);
         return order;
     },
-    // load the locally saved unpaid orders for this session.
+    /**
+     * Load the locally saved unpaid orders for this PoS Config.
+     *
+     * First load all orders belonging to the current session.
+     * Second load all orders belonging to the same config but from other sessions,
+     * Only if tho order has orderlines.
+     */
     load_orders: function(){
         var jsons = this.db.get_unpaid_orders();
         var orders = [];
-        var not_loaded_count = 0;
 
         for (var i = 0; i < jsons.length; i++) {
             var json = jsons[i];
@@ -662,13 +641,18 @@ exports.PosModel = Backbone.Model.extend({
                     pos:  this,
                     json: json,
                 }));
-            } else {
-                not_loaded_count += 1;
             }
         }
-
-        if (not_loaded_count) {
-            console.info('There are '+not_loaded_count+' locally saved unpaid orders belonging to another session');
+        for (var i = 0; i < jsons.length; i++) {
+            var json = jsons[i];
+            if (json.pos_session_id !== this.pos_session.id && json.lines.length > 0) {
+                orders.push(new exports.Order({},{
+                    pos:  this,
+                    json: json,
+                }));
+            } else if (json.pos_session_id !== this.pos_session.id) {
+                this.db.remove_unpaid_order(jsons[i]);
+            }
         }
 
         orders = orders.sort(function(a,b){
@@ -769,7 +753,7 @@ exports.PosModel = Backbone.Model.extend({
         if (order) {
             order.get_orderlines().forEach(function (orderline) {
                 var product = orderline.product;
-                var image_url = window.location.origin + '/web/image?model=product.product&field=image_medium&id=' + product.id;
+                var image_url = window.location.origin + '/web/image?model=product.product&field=image_128&id=' + product.id;
 
                 // only download and convert image if we haven't done it before
                 if (! product.image_base64) {
@@ -1451,7 +1435,7 @@ exports.Orderline = Backbone.Model.extend({
         var lots_required = 1;
 
         if (this.product.tracking == 'serial') {
-            lots_required = this.quantity;
+            lots_required = Math.abs(this.quantity);
         }
 
         return lots_required;
@@ -1567,6 +1551,7 @@ exports.Orderline = Backbone.Model.extend({
             price_display :     this.get_display_price(),
             price_with_tax :    this.get_price_with_tax(),
             price_without_tax:  this.get_price_without_tax(),
+            price_with_tax_before_discount:  this.get_price_with_tax_before_discount(),
             tax:                this.get_tax(),
             product_description:      this.get_product().description,
             product_description_sale: this.get_product().description_sale,
@@ -1630,9 +1615,9 @@ exports.Orderline = Backbone.Model.extend({
     },
     get_display_price_one: function(){
         var rounding = this.pos.currency.rounding;
-        var price_unit = this.get_unit_price() * (1.0 - (this.get_discount() / 100.0));
+        var price_unit = this.get_unit_price();
         if (this.pos.config.iface_tax_included !== 'total') {
-            return round_pr(price_unit, rounding);
+            return round_pr(price_unit * (1.0 - (this.get_discount() / 100.0)), rounding);
         } else {
             var product =  this.get_product();
             var taxes_ids = product.taxes_id;
@@ -1662,6 +1647,9 @@ exports.Orderline = Backbone.Model.extend({
     },
     get_price_with_tax: function(){
         return this.get_all_prices().priceWithTax;
+    },
+    get_price_with_tax_before_discount: function () {
+        return this.get_all_prices().priceWithTaxBeforeDiscount;
     },
     get_tax: function(){
         return this.get_all_prices().tax;
@@ -1707,7 +1695,9 @@ exports.Orderline = Backbone.Model.extend({
 
             if (tax_mappings && tax_mappings.length) {
                 _.each(tax_mappings, function(tm) {
-                    taxes.push(self.pos.taxes_by_id[tm.tax_dest_id[0]]);
+                    if (tm.tax_dest_id) {
+                        taxes.push(self.pos.taxes_by_id[tm.tax_dest_id[0]]);
+                    }
                 });
             } else{
                 taxes.push(tax);
@@ -1728,8 +1718,11 @@ exports.Orderline = Backbone.Model.extend({
         else
             var price_include = !price_exclude;
         if (tax.amount_type === 'fixed') {
-            var sign_base_amount = base_amount >= 0 ? 1 : -1;
-            return (Math.abs(tax.amount) * sign_base_amount) * quantity;
+            var sign_base_amount = Math.sign(base_amount) || 1;
+            // Since base amount has been computed with quantity
+            // we take the abs of quantity
+            // Same logic as bb72dea98de4dae8f59e397f232a0636411d37ce
+            return tax.amount * sign_base_amount * Math.abs(quantity);
         }
         if (tax.amount_type === 'percent' && !price_include){
             return base_amount * tax.amount / 100;
@@ -1908,6 +1901,7 @@ exports.Orderline = Backbone.Model.extend({
         });
 
         var all_taxes = this.compute_all(product_taxes, price_unit, this.get_quantity(), this.pos.currency.rounding);
+        var all_taxes_before_discount = this.compute_all(product_taxes, this.get_unit_price(), this.get_quantity(), this.pos.currency.rounding);
         _(all_taxes.taxes).each(function(tax) {
             taxtotal += tax.amount;
             taxdetail[tax.id] = tax.amount;
@@ -1917,6 +1911,7 @@ exports.Orderline = Backbone.Model.extend({
             "priceWithTax": all_taxes.total_included,
             "priceWithoutTax": all_taxes.total_excluded,
             "priceSumTaxVoid": all_taxes.total_void,
+            "priceWithTaxBeforeDiscount": all_taxes_before_discount.total_included,
             "tax": taxtotal,
             "taxDetails": taxdetail,
         };
@@ -1999,8 +1994,11 @@ var PacklotlineCollection = Backbone.Collection.extend({
 
     set_quantity_by_lot: function() {
         if (this.order_line.product.tracking == 'serial') {
-            var valid_lots = this.get_valid_lots();
-            this.order_line.set_quantity(valid_lots.length);
+            var valid_lots_quantity = this.get_valid_lots().length;
+            if (this.order_line.quantity < 0){
+                valid_lots_quantity = -valid_lots_quantity;
+            }
+            this.order_line.set_quantity(valid_lots_quantity);
         }
     }
 });
@@ -2016,16 +2014,15 @@ exports.Paymentline = Backbone.Model.extend({
             this.init_from_JSON(options.json);
             return;
         }
-        this.cashregister = options.cashregister;
-        if (this.cashregister === undefined) {
+        this.payment_method = options.payment_method;
+        if (this.payment_method === undefined) {
             throw new Error(_t('Please configure a payment method in your POS.'));
         }
-        this.name = this.cashregister.journal_id[1];
+        this.name = this.payment_method.name;
     },
     init_from_JSON: function(json){
         this.amount = json.amount;
-        this.cashregister = this.pos.cashregisters_by_id[json.statement_id];
-        this.name = this.cashregister.journal_id[1];
+        this.payment_method = this.pos.payment_methods_by_id[json.payment_method_id];
     },
     //sets the amount of money on this payment line
     set_amount: function(value){
@@ -2046,18 +2043,12 @@ exports.Paymentline = Backbone.Model.extend({
             this.trigger('change',this);
         }
     },
-    // returns the payment type: 'cash' | 'bank'
-    get_type: function(){
-        return this.cashregister.journal.type;
-    },
     // returns the associated cashregister
     //exports as JSON for server communication
     export_as_JSON: function(){
         return {
             name: time.datetime_to_str(new Date()),
-            statement_id: this.cashregister.id,
-            account_id: this.cashregister.account_id[0],
-            journal_id: this.cashregister.journal_id[0],
+            payment_method_id: this.payment_method.id,
             amount: this.get_amount()
         };
     },
@@ -2065,7 +2056,7 @@ exports.Paymentline = Backbone.Model.extend({
     export_for_printing: function(){
         return {
             amount: this.get_amount(),
-            journal: this.cashregister.journal_id[1],
+            payment_method: this.payment_method.name,
         };
     },
 });
@@ -2140,11 +2131,24 @@ exports.Order = Backbone.Model.extend({
             this.pos.db.save_unpaid_order(this);
         }
     },
+    /**
+     * Initialize PoS order from a JSON string.
+     *
+     * If the order was created in another session, the sequence number should be changed so it doesn't conflict
+     * with orders in the current session.
+     * Else, the sequence number of the session should follow on the sequence number of the loaded order.
+     *
+     * @param {object} json JSON representing one PoS order.
+     */
     init_from_JSON: function(json) {
         var client;
-        this.sequence_number = json.sequence_number;
-        this.pos.pos_session.sequence_number = Math.max(this.sequence_number+1,this.pos.pos_session.sequence_number);
-        this.session_id = json.pos_session_id;
+        if (json.pos_session_id !== this.pos.pos_session.id) {
+            this.sequence_number = this.pos.pos_session.sequence_number++;
+        } else {
+            this.sequence_number = json.sequence_number;
+            this.pos.pos_session.sequence_number = Math.max(this.sequence_number+1,this.pos.pos_session.sequence_number);
+        }
+        this.session_id = this.pos.pos_session.id;
         this.uid = json.uid;
         this.name = _t("Order ") + this.uid;
         this.validation_date = json.creation_date;
@@ -2243,20 +2247,19 @@ exports.Order = Backbone.Model.extend({
         var client  = this.get('client');
         var cashier = this.pos.get_cashier();
         var company = this.pos.company;
-        var shop    = this.pos.shop;
         var date    = new Date();
 
-        function is_xml(subreceipt){
+        function is_html(subreceipt){
             return subreceipt ? (subreceipt.split('\n')[0].indexOf('<!DOCTYPE QWEB') >= 0) : false;
         }
 
-        function render_xml(subreceipt){
-            if (!is_xml(subreceipt)) {
+        function render_html(subreceipt){
+            if (!is_html(subreceipt)) {
                 return subreceipt;
             } else {
                 subreceipt = subreceipt.split('\n').slice(1).join('\n');
                 var qweb = new QWeb2.Engine();
-                    qweb.debug = config.debug;
+                    qweb.debug = config.isDebug();
                     qweb.default_dict = _.clone(QWeb.default_dict);
                     qweb.add_template('<templates><t t-name="subreceipt">'+subreceipt+'</t></templates>');
 
@@ -2305,22 +2308,19 @@ exports.Order = Backbone.Model.extend({
                 phone: company.phone,
                 logo:  this.pos.company_logo_base64,
             },
-            shop:{
-                name: shop.name,
-            },
             currency: this.pos.currency,
         };
 
-        if (is_xml(this.pos.config.receipt_header)){
+        if (is_html(this.pos.config.receipt_header)){
             receipt.header = '';
-            receipt.header_xml = render_xml(this.pos.config.receipt_header);
+            receipt.header_html = render_html(this.pos.config.receipt_header);
         } else {
             receipt.header = this.pos.config.receipt_header || '';
         }
 
-        if (is_xml(this.pos.config.receipt_footer)){
+        if (is_html(this.pos.config.receipt_footer)){
             receipt.footer = '';
-            receipt.footer_xml = render_xml(this.pos.config.receipt_footer);
+            receipt.footer_html = render_html(this.pos.config.receipt_footer);
         } else {
             receipt.footer = this.pos.config.receipt_footer || '';
         }
@@ -2542,12 +2542,12 @@ exports.Order = Backbone.Model.extend({
     },
 
     /* ---- Payment Lines --- */
-    add_paymentline: function(cashregister) {
+    add_paymentline: function(payment_method) {
         this.assert_editable();
-        var newPaymentline = new exports.Paymentline({},{order: this, cashregister:cashregister, pos: this.pos});
-        if(cashregister.journal.type !== 'cash' || this.pos.config.iface_precompute_cash){
+        var newPaymentline = new exports.Paymentline({},{order: this, payment_method:payment_method, pos: this.pos});
+        if(!payment_method.is_cash_count || this.pos.config.iface_precompute_cash){
             newPaymentline.set_amount( this.get_due() );
-        }
+        };
         this.paymentlines.add(newPaymentline);
         this.select_paymentline(newPaymentline);
 
@@ -2608,9 +2608,36 @@ exports.Order = Backbone.Model.extend({
         }), 0), this.pos.currency.rounding);
     },
     get_total_tax: function() {
-        return round_pr(this.orderlines.reduce((function(sum, orderLine) {
-            return sum + orderLine.get_tax();
-        }), 0), this.pos.currency.rounding);
+        if (this.pos.company.tax_calculation_rounding_method === "round_globally") {
+            // As always, we need:
+            // 1. For each tax, sum their amount across all order lines
+            // 2. Round that result
+            // 3. Sum all those rounded amounts
+            var groupTaxes = {};
+            this.orderlines.each(function (line) {
+                var taxDetails = line.get_tax_details();
+                var taxIds = Object.keys(taxDetails);
+                for (var t = 0; t<taxIds.length; t++) {
+                    var taxId = taxIds[t];
+                    if (!(taxId in groupTaxes)) {
+                        groupTaxes[taxId] = 0;
+                    }
+                    groupTaxes[taxId] += taxDetails[taxId];
+                }
+            });
+
+            var sum = 0;
+            var taxIds = Object.keys(groupTaxes);
+            for (var j = 0; j<taxIds.length; j++) {
+                var taxAmount = groupTaxes[taxIds[j]];
+                sum += round_pr(taxAmount, this.pos.currency.rounding);
+            }
+            return sum;
+        } else {
+            return round_pr(this.orderlines.reduce((function(sum, orderLine) {
+                return sum + orderLine.get_tax();
+            }), 0), this.pos.currency.rounding);
+        }
     },
     get_total_paid: function() {
         return round_pr(this.paymentlines.reduce((function(sum, paymentLine) {
@@ -2719,7 +2746,7 @@ exports.Order = Backbone.Model.extend({
     },
     is_paid_with_cash: function(){
         return !!this.paymentlines.find( function(pl){
-            return pl.cashregister.journal.type === 'cash';
+            return pl.payment_method.is_cash_count;
         });
     },
     finalize: function(){

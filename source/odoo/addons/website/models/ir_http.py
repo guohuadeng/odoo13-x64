@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-import hashlib
 import logging
 from lxml import etree
 import traceback
 import os
-import json
 import unittest
 
 import pytz
@@ -19,7 +17,6 @@ from odoo import SUPERUSER_ID
 from odoo.http import request
 from odoo.tools import config
 from odoo.tools.safe_eval import safe_eval
-from odoo.osv import expression
 from odoo.osv.expression import FALSE_DOMAIN, OR
 
 from odoo.addons.base.models.qweb import QWebException
@@ -217,6 +214,11 @@ class Http(models.AbstractModel):
                 traceback=traceback.format_exc(),
             )
 
+            # only except_orm exceptions contain a message
+            if isinstance(exception, odoo.exceptions.except_orm):
+                values['error_message'] = exception.name
+                code = 400
+
             if isinstance(exception, werkzeug.exceptions.HTTPException):
                 if exception.code is None:
                     # Hand-crafted HTTPException likely coming from abort(),
@@ -282,6 +284,8 @@ class Http(models.AbstractModel):
                         values['editable'] = request.uid and request.website.is_publisher()
                 elif code == 403:
                     logger.warn("403 Forbidden:\n\n%s", values['traceback'])
+                elif code == 400:
+                    logger.warn("400 Bad Request:\n\n%s", values['traceback'])
                 try:
                     html = env['ir.ui.view'].render_template('website.%s' % view_id, values)
                 except Exception:
@@ -290,7 +294,7 @@ class Http(models.AbstractModel):
             return werkzeug.wrappers.Response(html, status=code, content_type='text/html;charset=utf-8')
 
     def binary_content(self, xmlid=None, model='ir.attachment', id=None, field='datas',
-                       unique=False, filename=None, filename_field='datas_fname', download=False,
+                       unique=False, filename=None, filename_field='name', download=False,
                        mimetype=None, default_mimetype='application/octet-stream',
                        access_token=None):
         obj = None
@@ -317,34 +321,23 @@ class Http(models.AbstractModel):
         return super(Http, cls)._xmlid_to_obj(env, xmlid)
 
     @api.model
-    def get_website_session_info(self):
-        # see http_routing/main.py
-        Modules = request.env['ir.module.module'].sudo()
-        IrHttp = request.env['ir.http'].sudo()
-        domain = IrHttp._get_translation_frontend_modules_domain()
-        modules = Modules.search(
-            expression.AND([domain, [('state', '=', 'installed')]])
-        ).mapped('name')
-        user_context = request.session.get_context() if request.session.uid else {}
-        lang = user_context.get('lang')
-        translations, _ = request.env['ir.translation'].get_translations_for_webclient(modules, lang)
-        return {
-            'is_admin': request.env.user._is_admin(),
-            'is_system': request.env.user._is_system(),
-            'is_frontend': True,
-            'translationURL': '/website/translations',
+    def get_frontend_session_info(self):
+        session_info = super(Http, self).get_frontend_session_info()
+        session_info.update({
             'is_website_user': request.env.user.id == request.website.user_id.id,
-            'user_id': request.env.user.id,
-            'cache_hashes': {
-                'translations': hashlib.sha1(json.dumps(translations, sort_keys=True).encode()).hexdigest(),
-            },
-        }
+        })
+        if request.env.user.has_group('website.group_website_publisher'):
+            session_info.update({
+                'website_id': request.website.id,
+                'website_company_id': request.website.company_id.id,
+            })
+        return session_info
 
 
 class ModelConverter(ModelConverter):
 
     def generate(self, uid, dom=None, args=None):
-        Model = request.env[self.model].sudo(uid)
+        Model = request.env[self.model].with_user(uid)
         # Allow to current_website_id directly in route domain
         args.update(current_website_id=request.env['website'].get_current_website().id)
         domain = safe_eval(self.domain, (args or {}).copy())

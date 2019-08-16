@@ -14,7 +14,7 @@ var ActionManager = require('web.ActionManager');
 var config = require('web.config');
 var ControlPanelView = require('web.ControlPanelView');
 var concurrency = require('web.concurrency');
-var DebugManager = require('web.DebugManager');
+var DebugManager = require('web.DebugManager.Backend');
 var dom = require('web.dom');
 var testUtilsMock = require('web.test_utils_mock');
 var Widget = require('web.Widget');
@@ -154,6 +154,11 @@ async function createView(params) {
             modelName: params.model || 'foo',
         });
     } else {
+        viewOptions.controlPanelFieldsView = testUtilsMock.fieldsViewGet(mockServer, {
+            arch: params.archs && params.archs[params.model + ',false,search'] || '<search/>',
+            fields: viewInfo.fields,
+            model: params.model,
+        });
         view = new params.View(viewInfo, viewOptions);
     }
 

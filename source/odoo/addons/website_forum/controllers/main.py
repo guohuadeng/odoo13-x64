@@ -36,24 +36,6 @@ class WebsiteForum(WebsiteProfile):
             values['forum'] = request.env['forum.forum'].browse(kwargs.pop('forum_id'))
         return values
 
-    # User and validation
-    # --------------------------------------------------
-    # TODO DBE : Those 3 are deprecated. To remove in v13.
-    @http.route('/forum/send_validation_email', type='json', auth='user', website=True)
-    def send_forum_validation_email(self, forum_id=None, **kwargs):
-        _logger.warning("The method send_forum_validation_email() is deprecated and should be removed in v13.")
-        return self.send_forum_validation_email(forum_id=forum_id, **kwargs)
-
-    @http.route('/forum/validate_email', type='http', auth='public', website=True, sitemap=False)
-    def forum_validate_email(self, token, user_id, email, forum_id=None, **kwargs):
-        _logger.warning("The method forum_validate_email() is deprecated and should be removed in v13.")
-        return self.forum_validate_email(token=token, user_id=user_id, email=email, forum_id=forum_id, **kwargs)
-
-    @http.route('/forum/validate_email/close', type='json', auth='public', website=True)
-    def forum_validate_email_done(self, **kwargs):
-        _logger.warning("The method forum_validate_email_done() is deprecated and should be removed in v13.")
-        return self.validate_email_done(**kwargs)
-
     # Forum
     # --------------------------------------------------
 
@@ -66,8 +48,8 @@ class WebsiteForum(WebsiteProfile):
         return request.render("website_forum.forum_all", {'forums': forums})
 
     @http.route('/forum/new', type='json', auth="user", methods=['POST'], website=True)
-    def forum_create(self, forum_name="New Forum", add_menu=False):
-        forum_id = request.env['forum.forum'].create({'name': forum_name})
+    def forum_create(self, forum_name="New Forum", forum_mode="questions", add_menu=False):
+        forum_id = request.env['forum.forum'].create({'name': forum_name, 'mode': forum_mode})
         if add_menu:
             request.env['website.menu'].create({
                 'name': forum_name,
@@ -76,12 +58,6 @@ class WebsiteForum(WebsiteProfile):
                 'website_id': request.website.id,
             })
         return "/forum/%s" % slug(forum_id)
-
-    @http.route('/forum/notification_read', type='json', auth="user", methods=['POST'], website=True)
-    def notification_read(self, **kwargs):
-        if kwargs.get('notification_id'):
-            request.env['mail.message'].browse([int(kwargs.get('notification_id'))]).set_message_done()
-        return True
 
     def sitemap_forum(env, rule, qs):
         Forum = env['forum.forum']
@@ -439,7 +415,7 @@ class WebsiteForum(WebsiteProfile):
 
         values = self._prepare_user_values(forum=forum)
         values.update({
-            'posts_ids': posts_to_validate_ids,
+            'posts_ids': posts_to_validate_ids.sudo(),
             'queue_type': 'validation',
         })
 
@@ -459,7 +435,7 @@ class WebsiteForum(WebsiteProfile):
 
         values = self._prepare_user_values(forum=forum)
         values.update({
-            'posts_ids': flagged_posts_ids,
+            'posts_ids': flagged_posts_ids.sudo(),
             'queue_type': 'flagged',
             'flagged_queue_active': 1,
         })
@@ -478,7 +454,7 @@ class WebsiteForum(WebsiteProfile):
 
         values = self._prepare_user_values(forum=forum)
         values.update({
-            'posts_ids': offensive_posts_ids,
+            'posts_ids': offensive_posts_ids.sudo(),
             'queue_type': 'offensive',
         })
 

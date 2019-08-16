@@ -16,7 +16,7 @@ class TestPingenSend(AccountingTestCase):
         self.sample_invoice.partner_id.vat = "BE000000000"
         self.letter = self.env['snailmail.letter'].create({
             'partner_id': self.sample_invoice.partner_id.id,
-            'model': 'account.invoice',
+            'model': 'account.move',
             'res_id': self.sample_invoice.id,
             'user_id': self.env.user.id,
             'company_id': self.sample_invoice.company_id.id,
@@ -25,7 +25,7 @@ class TestPingenSend(AccountingTestCase):
         self.data = {
             'data': json.dumps({
                 'speed': 1,
-                'color': 2,
+                'color': 1,
                 'duplex': 0,
                 'send': True,
             })
@@ -33,41 +33,19 @@ class TestPingenSend(AccountingTestCase):
 
     def create_invoice(self):
         """ Create a sample invoice """
-        currency = self.env.ref('base.EUR')
-        partner_agrolait = self.env.ref("base.res_partner_2")
-        product = self.env.ref("product.product_product_4")
-
-        account_receivable = self.env['account.account'].create({
-            'code': 'TESTPINGEN1',
-            'name': 'Test Receivable Account',
-            'user_type_id': self.env.ref('account.data_account_type_receivable').id,
-            'reconcile': True
-        })
-        account_income = self.env['account.account'].create({
-            'code': 'TESTPINGEN2',
-            'name': 'Test Account',
-            'user_type_id': self.env.ref('account.data_account_type_direct_costs').id
-        })
-
-        invoice = self.env['account.invoice'].create({
-            'partner_id': partner_agrolait.id,
-            'currency_id': currency.id,
-            'name': 'invoice to client',
-            'account_id': account_receivable.id,
+        invoice = self.env['account.move'].with_context(default_type='out_invoice').create({
             'type': 'out_invoice',
-            'date_invoice': '2018-12-11',
+            'partner_id': self.env.ref("base.res_partner_2").id,
+            'currency_id': self.env.ref('base.EUR').id,
+            'invoice_date': '2018-12-11',
+            'invoice_line_ids': [(0, 0, {
+                'product_id': self.env.ref("product.product_product_4").id,
+                'quantity': 1,
+                'price_unit': 42,
+            })],
         })
 
-        self.env['account.invoice.line'].create({
-            'product_id': product.id,
-            'quantity': 1,
-            'price_unit': 42,
-            'invoice_id': invoice.id,
-            'name': 'something',
-            'account_id': account_income.id,
-        })
-
-        invoice.action_invoice_open()
+        invoice.post()
 
         return invoice
 

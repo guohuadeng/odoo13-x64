@@ -43,7 +43,7 @@ class BaseAutomation(models.Model):
         ('on_unlink', 'On Deletion'),
         ('on_change', 'Based on Form Modification'),
         ('on_time', 'Based on Timed Condition')
-        ], string='Trigger Condition', required=True, oldname="kind")
+        ], string='Trigger Condition', required=True)
     trg_date_id = fields.Many2one('ir.model.fields', string='Trigger Date',
                                   help="""When should the condition be triggered.
                                   If present, will be checked by the scheduler. If empty, will be checked at creation and update.""",
@@ -102,7 +102,6 @@ class BaseAutomation(models.Model):
         self._update_registry()
         return base_automation
 
-    @api.multi
     def write(self, vals):
         res = super(BaseAutomation, self).write(vals)
         if set(vals).intersection(self.CRITICAL_FIELDS):
@@ -110,7 +109,6 @@ class BaseAutomation(models.Model):
             self._update_registry()
         return res
 
-    @api.multi
     def unlink(self):
         res = super(BaseAutomation, self).unlink()
         self._update_cron()
@@ -231,7 +229,6 @@ class BaseAutomation(models.Model):
             )
         return any(differ(field.name) for field in self.trigger_field_ids)
 
-    @api.model_cr
     def _register_hook(self):
         """ Patch models that should trigger action rules based on creation,
             modification, deletion of records and form onchanges.
@@ -266,7 +263,6 @@ class BaseAutomation(models.Model):
             # Note: we patch method _write() instead of write() in order to
             # catch updates made by field recomputations.
             #
-            @api.multi
             def _write(self, vals, **kw):
                 # retrieve the action rules to possibly execute
                 actions = self.env['base.automation']._get_actions(self, ['on_write', 'on_create_or_write'])
@@ -290,7 +286,6 @@ class BaseAutomation(models.Model):
 
         def make_unlink():
             """ Instanciate an unlink method that processes action rules. """
-            @api.multi
             def unlink(self, **kwargs):
                 # retrieve the action rules to possibly execute
                 actions = self.env['base.automation']._get_actions(self, ['on_unlink'])

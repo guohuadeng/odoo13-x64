@@ -13,7 +13,7 @@ class TestMrpOrder(TestMrpCommon):
 
     def test_access_rights_manager(self):
         """ Checks an MRP manager can create, confirm and cancel a manufacturing order. """
-        man_order_form = Form(self.env['mrp.production'].sudo(self.user_mrp_manager))
+        man_order_form = Form(self.env['mrp.production'].with_user(self.user_mrp_manager))
         man_order_form.product_id = self.product_4
         man_order_form.product_qty = 5.0
         man_order_form.bom_id = self.bom_1
@@ -27,7 +27,7 @@ class TestMrpOrder(TestMrpCommon):
 
     def test_access_rights_user(self):
         """ Checks an MRP user can create, confirm and cancel a manufacturing order. """
-        man_order_form = Form(self.env['mrp.production'].sudo(self.user_mrp_user))
+        man_order_form = Form(self.env['mrp.production'].with_user(self.user_mrp_user))
         man_order_form.product_id = self.product_4
         man_order_form.product_qty = 5.0
         man_order_form.bom_id = self.bom_1
@@ -46,7 +46,6 @@ class TestMrpOrder(TestMrpCommon):
         self.product_2.type = 'product'
         inventory = self.env['stock.inventory'].create({
             'name': 'Initial inventory',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': self.product_1.id,
                 'product_uom_id': self.product_1.uom_id.id,
@@ -59,12 +58,13 @@ class TestMrpOrder(TestMrpCommon):
                 'location_id': self.warehouse_1.lot_stock_id.id
             })]
         })
+        inventory.action_start()
         inventory.action_validate()
 
         test_date_planned = Dt.now() - timedelta(days=1)
         test_quantity = 2.0
         self.bom_1.routing_id = False
-        man_order_form = Form(self.env['mrp.production'].sudo(self.user_mrp_user))
+        man_order_form = Form(self.env['mrp.production'].with_user(self.user_mrp_user))
         man_order_form.product_id = self.product_4
         man_order_form.bom_id = self.bom_1
         man_order_form.product_uom_id = self.product_4.uom_id
@@ -128,22 +128,22 @@ class TestMrpOrder(TestMrpCommon):
         self.assertEqual(production_2.reservation_state, 'confirmed', 'Production order should be availability for waiting state')
 
         # Update Inventory
-        inventory_wizard = self.env['stock.change.product.qty'].create({
+        self.env['stock.quant'].with_context(inventory_mode=True).create({
             'product_id': self.product_2.id,
-            'new_quantity': 2.0,
+            'inventory_quantity': 2.0,
+            'location_id': self.ref('stock.stock_location_14')
         })
-        inventory_wizard.change_product_qty()
 
         production_2.action_assign()
         # check sub product availability state is partially available
         self.assertEqual(production_2.reservation_state, 'confirmed', 'Production order should be availability for partially available state')
 
         # Update Inventory
-        inventory_wizard = self.env['stock.change.product.qty'].create({
+        self.env['stock.quant'].with_context(inventory_mode=True).create({
             'product_id': self.product_2.id,
-            'new_quantity': 5.0,
+            'inventory_quantity': 5.0,
+            'location_id': self.ref('stock.stock_location_14')
         })
-        inventory_wizard.change_product_qty()
 
         production_2.action_assign()
         # check sub product availability state is assigned
@@ -195,7 +195,6 @@ class TestMrpOrder(TestMrpCommon):
         quant_before = custom_laptop.qty_available
         inventory = self.env['stock.inventory'].create({
             'name': 'Inventory Product Table',
-            'filter': 'partial',
             'line_ids': [(0, 0, {
                 'product_id': product_charger.id,
                 'product_uom_id': product_charger.uom_id.id,
@@ -208,6 +207,7 @@ class TestMrpOrder(TestMrpCommon):
                 'location_id': source_location_id
             })]
         })
+        inventory.action_start()
         inventory.action_validate()
 
         # create a mo for this bom
@@ -519,6 +519,51 @@ class TestMrpOrder(TestMrpCommon):
         mo.button_mark_done()
 
     def test_product_produce_6(self):
+        """ Plan 5 finished products, reserve and produce 3. Post the current production.
+        Simulate an unlock and edit and, on the opened moves, set the consumed quantity
+        to 3. Now, try to update the quantity to produce to 3. It should fail since there
+        are consumed quantities. Unlock and edit, remove the consumed quantities and
+        update the quantity to produce to 3."""
+        self.stock_location = self.env.ref('stock.stock_location_stock')
+        mo, bom, p_final, p1, p2 = self.generate_mo()
+        self.assertEqual(len(mo), 1, 'MO should have been created')
+
+        self.env['stock.quant']._update_available_quantity(p1, self.stock_location, 20)
+
+        self.env['stock.quant']._update_available_quantity(p2, self.stock_location, 5)
+        mo.action_assign()
+
+        produce_wizard = self.env['mrp.product.produce'].with_context({
+            'active_id': mo.id,
+            'active_ids': [mo.id],
+        }).create({
+            'product_qty': 3.0,
+        })
+        produce_wizard._onchange_product_qty()
+        produce_wizard.do_produce()
+
+        mo.post_inventory()
+        self.assertEqual(len(mo.move_raw_ids), 4)
+
+        mo.move_raw_ids.filtered(lambda m: m.state != 'done')[0].quantity_done = 3
+
+        update_quantity_wizard = self.env['change.production.qty'].create({
+            'mo_id': mo.id,
+            'product_qty': 3,
+        })
+        with self.assertRaises(UserError):
+            update_quantity_wizard.change_prod_qty()
+
+        mo.move_raw_ids.filtered(lambda m: m.state != 'done')[0].quantity_done = 0
+        update_quantity_wizard.change_prod_qty()
+
+        self.assertEqual(len(mo.move_raw_ids), 2)
+
+        mo.button_mark_done()
+        self.assertTrue(all(s == 'done' for s in mo.move_raw_ids.mapped('state')))
+        self.assertEqual(sum(mo.move_raw_ids.mapped('move_line_ids.product_uom_qty')), 0)
+
+    def test_product_produce_6(self):
         """ Checks that, for a BOM with two components, when creating a manufacturing order for one
         finished products and without reserving, the produce wizards proposes the corrects lines
         even if we change the quantity to produce multiple times.
@@ -558,7 +603,7 @@ class TestMrpOrder(TestMrpCommon):
         produce_wizard.do_produce()
 
     def test_product_produce_7(self):
-        """ Add components in 2 differents sub location. Do not reserve the MO
+        """ Add components in 2 different sub location. Do not reserve the MO
         and checks that the move line created takes stock from location that
         contains needed raw materials.
         """
@@ -989,3 +1034,36 @@ class TestMrpOrder(TestMrpCommon):
         self.assertEqual(product_produce.raw_workorder_line_ids[0].product_uom_id, unit, 'Should be the product uom so "unit"')
         self.assertEqual(product_produce.raw_workorder_line_ids[1].qty_to_consume, 1, 'Should be 1 unit since the tracking is serial and quantity 2.')
         self.assertEqual(product_produce.raw_workorder_line_ids[1].product_uom_id, unit, 'should be the product uom so "unit"')
+
+    def test_product_type_service_1(self):
+        # Create finished product
+        finished_product = self.env['product.product'].create({
+            'name': 'Geyser',
+            'type': 'product',
+        })
+
+        # Create service type product
+        product_raw = self.env['product.product'].create({
+            'name': 'raw Geyser',
+            'type': 'service',
+        })
+
+        # Create bom for finish product
+        bom = self.env['mrp.bom'].create({
+            'product_id': finished_product.id,
+            'product_tmpl_id': finished_product.product_tmpl_id.id,
+            'product_uom_id': self.env.ref('uom.product_uom_unit').id,
+            'product_qty': 1.0,
+            'type': 'normal',
+            'bom_line_ids': [(5, 0), (0, 0, {'product_id': product_raw.id})]
+        })
+
+        mo_form = Form(self.env['mrp.production'])
+        mo_form.product_id = finished_product
+        mo_form.bom_id = bom
+        mo_form.product_uom_id = self.env.ref('uom.product_uom_unit')
+        mo_form.product_qty = 1
+        mo = mo_form.save()
+
+        # Check Mo is created or not
+        self.assertTrue(mo, "Mo is created")

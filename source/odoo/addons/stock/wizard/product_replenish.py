@@ -2,7 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 import datetime
-from odoo import api, fields, models
+from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from odoo.tools.misc import clean_context
 
@@ -12,7 +12,7 @@ class ProductReplenish(models.TransientModel):
     _description = 'Product Replenish'
 
     product_id = fields.Many2one('product.product', string='Product', required=True)
-    product_tmpl_id = fields.Many2one('product.template', String='Product Template', required=True)
+    product_tmpl_id = fields.Many2one('product.template', string='Product Template', required=True)
     product_has_variants = fields.Boolean('Has variants', default=False, required=True)
     product_uom_category_id = fields.Many2one('uom.category', related='product_id.uom_id.category_id', readonly=True, required=True)
     product_uom_id = fields.Many2one('uom.uom', string='Unity of measure', required=True)
@@ -25,7 +25,7 @@ class ProductReplenish(models.TransientModel):
     @api.model
     def default_get(self, fields):
         res = super(ProductReplenish, self).default_get(fields)
-        company_user = self.env.company_id
+        company_user = self.env.company
         warehouse = self.env['stock.warehouse'].search([('company_id', '=', company_user.id)], limit=1)
         product_tmpl_id = False
         if 'product_id' in fields:
@@ -58,8 +58,8 @@ class ProductReplenish(models.TransientModel):
                     self.quantity,
                     uom_reference,
                     self.warehouse_id.lot_stock_id,  # Location
-                    "Manual Replenishment",  # Name
-                    "Manual Replenishment",  # Origin
+                    _("Manual Replenishment"),  # Name
+                    _("Manual Replenishment"),  # Origin
                     self.warehouse_id.company_id,
                     self._prepare_run_values()  # Values
                 )

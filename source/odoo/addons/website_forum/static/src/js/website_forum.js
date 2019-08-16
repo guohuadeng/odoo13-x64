@@ -7,7 +7,6 @@ var publicWidget = require('web.public.widget');
 var session = require('web.session');
 var utils = require('web.utils');
 var qweb = core.qweb;
-var WebsiteProfile = require('website_profile.website_profile');
 
 var _t = core._t;
 
@@ -18,9 +17,6 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
         'click .karma_required': '_onKarmaRequiredClick',
         'mouseenter .o_js_forum_tag_follow': '_onTagFollowBoxMouseEnter',
         'mouseleave .o_js_forum_tag_follow': '_onTagFollowBoxMouseLeave',
-        'click .o_forum_profile_pic_edit': '_onEditProfilePicClick',
-        'change .o_forum_file_upload': '_onFileUploadChange',
-        'click .o_forum_profile_pic_clear': '_onProfilePicClearClick',
         'mouseenter .o_forum_user_info': '_onUserInfoMouseEnter',
         'mouseleave .o_forum_user_info': '_onUserInfoMouseLeave',
         'mouseleave .o_forum_user_bio_expand': '_onUserBioExpandMouseLeave',
@@ -28,9 +24,11 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
         'click .vote_up:not(.karma_required), .vote_down:not(.karma_required)': '_onVotePostClick',
         'click .o_js_validation_queue a[href*="/validate"]': '_onValidationQueueClick',
         'click .accept_answer:not(.karma_required)': '_onAcceptAnswerClick',
+        'click .validate_answer [data-href]': '_onAcceptAnswerClick',
+        'mouseenter .validate_answer [data-href]': '_onRemoveValidAnswerMouse',
+        'mouseleave .validate_answer [data-href]': '_onRemoveValidAnswerMouse',
         'click .favourite_question': '_onFavoriteQuestionClick',
         'click .comment_delete': '_onDeleteCommentClick',
-        'click .notification_close': '_onCloseNotificationClick',
         'click .js_close_intro': '_onCloseIntroClick',
     },
 
@@ -115,7 +113,7 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
 
         _.each($('textarea.load_editor'), function (textarea) {
             var $textarea = $(textarea);
-            var editorKarma = $textarea.data('karma') || 30; // default value for backward compatibility
+            var editorKarma = $textarea.data('karma') || 0; // default value for backward compatibility
             if (!$textarea.val().match(/\S/)) {
                 $textarea.val('<p><br/></p>');
             }
@@ -186,20 +184,20 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
         }
         ev.preventDefault();
         var msg = karma + ' ' + _t("karma is required to perform this action. ");
+        var title = _t("Karma Error");
         if (forum_id) {
             msg += '<a class="alert-link" href="/forum/' + forum_id + '/faq">' + _t("Read the guidelines to know how to gain karma.") + '</a>';
         }
         if (session.is_website_user) {
             msg = _t("Sorry you must be logged in to perform this action");
+            title = _t("Access Denied");
         }
-        var $warning = $('<div class="alert alert-danger alert-dismissible oe_forum_alert" id="karma_alert">' +
-            '<button type="button" class="close notification_close" data-dismiss="alert">&times;</button>' +
-            msg + '</div>');
-        var $voteAlert = $('#karma_alert');
-        if ($voteAlert.length) {
-            $voteAlert.remove();
-        }
-        $karma.after($warning);
+        this.call('crash_manager', 'show_warning', {
+            message: msg,
+            title: title,
+        }, {
+            sticky: false,
+        });
     },
     /**
      * @private
@@ -214,41 +212,6 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
      */
     _onTagFollowBoxMouseLeave: function (ev) {
         $(ev.currentTarget).find('.o_forum_tag_follow_box').stop().fadeOut().css('display', 'none');
-    },
-    /**
-     * @private
-     * @param {Event} ev
-     */
-    _onEditProfilePicClick: function (ev) {
-        ev.preventDefault();
-        $(ev.currentTarget).closest('form').find('.o_forum_file_upload').trigger('click');
-    },
-    /**
-     * @private
-     * @param {Event} ev
-     */
-    _onFileUploadChange: function (ev) {
-        if (!ev.currentTarget.files.length) {
-            return;
-        }
-        var $form = $(ev.currentTarget).closest('form');
-        utils.getDataURLFromFile(ev.currentTarget.files[0]).then(function (result) {
-            $form.find('.o_forum_avatar_img').attr('src', result);
-        });
-        $form.find('#forum_clear_image').remove();
-    },
-    /**
-     * @private
-     * @param {Event} ev
-     */
-    _onProfilePicClearClick: function (ev) {
-        var $form = $(ev.currentTarget).closest('form');
-        $form.find('.o_forum_avatar_img').attr('src', '/web/static/src/img/placeholder.png');
-        $form.append($('<input/>', {
-            name: 'clear_image',
-            id: 'forum_clear_image',
-            type: 'hidden',
-        }));
     },
     /**
      * @private
@@ -276,41 +239,27 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
      * @param {Event} ev
      */
     _onFlagAlertClick: function (ev) {
+        var self = this;
         ev.preventDefault();
         var $link = $(ev.currentTarget);
         this._rpc({
             route: $link.data('href') || ($link.attr('href') !== '#' && $link.attr('href')) || $link.closest('form').attr('action'),
         }).then(function (data) {
             if (data.error) {
-                var $warning;
+                var message;
                 if (data.error === 'anonymous_user') {
-                    $warning = $(
-                        '<div class="alert alert-danger alert-dismissable oe_forum_alert" id="flag_alert">' +
-                            '<button type="button" class="close notification_close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-                            _t("Sorry you must be logged to flag a post") +
-                        '</div>'
-                    );
+                    message = _t("Sorry you must be logged to flag a post");
                 } else if (data.error === 'post_already_flagged') {
-                    $warning = $(
-                        '<div class="alert alert-danger alert-dismissable oe_forum_alert" id="flag_alert">' +
-                            '<button type="button" class="close notification_close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-                            _t("This post is already flagged") +
-                            '<button type="button" class="close notification_close" t-att-id="notification.id" data-dismiss="alert" aria-label="Close">&times;</button>' +
-                        '</div>'
-                    );
+                    message = _t("This post is already flagged");
                 } else if (data.error === 'post_non_flaggable') {
-                    $warning = $(
-                        '<div class="alert alert-danger alert-dismissable oe_forum_alert" id="flag_alert">' +
-                            '<button type="button" class="close notification_close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-                            _t("This post can not be flagged") +
-                            '<button type="button" class="close notification_close" t-att-id="notification.id" data-dismiss="alert" aria-label="Close">&times;</button>' +
-                        '</div>'
-                    );
+                    message = _t("This post can not be flagged");
                 }
-                var $flagAlert = $link.parent().find('#flag_alert');
-                if ($flagAlert.length === 0) {
-                    $link.parent().append($warning);
-                }
+                self.call('crash_manager', 'show_warning', {
+                    message: message,
+                    title: _t("Access Denied"),
+                }, {
+                    sticky: false,
+                });
             } else if (data.success) {
                 var elem = $link;
                 if (data.success === 'post_flagged_moderator') {
@@ -332,28 +281,25 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
      * @param {Event} ev
      */
     _onVotePostClick: function (ev) {
+        var self = this;
         ev.preventDefault();
         var $link = $(ev.currentTarget);
         this._rpc({
             route: $link.data('href'),
         }).then(function (data) {
             if (data.error) {
-                var $warning;
+                var message;
                 if (data.error === 'own_post') {
-                    $warning = $('<div class="alert alert-danger alert-dismissable oe_forum_alert" id="vote_alert">' +
-                        '<button type="button" class="close notification_close" data-dismiss="alert">&times;</button>' +
-                        _t('Sorry, you cannot vote for your own posts') +
-                        '</div>');
+                    message = _t('Sorry, you cannot vote for your own posts');
                 } else if (data.error === 'anonymous_user') {
-                    $warning = $('<div class="alert alert-danger alert-dismissable oe_forum_alert" id="vote_alert">' +
-                        '<button type="button" class="close notification_close" data-dismiss="alert">&times;</button>' +
-                        _t('Sorry you must be logged to vote') +
-                        '</div>');
+                    message = _t('Sorry you must be logged to vote');
                 }
-                var $voteAlert = $link.parent().find('#vote_alert');
-                if ($voteAlert.length === 0) {
-                    $link.parent().append($warning);
-                }
+                self.call('crash_manager', 'show_warning', {
+                    message: message,
+                    title: _t("Access Denied"),
+                }, {
+                    sticky: false,
+                });
             } else {
                 $link.parent().find('.vote_count').html(data.vote_count);
                 if (data.user_vote === 0) {
@@ -392,38 +338,60 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
      * @param {Event} ev
      */
     _onAcceptAnswerClick: function (ev) {
+        var self = this;
         ev.preventDefault();
+        var self = this;
+        var $acceptAnswerLinks = this.$('.accept_answer');
         var $link = $(ev.currentTarget);
         this._rpc({
             route: $link.data('href'),
         }).then(function (data) {
             if (data.error) {
                 if (data.error === 'anonymous_user') {
-                    var $warning = $(
-                        '<div class="alert alert-danger alert-dismissable" id="correct_answer_alert" style="position:absolute; margin-top: -30px; margin-left: 90px;">' +
-                            '<button type="button" class="close notification_close" data-dismiss="alert" aria-hidden="true">&times;</button>' +
-                            _t("Sorry, anonymous users cannot choose correct answer.") +
-                        '</div>'
-                    );
+                    var message = _t("Sorry, anonymous users cannot choose correct answer.");
                 }
-                var $correctAnswerAlert = $link.parent().find('#correct_answer_alert');
-                if ($correctAnswerAlert.length === 0) {
-                    $link.parent().append($warning);
-                }
+                self.call('crash_manager', 'show_warning', {
+                    message: message,
+                    title: _t("Access Denied"),
+                }, {
+                    sticky: false,
+                });
             } else {
+                $acceptAnswerLinks.removeClass('oe_answer_true')
+                                  .addClass('oe_answer_false');
                 $link.toggleClass('oe_answer_true', !!data)
                      .toggleClass('oe_answer_false', !data);
+
+                // TODO in master, review the utility of this function...
+                self._onCheckAnswerStatus(ev);
+
+                // If we are removing an accepted answer, reload the page as the
+                // design is quite different with or without an accepted answer.
+                if ($link.closest('.validate_answer').length) {
+                    window.location.reload();
+                }
             }
         });
-        this._onCheckAnswerStatus(ev);
+    },
+    /**
+     * @private
+     * @param {Event} ev
+     */
+    _onRemoveValidAnswerMouse: function (ev) {
+        var hover = (ev.type === 'mouseenter');
+        $(ev.currentTarget).find('.fa')
+            .toggleClass('fa-times-circle text-danger', hover)
+            .toggleClass('fa-check-circle text-success', !hover);
     },
     /**
      * @private
      * @param {Event} ev
      */
     _onCheckAnswerStatus: function (ev) {
-        var $link = $(ev.currentTarget);
-        $link.toggleClass('text-success', !$link.hasClass('oe_answer_true'));
+        _.each(this.$('.accept_answer'), function (link) {
+            var $link = $(link);
+            $link.toggleClass('text-success', $link.hasClass('oe_answer_true'));
+        });
     },
     /**
      * @private
@@ -450,22 +418,6 @@ publicWidget.registry.websiteForum = publicWidget.Widget.extend({
         }).then(function () {
             $link.parents('.comment').first().remove();
         });
-    },
-    /**
-     * @private
-     * @param {Event} ev
-     */
-    _onCloseNotificationClick: function (ev) {
-        if (!session.is_website_user) {
-            ev.preventDefault();
-            var $link = $(ev.currentTarget);
-            this._rpc({
-                route: '/forum/notification_read',
-                params: {
-                    notification_id: $link.attr('id'),
-                },
-            });
-        }
     },
     /**
      * @private
