@@ -104,7 +104,8 @@ class PosConfig(models.Model):
         'stock.picking.type',
         string='Operation Type',
         default=_default_picking_type_id,
-        domain="[('code', '=', 'outgoing'), ('warehouse_id.company_id', '=', company_id)]")
+        domain="[('code', '=', 'outgoing'), ('warehouse_id.company_id', '=', company_id)]",
+        ondelete='restrict')
     use_existing_lots = fields.Boolean(related='picking_type_id.use_existing_lots', readonly=False)
     journal_id = fields.Many2one(
         'account.journal', string='Sales Journal',
@@ -150,7 +151,7 @@ class PosConfig(models.Model):
         help='A globally unique identifier for this pos configuration, used to prevent conflicts in client-generated data.')
     sequence_id = fields.Many2one('ir.sequence', string='Order IDs Sequence', readonly=True,
         help="This sequence is automatically created by Odoo but you can change it "
-        "to customize the reference numbers of your orders.", copy=False)
+        "to customize the reference numbers of your orders.", copy=False, ondelete='restrict')
     sequence_line_id = fields.Many2one('ir.sequence', string='Order Line IDs Sequence', readonly=True,
         help="This sequence is automatically created by Odoo but you can change it "
         "to customize the reference numbers of your orders lines.", copy=False)
@@ -202,6 +203,8 @@ class PosConfig(models.Model):
              "the closing of his session saying that he needs to contact his manager.")
     payment_method_ids = fields.Many2many('pos.payment.method', string='Payment Methods', default=lambda self: self._default_payment_methods())
     company_has_template = fields.Boolean(string="Company has chart of accounts", compute="_compute_company_has_template")
+    current_user_id = fields.Many2one('res.users', string='Current Session Responsible', compute='_compute_current_session_user')
+    other_devices = fields.Boolean(string="Other Devices", help="Connect devices to your PoS without an IoT Box.")
 
     @api.depends('company_id')
     def _compute_company_has_template(self):
@@ -224,10 +227,13 @@ class PosConfig(models.Model):
             else:
                 pos_config.currency_id = pos_config.company_id.currency_id.id
 
-    @api.depends('session_ids')
+    @api.depends('session_ids', 'session_ids.state')
     def _compute_current_session(self):
+        """If there is an open session, store it to current_session_id / current_session_State.
+        """
         for pos_config in self:
-            session = pos_config.session_ids.filtered(lambda s: s.state != 'closed' and not s.rescue)
+            session = pos_config.session_ids.filtered(lambda s: s.user_id.id == self.env.uid and \
+                    not s.state == 'closed' and not s.rescue)
             # sessions ordered by id desc
             pos_config.current_session_id = session and session[0].id or False
             pos_config.current_session_state = session and session[0].state or False
@@ -251,6 +257,7 @@ class PosConfig(models.Model):
             else:
                 pos_config.last_session_closing_cash = 0
                 pos_config.last_session_closing_date = False
+                pos_config.last_session_closing_cashbox = False
 
     @api.depends('session_ids')
     def _compute_current_session_user(self):
@@ -262,10 +269,12 @@ class PosConfig(models.Model):
                 pos_config.pos_session_duration = (
                     datetime.now() - session[0].start_at
                 ).days if session[0].start_at else 0
+                pos_config.current_user_id = session[0].user_id
             else:
                 pos_config.pos_session_username = False
                 pos_config.pos_session_state = False
                 pos_config.pos_session_duration = 0
+                pos_config.current_user_id = False
 
     @api.constrains('cash_control')
     def _check_session_state(self):
@@ -463,13 +472,19 @@ class PosConfig(models.Model):
 
     # Methods to open the POS
     def open_ui(self):
-        """ open the pos interface """
+        """Open the pos interface with config_id as an extra argument.
+    
+        In vanilla PoS each user can only have one active session, therefore it was not needed to pass the config_id
+        on opening a session. It is also possible to login to sessions created by other users.
+        
+        :returns: dict
+        """
         self.ensure_one()
         # check all constraints, raises if any is not met
         self._validate_fields(set(self._fields) - {"cash_control"})
         return {
             'type': 'ir.actions.act_url',
-            'url':   '/pos/web/',
+            'url':   '/pos/web?config_id=%d' % self.id,
             'target': 'self',
         }
 
@@ -485,13 +500,12 @@ class PosConfig(models.Model):
             self._check_company_invoice_journal()
             self._check_company_payment()
             self._check_currencies()
-            self.current_session_id = self.env['pos.session'].create({
+            self.env['pos.session'].create({
                 'user_id': self.env.uid,
                 'config_id': self.id
             })
             if self.current_session_id.state == 'opened':
                 return self.open_ui()
-            return self._open_session(self.current_session_id.id)
         return self._open_session(self.current_session_id.id)
 
     def open_existing_session_cb(self):

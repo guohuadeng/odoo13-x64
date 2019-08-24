@@ -76,7 +76,10 @@ var ScreenWidget = PosBaseWidget.extend({
     barcode_client_action: function(code){
         var partner = this.pos.db.get_partner_by_barcode(code.code);
         if(partner){
-            this.pos.get_order().set_client(partner);
+            if (this.pos.get_order().get_client() !== partner) {
+                this.pos.get_order().set_client(partner);
+                this.pos.get_order().set_pricelist(_.findWhere(this.pos.pricelists, {'id': partner.property_product_pricelist[0]}) || this.pos.default_pricelist);
+            }
             return true;
         }
         this.barcode_error_action(code);
@@ -811,7 +814,7 @@ var ProductCategoriesWidget = PosBaseWidget.extend({
 
         this.el.querySelector('.searchbox input').addEventListener('keydown',this.search_handler);
 
-        this.el.querySelector('.search-clear').addEventListener('click',this.clear_search_handler);
+        this.el.querySelector('.search-clear.right').addEventListener('click',this.clear_search_handler);
 
         if(this.pos.config.iface_vkeyboard && this.chrome.widget.keyboard){
             this.chrome.widget.keyboard.connect($(this.el.querySelector('.searchbox input')));
@@ -840,11 +843,11 @@ var ProductCategoriesWidget = PosBaseWidget.extend({
                     this.pos.get_order().add_product(products[0]);
                     this.clear_search();
             }else{
-                this.product_list_widget.set_product_list(products);
+                this.product_list_widget.set_product_list(products, query);
             }
         }else{
             products = this.pos.db.get_product_by_category(this.category.id);
-            this.product_list_widget.set_product_list(products);
+            this.product_list_widget.set_product_list(products, query);
         }
     },
 
@@ -867,6 +870,7 @@ var ProductListWidget = PosBaseWidget.extend({
         this.weight = options.weight || 0;
         this.show_scale = options.show_scale || false;
         this.next_screen = options.next_screen || false;
+        this.search_word = false;
 
         this.click_product_handler = function(){
             var product = self.pos.db.get_product_by_id(this.dataset.productId);
@@ -894,8 +898,9 @@ var ProductListWidget = PosBaseWidget.extend({
             this.renderElement();
         }, this);
     },
-    set_product_list: function(product_list){
+    set_product_list: function(product_list, search_word){
         this.product_list = product_list;
+        this.search_word = !!search_word ? search_word : false;
         this.renderElement();
     },
     get_product_image_url: function(product){
@@ -1629,7 +1634,7 @@ var ReceiptScreenWidget = ScreenWidget.extend({
     should_close_immediately: function() {
         var order = this.pos.get_order();
         var invoiced_finalized = order.is_to_invoice() ? order.finalized : true;
-        return this.pos.config.iface_print_via_proxy && this.pos.config.iface_print_skip_screen && invoiced_finalized;
+        return this.pos.proxy.printer && this.pos.config.iface_print_skip_screen && invoiced_finalized;
     },
     lock_screen: function(locked) {
         this._locked = locked;
@@ -1678,7 +1683,7 @@ var ReceiptScreenWidget = ScreenWidget.extend({
     print: function() {
         var self = this;
 
-        if (!this.pos.config.iface_print_via_proxy) { // browser (html) printing
+        if (!this.pos.proxy.printer) { // browser (html) printing
 
             // The problem is that in chrome the print() is asynchronous and doesn't
             // execute until all rpc are finished. So it conflicts with the rpc used

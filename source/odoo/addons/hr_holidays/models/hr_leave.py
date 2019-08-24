@@ -126,7 +126,6 @@ class HolidaysRequest(models.Model):
         'hr.department', string='Department', readonly=True,
         states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]})
     notes = fields.Text('Reasons', readonly=True, states={'draft': [('readonly', False)], 'confirm': [('readonly', False)]})
-    out_of_office_message = fields.Char(string='Chat Status')
     # duration
     date_from = fields.Datetime(
         'Start Date', readonly=True, index=True, copy=False, required=True,
@@ -262,11 +261,6 @@ class HolidaysRequest(models.Model):
         self.request_unit_hours = False
         self.request_unit_custom = False
         self.state = 'confirm' if self.validation_type != 'no_validation' else 'draft'
-
-    @api.onchange('user_id')
-    def _onchange_user_id(self):
-        if not self.out_of_office_message:
-            self.out_of_office_message = self.user_id.out_of_office_message
 
     @api.onchange('request_date_from_period', 'request_hour_from', 'request_hour_to',
                   'request_date_from', 'request_date_to',
@@ -611,16 +605,16 @@ class HolidaysRequest(models.Model):
                 holiday_sudo.activity_update()
         return holiday
 
-    def _read_from_database(self, field_names, inherited_field_names=[]):
-        if 'name' in field_names and 'employee_id' not in field_names:
-            field_names.append('employee_id')
-        super(HolidaysRequest, self)._read_from_database(field_names, inherited_field_names)
-        if 'name' in field_names:
+    def _read(self, fields):
+        if 'name' in fields and 'employee_id' not in fields:
+            fields.add('employee_id')
+        super(HolidaysRequest, self)._read(fields)
+        if 'name' in fields:
             if self.user_has_groups('hr_holidays.group_hr_holidays_user'):
                 return
             current_employee = self.env['hr.employee'].sudo().search([('user_id', '=', self.env.uid)], limit=1)
             for record in self:
-                emp_id = record._cache.get('employee_id', False) and record._cache.get('employee_id')[0]
+                emp_id = record._cache.get('employee_id') or False
                 if emp_id != current_employee.id:
                     try:
                         record._cache['name']
@@ -630,9 +624,6 @@ class HolidaysRequest(models.Model):
                         pass
 
     def write(self, values):
-        # Allow an employee to always write his own out of office message
-        if len(self) == 1 and values.keys() == {'out_of_office_message'} and self.employee_id.user_id == self.env.user:
-            return super(HolidaysRequest, self.sudo()).write(values)
         is_officer = self.env.user.has_group('hr_holidays.group_hr_holidays_user')
 
         if not is_officer:

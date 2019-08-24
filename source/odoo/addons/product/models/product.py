@@ -97,8 +97,7 @@ class ProductProduct(models.Model):
     barcode = fields.Char(
         'Barcode', copy=False,
         help="International Article Number used for product identification.")
-    attribute_value_ids = fields.Many2many(
-        'product.attribute.value', string='Attribute Values', ondelete='restrict')
+    attribute_value_ids = fields.Many2many('product.attribute.value', string='Attribute Values')
     product_template_attribute_value_ids = fields.Many2many(
         'product.template.attribute.value', string='Template Attribute Values', compute="_compute_product_template_attribute_value_ids")
     is_product_variant = fields.Boolean(compute='_compute_is_product_variant')
@@ -107,14 +106,14 @@ class ProductProduct(models.Model):
         'Cost', company_dependent=True,
         digits='Product Price',
         groups="base.group_user",
-        help = "Cost used for stock valuation in standard price and as a first price to set in average/fifo. "
-               "Also used as a base price for pricelists. "
-               "Expressed in the default unit of measure of the product.")
+        help="""In Standard Price & AVCO: value of the product (automatically computed in AVCO).
+        In FIFO: value of the last unit that left the stock (automatically computed).
+        Used to value the product when the purchase cost is not known (e.g. inventory adjustment).
+        Used to compute margins on sale orders.""")
     volume = fields.Float('Volume')
     weight = fields.Float('Weight', digits='Stock Weight')
 
-    pricelist_item_ids = fields.Many2many(
-        'product.pricelist.item', 'Pricelist Items', compute='_get_pricelist_items')
+    pricelist_item_count = fields.Integer("Number of price rules", compute="_compute_variant_item_count")
 
     packaging_ids = fields.One2many(
         'product.packaging', 'product_id', 'Product Packages',
@@ -214,6 +213,7 @@ class ProductProduct(models.Model):
         for product in self:
             product.is_product_variant = True
 
+    @api.depends_context('pricelist', 'partner', 'quantity', 'uom', 'date', 'no_variant_attributes_price_extra')
     def _compute_product_price(self):
         prices = {}
         pricelist_id_or_name = self._context.get('pricelist')
@@ -256,12 +256,12 @@ class ProductProduct(models.Model):
             value -= product.price_extra
             product.write({'list_price': value})
 
-    @api.depends('product_template_attribute_value_ids.price_extra')
     def _compute_product_price_extra(self):
         for product in self:
             product.price_extra = sum(product.mapped('product_template_attribute_value_ids.price_extra'))
 
     @api.depends('list_price', 'price_extra')
+    @api.depends_context('uom')
     def _compute_product_lst_price(self):
         to_uom = None
         if 'uom' in self._context:
@@ -274,6 +274,7 @@ class ProductProduct(models.Model):
                 list_price = product.list_price
             product.lst_price = list_price + product.price_extra
 
+    @api.depends_context('partner_id')
     def _compute_product_code(self):
         for product in self:
             for supplier_info in product.seller_ids:
@@ -283,6 +284,7 @@ class ProductProduct(models.Model):
             else:
                 product.code = product.default_code
 
+    @api.depends_context('partner_id')
     def _compute_partner_ref(self):
         for product in self:
             for supplier_info in product.seller_ids:
@@ -317,12 +319,12 @@ class ProductProduct(models.Model):
                 else:
                     product.product_template_attribute_value_ids += values_per_template[product.product_tmpl_id.id][pav.id]
 
-    def _get_pricelist_items(self):
+    def _compute_variant_item_count(self):
         for product in self:
-            product.pricelist_item_ids = self.env['product.pricelist.item'].search([
-                '|',
-                ('product_id', '=', product.id),
-                ('product_tmpl_id', '=', product.product_tmpl_id.id)]).ids
+            domain = ['|',
+                '&', ('product_tmpl_id', '=', product.product_tmpl_id.id), ('applied_on', '=', '1_product'),
+                '&', ('product_id', '=', product.id), ('applied_on', '=', '0_product_variant')]
+            product.pricelist_item_count = self.env['product.pricelist.item'].search_count(domain)
 
     @api.constrains('attribute_value_ids')
     def _check_attribute_value_ids(self):
@@ -581,6 +583,25 @@ class ProductProduct(models.Model):
             return _('Products: ') + self.env['product.category'].browse(self._context['categ_id']).name
         return res
 
+    def open_pricelist_rules(self):
+        self.ensure_one()
+        domain = ['|',
+            '&', ('product_tmpl_id', '=', self.product_tmpl_id.id), ('applied_on', '=', '1_product'),
+            '&', ('product_id', '=', self.id), ('applied_on', '=', '0_product_variant')]
+        return {
+            'name': _('Price Rules'),
+            'view_mode': 'tree,form',
+            'views': [(self.env.ref('product.product_pricelist_item_tree_view_from_product').id, 'tree'), (False, 'form')],
+            'res_model': 'product.pricelist.item',
+            'type': 'ir.actions.act_window',
+            'target': 'current',
+            'domain': domain,
+            'context': {
+                'default_product_id': self.id,
+                'default_applied_on': '0_product_variant',
+            }
+        }
+
     def open_product_template(self):
         """ Utility method used to add an "Open Template" button in product views """
         self.ensure_one()
@@ -739,7 +760,7 @@ class ProductPackaging(models.Model):
     sequence = fields.Integer('Sequence', default=1, help="The first in the sequence is the default one.")
     product_id = fields.Many2one('product.product', string='Product')
     qty = fields.Float('Contained Quantity', help="Quantity of products contained in the packaging.")
-    barcode = fields.Char('Barcode', copy=False, help="Barcode used for packaging identification.")
+    barcode = fields.Char('Barcode', copy=False, help="Barcode used for packaging identification. Scan this packaging barcode from a transfer in the Barcode app to move all the contained units")
     product_uom_id = fields.Many2one('uom.uom', related='product_id.uom_id', readonly=True)
 
 

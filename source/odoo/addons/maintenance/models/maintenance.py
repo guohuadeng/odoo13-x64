@@ -27,6 +27,9 @@ class MaintenanceEquipmentCategory(models.Model):
 
     @api.depends('equipment_ids')
     def _compute_fold(self):
+        # fix mutual dependency: 'fold' depends on 'equipment_count', which is
+        # computed with a read_group(), which retrieves 'fold'!
+        self.fold = False
         for category in self:
             category.fold = False if category.equipment_count else True
 
@@ -43,7 +46,7 @@ class MaintenanceEquipmentCategory(models.Model):
     alias_id = fields.Many2one(
         'mail.alias', 'Alias', ondelete='restrict', required=True,
         help="Email alias for this equipment category. New emails will automatically "
-        "create new maintenance request for this equipment category.")
+        "create a new equipment under this category.")
     fold = fields.Boolean(string='Folded in Maintenance Pipe', compute='_compute_fold', store=True)
 
     def _compute_equipment_count(self):
@@ -147,7 +150,8 @@ class MaintenanceEquipment(models.Model):
     @api.depends('effective_date', 'period', 'maintenance_ids.request_date', 'maintenance_ids.close_date')
     def _compute_next_maintenance(self):
         date_now = fields.Date.context_today(self)
-        for equipment in self.filtered(lambda x: x.period > 0):
+        equipments = self.filtered(lambda x: x.period > 0)
+        for equipment in equipments:
             next_maintenance_todo = self.env['maintenance.request'].search([
                 ('equipment_id', '=', equipment.id),
                 ('maintenance_type', '=', 'preventive'),
@@ -184,6 +188,7 @@ class MaintenanceEquipment(models.Model):
             else:
                 next_date = self.effective_date + timedelta(days=equipment.period)
             equipment.next_action_date = next_date
+        (self - equipments).next_action_date = False
 
     @api.depends('maintenance_ids.stage_id.done')
     def _compute_maintenance_count(self):

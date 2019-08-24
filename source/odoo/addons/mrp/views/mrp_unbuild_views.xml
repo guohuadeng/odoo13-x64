@@ -16,7 +16,6 @@
             <field name="arch" type="xml">
                 <search string="Search">
                     <field name="product_id"/>
-                    <field name="state"/>
                     <field name="mo_id"/>
                     <group expand="0" string="Filters">
                         <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]"/>
@@ -27,10 +26,9 @@
                         <filter invisible="1" string="Today Activities" name="activities_today"
                             domain="[('activity_ids.date_deadline', '=', context_today().strftime('%Y-%m-%d'))]"/>
                         <filter invisible="1" string="Future Activitie" name="activities_upcoming_all"
-                        domain="[('activity_ids.date_deadline', '&gt;', context_today().strftime('%Y-%m-%d'))
-                        ]"/>
+                            domain="[('activity_ids.date_deadline', '&gt;', context_today().strftime('%Y-%m-%d'))]"/>
                         <filter string="Exception Activities" name="activities_exception"
-                        domain="[('activity_exception_decoration', '!=', False)]"/>
+                            domain="[('activity_exception_decoration', '!=', False)]"/>
                     </group>
                     <group expand='0' string='Group by...'>
                         <filter string='Product' name="productgroup" context="{'group_by': 'product_id'}"/>
@@ -47,9 +45,12 @@
             <field name="view_mode">tree,form</field>
             <field name="domain">['|', ('move_id.unbuild_id', '=', active_id), ('move_id.consume_unbuild_id', '=', active_id)]</field>
             <field name="help" type="html">
-              <p class="o_view_nocontent_empty_folder">
-                There's no product move yet
-              </p>
+                <p class="o_view_nocontent_empty_folder">
+                    There's no product move yet
+                </p><p>
+                    This menu gives you the full traceability of inventory operations on a specific product.
+                    You can filter on the product to see all the past movements for the product.
+                </p>
             </field>
         </record>
 

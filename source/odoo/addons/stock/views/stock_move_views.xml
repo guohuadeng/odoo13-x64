@@ -57,8 +57,8 @@
                     <field name="picking_type_id" invisible="1"/>
                     <field name="create_date" invisible="1" groups="base.group_no_one"/>
                     <field name="product_id"/>
-                    <field name="location_id" options="{'no_create': True}" groups="stock.group_stock_multi_locations" string="From"/>
-                    <field name="location_dest_id" options="{'no_create': True}" groups="stock.group_stock_multi_locations" string="To"/>
+                    <field name="location_id" options="{'no_create': True}" string="From"/>
+                    <field name="location_dest_id" options="{'no_create': True}" string="To"/>
                     <field name="product_uom_qty"/>
                     <field name="product_uom" options="{'no_open': True, 'no_create': True}" string="Unit of Measure" groups="uom.group_uom"/>
                     <field name="state"/>
@@ -237,7 +237,7 @@
                     <field name="product_id" invisible="1"/>
                     <field name="package_level_id" invisible="1"/>
                     <field name="location_id" options="{'no_create': True}" attrs="{'readonly': ['&amp;', ('package_level_id', '!=', False), ('parent.picking_type_entire_packs', '=', True)]}" invisible="not context.get('show_source_location')" domain="[('id', 'child_of', parent.location_id)]" groups="stock.group_stock_multi_locations"/>
-                    <field name="location_dest_id" width_factor="0.75" attrs="{'readonly': ['&amp;', ('package_level_id', '!=', False), ('parent.picking_type_entire_packs', '=', True)]}" invisible="not context.get('show_destination_location')" domain="[('id', 'child_of', parent.location_dest_id)]" groups="stock.group_stock_multi_locations"/>
+                    <field name="location_dest_id" width="0.75" attrs="{'readonly': ['&amp;', ('package_level_id', '!=', False), ('parent.picking_type_entire_packs', '=', True)]}" invisible="not context.get('show_destination_location')" domain="[('id', 'child_of', parent.location_dest_id)]" groups="stock.group_stock_multi_locations"/>
                     <field name="lot_id" attrs="{'readonly': ['&amp;', ('package_level_id', '!=', False), ('parent.picking_type_entire_packs', '=', True)]}" invisible="not context.get('show_lots_m2o')" domain="[('product_id', '=', parent.product_id)]" groups="stock.group_production_lot" context="{'default_product_id': parent.product_id, 'active_picking_id': picking_id}"/>
                     <field name="lot_name" attrs="{'readonly': ['&amp;', ('package_level_id', '!=', False), ('parent.picking_type_entire_packs', '=', True)]}" invisible="not context.get('show_lots_text')" groups="stock.group_production_lot"/>
                     <field name="package_id" attrs="{'readonly': ['&amp;', ('package_level_id', '!=', False), ('parent.picking_type_entire_packs', '=', True)]}" invisible="not context.get('show_package')" groups="stock.group_tracking_lot" domain="[('location_id', '=', location_id)]"/>
@@ -364,25 +364,23 @@
             <field name="arch" type="xml">
                 <search string="Stock Moves">
                     <field name="origin" filter_domain="['|', '|', ('origin', 'ilike', self), ('name', 'ilike', self), ('picking_id', 'ilike', self)]" string="Reference"/>
-                    <field name="date" groups="base.group_no_one"/>
-
+                    <field name="product_id"/>
+                    <field name="name" string="Location" filter_domain="['|',('location_id', 'ilike', self),('location_dest_id', 'ilike', self)]"/>
+                    <field name="partner_id" string="Partner" filter_domain="[('picking_id.partner_id', 'child_of', self)]"/>
                     <filter string="Ready" name="ready" domain="[('state','=','assigned')]" help="Stock moves that are Available (Ready to process)"/>
                     <filter string="To Do" name="future" domain="[('state','in',('assigned','confirmed','waiting'))]" help="Stock moves that are Confirmed, Available or Waiting"/>
                     <filter string="Done" name="done" domain="[('state','=','done')]" help="Stock moves that have been processed"/>
                     <separator/>
-                    <filter string="Date" name="today" date="date" help="Scheduled or processing date"/>
-                    <separator/>
                     <filter string="Incoming" name="incoming" domain="[('location_id.usage', 'not in', ('internal', 'transit')), ('location_dest_id.usage', 'in', ('internal', 'transit'))]"/>
                     <filter string="Outgoing" name="outgoing" domain="[('location_id.usage', 'in', ('internal', 'transit')), ('location_dest_id.usage', 'not in', ('internal', 'transit'))]"/>
-                    <field name="product_id"/>
-                    <field name="name" string="Location" filter_domain="['|',('location_id','ilike',self),('location_dest_id','ilike',self)]"/>
-                    <field name="partner_id" string="Partner"  filter_domain="[('picking_id.partner_id','child_of',self)]"/>
+                    <separator/>
+                    <filter string="Date" name="today" date="date" help="Scheduled or processing date"/>
                     <group expand="0" string="Group By">
-                        <filter string="Product" name="by_product" domain="[]"  context="{'group_by':'product_id'}"/>
-                        <filter string="Picking" name="groupby_picking_id" domain="[]"  context="{'group_by':'picking_id'}"/>
+                        <filter string="Product" name="by_product" domain="[]"  context="{'group_by': 'product_id'}"/>
+                        <filter string="Picking" name="groupby_picking_id" domain="[]"  context="{'group_by': 'picking_id'}"/>
                         <filter string="Source Location" name="groupby_location_id" domain="[]" context="{'group_by': 'location_id'}" groups="stock.group_stock_multi_locations"/>
                         <filter string="Destination Location" name="groupby_dest_location_id" domain="[]" context="{'group_by': 'location_dest_id'}" groups="stock.group_stock_multi_locations"/>
-                        <filter string="Status" name="status" domain="[]" context="{'group_by':'state'}"/>
+                        <filter string="Status" name="status" domain="[]" context="{'group_by': 'state'}"/>
                         <filter string="Creation Date" name="groupby_create_date" domain="[]" context="{'group_by': 'create_date'}" groups="base.group_no_one"/>
                         <filter string="Scheduled Date" name="groupby_date" domain="[]" context="{'group_by': 'date_expected'}"/>
                     </group>
@@ -461,7 +459,7 @@
             <field name="model">stock.move</field>
             <field name="priority" eval="6"/>
             <field name="arch" type="xml">
-                <tree decoration-muted="state == 'cancel'" default_order='date_expected, picking_id, sequence' string="Moves">
+                <tree decoration-muted="state == 'cancel'" default_order='date_expected, picking_id, sequence' string="Moves" create="0">
                     <field name="date_expected" widget='date'/>
                     <field name="date" string="Creation date" widget="date" optional="hide"/>
                     <field name="picking_id" string="Reference" invisible="1"/>

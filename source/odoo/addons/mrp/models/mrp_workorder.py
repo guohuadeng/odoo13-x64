@@ -175,6 +175,7 @@ class MrpWorkorder(models.Model):
         to the lot/sn used in other workorders.
         """
         productions = self.mapped('production_id')
+        treated = self.browse()
         for production in productions:
             if production.product_id.tracking == 'none':
                 continue
@@ -203,6 +204,8 @@ class MrpWorkorder(models.Model):
                     workorder.allowed_lots_domain = allowed_lot_ids - workorder.finished_workorder_line_ids.filtered(lambda wl: wl.product_id == production.product_id).mapped('lot_id')
                 else:
                     workorder.allowed_lots_domain = allowed_lot_ids
+                treated |= workorder
+        (self - treated).allowed_lots_domain = False
 
     def name_get(self):
         return [(wo.id, "%s - %s - %s" % (wo.production_id.name, wo.product_id.name, wo.name)) for wo in self]
@@ -237,6 +240,8 @@ class MrpWorkorder(models.Model):
                 order.last_working_user_id = order.working_user_ids[-1]
             elif order.time_ids:
                 order.last_working_user_id = order.time_ids.sorted('date_end')[-1].user_id
+            else:
+                order.last_working_user_id = False
             if order.time_ids.filtered(lambda x: (x.user_id.id == self.env.user.id) and (not x.date_end) and (x.loss_type in ('productive', 'performance'))):
                 order.is_user_working = True
             else:
@@ -256,6 +261,11 @@ class MrpWorkorder(models.Model):
         for order in (self - late_orders):
             order.color = 2
 
+    @api.onchange('date_planned_start', 'duration_expected')
+    def _onchange_date_planned_finished(self):
+        if self.date_planned_start and self.duration_expected:
+            self.date_planned_finished = self.date_planned_start  + relativedelta(minutes=self.duration_expected)
+
     def write(self, values):
         if list(values.keys()) != ['time_ids'] and any(workorder.state == 'done' for workorder in self):
             raise UserError(_('You can not change the finished work order.'))
@@ -269,11 +279,11 @@ class MrpWorkorder(models.Model):
                 # finished date of the last WO is update.
                 if workorder == workorder.production_id.workorder_ids[0] and 'date_planned_start' in values:
                     workorder.production_id.with_context(force_date=True).write({
-                        'date_planned_start': values['date_planned_start']
+                        'date_planned_start': fields.Datetime.to_datetime(values['date_planned_start'])
                     })
                 if workorder == workorder.production_id.workorder_ids[-1] and 'date_planned_finished' in values:
                     workorder.production_id.with_context(force_date=True).write({
-                        'date_planned_finished': values['date_planned_finished']
+                        'date_planned_finished': fields.Datetime.to_datetime(values['date_planned_finished'])
                     })
         return super(MrpWorkorder, self).write(values)
 

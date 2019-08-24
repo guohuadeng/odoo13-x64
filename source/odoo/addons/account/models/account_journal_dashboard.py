@@ -25,6 +25,8 @@ class account_journal(models.Model):
                 journal.kanban_dashboard_graph = json.dumps(journal.get_bar_graph_datas())
             elif (journal.type in ['cash', 'bank']):
                 journal.kanban_dashboard_graph = json.dumps(journal.get_line_graph_datas())
+            else:
+                journal.kanban_dashboard_graph = False
 
     def _get_json_activity_data(self):
         for journal in self:
@@ -135,14 +137,14 @@ class account_journal(models.Model):
     def get_bar_graph_datas(self):
         data = []
         today = fields.Datetime.now(self)
-        data.append({'label': _('Past'), 'value':0.0, 'type': 'past'})
+        data.append({'label': _('Due'), 'value':0.0, 'type': 'past'})
         day_of_week = int(format_datetime(today, 'e', locale=self._context.get('lang') or 'en_US'))
         first_day_of_week = today + timedelta(days=-day_of_week+1)
         for i in range(-1,4):
             if i==0:
                 label = _('This Week')
             elif i==3:
-                label = _('Future')
+                label = _('Not Due')
             else:
                 start_week = first_day_of_week + timedelta(days=i*7)
                 end_week = start_week + timedelta(days=6)
@@ -243,6 +245,7 @@ class account_journal(models.Model):
         #TODO need to check if all invoices are in the same currency than the journal!!!!
         elif self.type in ['sale', 'purchase']:
             title = _('Bills to pay') if self.type == 'purchase' else _('Invoices owed to you')
+            self.env['account.move'].flush(['amount_residual', 'currency_id', 'type', 'invoice_date', 'company_id', 'journal_id', 'date', 'state', 'invoice_payment_state'])
 
             (query, query_args) = self._get_open_bills_to_pay_query()
             self.env.cr.execute(query, query_args)
@@ -391,13 +394,25 @@ class account_journal(models.Model):
     def create_cash_statement(self):
         ctx = self._context.copy()
         ctx.update({'journal_id': self.id, 'default_journal_id': self.id, 'default_journal_type': 'cash'})
-        return {
+        open_statements = self.env['account.bank.statement'].search([('journal_id', '=', self.id), ('state', '=', 'open')])
+        action = {
             'name': _('Create cash statement'),
             'type': 'ir.actions.act_window',
             'view_mode': 'form',
             'res_model': 'account.bank.statement',
             'context': ctx,
         }
+        if len(open_statements) == 1:
+            action.update({
+                'view_mode': 'form',
+                'res_id': open_statements.id,
+            })
+        elif len(open_statements) > 1:
+            action.update({
+                'view_mode': 'tree,form',
+                'domain': [('id', 'in', open_statements.ids)],
+            })
+        return action
 
     def action_open_reconcile(self):
         if self.type in ['bank', 'cash']:

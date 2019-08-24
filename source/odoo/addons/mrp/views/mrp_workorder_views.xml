@@ -161,7 +161,7 @@
                             <field name="lot_id" attrs="{'readonly': [('product_tracking', '=', 'none')]}" domain="[('product_id', '=', product_id)]" context="{'default_product_id': product_id, 'active_mo_id': parent.production_id}"/>
                             <field name="qty_to_consume" readonly="1"/>
                             <field name="qty_reserved" readonly="1"/>
-                            <field name="qty_done" string="Done"/>
+                            <field name="qty_done" attrs="{'column_invisible': [('parent.state', 'not in', ('progress', 'done'))]}"/>
                             <field name="product_uom_id" invisible="1"/>
                             <field name="move_id" invisible="1"/>
                         </tree>
@@ -173,7 +173,7 @@
                             <field name="product_tracking" invisible="1"/>
                             <field name="lot_id" attrs="{'readonly': [('product_tracking', '=', 'none')]}" domain="[('product_id', '=', product_id)]" context="{'default_product_id': product_id}"/>
                             <field name="qty_to_consume" readonly="1" string="To Produce"/>
-                            <field name="qty_done" string="Done"/>
+                            <field name="qty_done" string="Produced"/>
                             <field name="product_uom_id" invisible="1"/>
                             <field name="move_id" invisible="1"/>
                         </tree>
@@ -265,16 +265,16 @@
         <field name="model">mrp.workorder</field>
         <field name="arch" type="xml">
             <search string="Search Work Orders">
-                <field name="name" string="Work Orders"/>
-                <field name="date_planned_start"/>
-                <field name="state"/>
-                <filter string="In Progress" name="progress" domain="[('state','=','progress')]"/>
-                <filter string="Ready" name="ready" domain="[('state','=','ready')]"/>
-                <filter string="Pending" name="pending" domain="[('state','=','pending')]"/>
-                <filter string="Finished" name="finish" domain="[('state','=','done')]"/>
-                <filter string="Available" name="available" domain="[('production_availability','=', 'assigned')]"/>
+                <field name="name" string="Work Order"/>
+                <field name="workcenter_id"/>
+                <field name="production_id"/>
+                <filter string="In Progress" name="progress" domain="[('state', '=', 'progress')]"/>
+                <filter string="Ready" name="ready" domain="[('state', '=', 'ready')]"/>
+                <filter string="Pending" name="pending" domain="[('state', '=', 'pending')]"/>
+                <filter string="Finished" name="finish" domain="[('state', '=', 'done')]"/>
+                <filter string="Available" name="available" domain="[('production_availability', '=', 'assigned')]"/>
                 <separator/>
-                <filter string="Late" name="late" domain="['&amp;', ('date_planned_start','&lt;', current_date), ('state', '=', 'ready')]"
+                <filter string="Late" name="late" domain="['&amp;', ('date_planned_start', '&lt;', current_date), ('state', '=', 'ready')]"
                     help="Production started late"/>
                 <filter invisible="1" string="Late Activities" name="activities_overdue"
                     domain="[('activity_ids.date_deadline', '&lt;', context_today().strftime('%Y-%m-%d'))]"
@@ -284,14 +284,12 @@
                 <filter invisible="1" string="Future Activities" name="activities_upcoming_all"
                     domain="[('activity_ids.date_deadline', '&gt;', context_today().strftime('%Y-%m-%d'))]"/>
                 <filter string="Exception Activities" name="activities_exception"
-                        domain="[('activity_exception_decoration', '!=', False)]"/>
-                <field name="workcenter_id"/>
-                <field name="production_id"/>
+                    domain="[('activity_exception_decoration', '!=', False)]"/>
                 <group expand="0" string="Group By">
-                    <filter string="Work Center" name="work_center" domain="[]" context="{'group_by':'workcenter_id'}"/>
-                    <filter string="Production" name="production" domain="[]" context="{'group_by':'production_id'}"/>
-                    <filter string="Status" name="status" domain="[]" context="{'group_by':'state'}"/>
-                    <filter string="Scheduled Date" name="scheduled_month" domain="[]" context="{'group_by':'date_planned_start'}"/>
+                    <filter string="Work Center" name="work_center" domain="[]" context="{'group_by': 'workcenter_id'}"/>
+                    <filter string="Manufacturing Order" name="production" domain="[]" context="{'group_by': 'production_id'}"/>
+                    <filter string="Status" name="status" domain="[]" context="{'group_by': 'state'}"/>
+                    <filter string="Scheduled Date" name="scheduled_month" domain="[]" context="{'group_by': 'date_planned_start'}"/>
                 </group>
              </search>
         </field>
@@ -355,7 +353,7 @@
         <field name="name">mrp.production.work.order.kanban</field>
         <field name="model">mrp.workorder</field>
         <field name="arch" type="xml">
-            <kanban class="oe_background_grey o_kanban_dashboard" create="0">
+            <kanban class="oe_background_grey o_kanban_dashboard o_mrp_workorder_kanban" create="0">
                 <field name="name"/>
                 <field name="production_id"/>
                 <field name="state"/>
@@ -369,7 +367,7 @@
                 <field name="product_uom_id"/>
                 <templates>
                     <t t-name="kanban-box">
-                        <div style="width: 400px;" class="oe_kanban_global_click">
+                        <div class="oe_kanban_global_click">
                             <div class="o_kanban_card_header o_kanban_record_top">
                                 <div class="o_kanban_record_headings o_kanban_card_header_title">
                                     <strong class="o_primary ml8">

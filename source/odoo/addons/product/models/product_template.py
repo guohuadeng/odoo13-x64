@@ -83,7 +83,10 @@ class ProductTemplate(models.Model):
         'Cost', compute='_compute_standard_price',
         inverse='_set_standard_price', search='_search_standard_price',
         digits='Product Price', groups="base.group_user",
-        help = "Cost used for stock valuation in standard price and as a first price to set in average/FIFO.")
+        help="""In Standard Price & AVCO: value of the product (automatically computed in AVCO).
+        In FIFO: value of the last unit that left the stock (automatically computed).
+        Used to value the product when the purchase cost is not known (e.g. inventory adjustment).
+        Used to compute margins on sale orders.""")
 
     volume = fields.Float(
         'Volume', compute='_compute_volume', inverse='_set_volume', digits='Volume', store=True)
@@ -148,10 +151,16 @@ class ProductTemplate(models.Model):
         'Internal Reference', compute='_compute_default_code',
         inverse='_set_default_code', store=True)
 
-    item_ids = fields.One2many('product.pricelist.item', 'product_tmpl_id', 'Pricelist Items')
+    pricelist_item_count = fields.Integer("Number of price rules", compute="_compute_item_count")
 
     can_image_1024_be_zoomed = fields.Boolean("Can Image 1024 be zoomed", compute='_compute_can_image_1024_be_zoomed', store=True)
     has_configurable_attributes = fields.Boolean("Is a configurable product", compute='_compute_has_configurable_attributes', store=True)
+
+    def _compute_item_count(self):
+        for template in self:
+            # Pricelist item count counts the rules applicable on current template or on its variants.
+            template.pricelist_item_count = template.env['product.pricelist.item'].search_count([
+                '|', ('product_tmpl_id', '=', template.id), ('product_id', 'in', template.product_variant_ids.ids)])
 
     @api.depends('image_1920', 'image_1024')
     def _compute_can_image_1024_be_zoomed(self):
@@ -327,6 +336,8 @@ class ProductTemplate(models.Model):
         for p in self:
             if len(p.product_variant_ids) == 1:
                 p.packaging_ids = p.product_variant_ids.packaging_ids
+            else:
+                p.packaging_ids = False
 
     def _set_packaging_ids(self):
         for p in self:
@@ -454,6 +465,26 @@ class ProductTemplate(models.Model):
             '', args=[('id', 'in', list(searched_ids))],
             operator='ilike', limit=limit, name_get_uid=name_get_uid)
 
+    def open_pricelist_rules(self):
+        self.ensure_one()
+        domain = ['|',
+            ('product_tmpl_id', '=', self.id),
+            ('product_id', 'in', self.product_variant_ids.ids)]
+        return {
+            'name': _('Price Rules'),
+            'view_mode': 'tree,form',
+            'views': [(self.env.ref('product.product_pricelist_item_tree_view_from_product').id, 'tree'), (False, 'form')],
+            'res_model': 'product.pricelist.item',
+            'type': 'ir.actions.act_window',
+            'target': 'current',
+            'domain': domain,
+            'context': {
+                'default_product_tmpl_id': self.id,
+                'default_applied_on': '1_product',
+                'product_without_variants': self.product_variant_count == 1,
+            },
+        }
+
     def price_compute(self, price_type, uom=False, currency=False, company=False):
         # TDE FIXME: delegate to template or not ? fields are reencoded here ...
         # compatibility about context keys used a bit everywhere in the code
@@ -495,6 +526,7 @@ class ProductTemplate(models.Model):
         return prices
 
     def create_variant_ids(self):
+        self.flush()
         Product = self.env["product.product"]
 
         variants_to_create = []
@@ -582,6 +614,7 @@ class ProductTemplate(models.Model):
         self.ensure_one()
         return any(a.create_variant == 'dynamic' for a in self.valid_product_attribute_ids)
 
+    @api.depends('attribute_line_ids', 'attribute_line_ids.value_ids')
     def _compute_valid_attributes(self):
         """A product template attribute line is considered valid if it has at
         least one possible value.

@@ -113,9 +113,6 @@
                             name="message_needaction" help="Unread messages"
                             domain="[('needaction', '=', True)]"/>
                     <separator/>
-                    <filter string="Has attachments"
-                            name="attachments"
-                            domain="[('attachment_ids', '!=', False)]"/>
                 </search>
             </field>
         </record>
@@ -145,7 +142,7 @@
                     <field name="name"/>
                     <templates>
                         <t t-name="kanban-box">
-                            <div class="oe_kanban_global_area o_kanban_attachment">
+                            <div class="oe_kanban_global_area oe_kanban_global_click o_kanban_attachment">
                                 <div class="row">
                                     <div class="offset-10">
                                         <div class="o_dropdown_kanban dropdown" groups="base.group_user">

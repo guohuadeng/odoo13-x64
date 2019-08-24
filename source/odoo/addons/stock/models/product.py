@@ -89,14 +89,25 @@ class Product(models.Model):
     putaway_rule_ids = fields.One2many('stock.putaway.rule', 'product_id', 'Putaway Rules')
 
     @api.depends('stock_move_ids.product_qty', 'stock_move_ids.state')
+    @api.depends_context(
+        'lot_id', 'owner_id', 'package_id', 'from_date', 'to_date',
+        'company_owned', 'location', 'warehouse', 'force_company',
+    )
     def _compute_quantities(self):
-        res = self._compute_quantities_dict(self._context.get('lot_id'), self._context.get('owner_id'), self._context.get('package_id'), self._context.get('from_date'), self._context.get('to_date'))
-        for product in self:
+        products = self.filtered(lambda p: p.type != 'service')
+        res = products._compute_quantities_dict(self._context.get('lot_id'), self._context.get('owner_id'), self._context.get('package_id'), self._context.get('from_date'), self._context.get('to_date'))
+        for product in products:
             product.qty_available = res[product.id]['qty_available']
             product.incoming_qty = res[product.id]['incoming_qty']
             product.outgoing_qty = res[product.id]['outgoing_qty']
             product.virtual_available = res[product.id]['virtual_available']
             product.free_qty = res[product.id]['free_qty']
+        for product in self - products:
+            product.qty_available = 0.0
+            product.incoming_qty = 0.0
+            product.outgoing_qty = 0.0
+            product.virtual_available = 0.0
+            product.free_qty = 0.0
 
     def _product_available(self, field_names=None, arg=False):
         """ Compatibility method """
@@ -397,7 +408,7 @@ class Product(models.Model):
                 return {
                     'warning': {
                         'title': _('Warning!'),
-                        'message': _("You have products in stock that have no lot number.  You can assign serial numbers by doing an inventory.  ")}}
+                        'message': _("You have product(s) in stock that have no lot/serial number. You can assign lot/serial numbers by doing an inventory adjustment.")}}
 
     @api.model
     def view_header_get(self, view_id, view_type):
@@ -490,10 +501,17 @@ class Product(models.Model):
             )
         else:
             self = self.with_context(product_tmpl_id=self.product_tmpl_id.id)
-        return self.env['stock.quant']._get_quants_action(domain)
+        ctx = dict(self.env.context)
+        ctx.update({'no_at_date': True})
+        return self.env['stock.quant'].with_context(ctx)._get_quants_action(domain)
 
     def action_update_quantity_on_hand(self):
         return self.product_tmpl_id.with_context({'default_product_id': self.id}).action_update_quantity_on_hand()
+
+    def action_product_forecast_report(self):
+        action = self.env.ref('stock.report_stock_quantity_action_product').read()[0]
+        action['domain'] = [('product_id', '=', self.id)]
+        return action
 
     @api.model
     def get_theoretical_quantity(self, product_id, location_id, lot_id=None, package_id=None, owner_id=None, to_uom=None):
@@ -587,6 +605,7 @@ class ProductTemplate(models.Model):
         'product_variant_ids.stock_move_ids.product_qty',
         'product_variant_ids.stock_move_ids.state',
     )
+    @api.depends_context('company_owned', 'location', 'warehouse', 'force_company')
     def _compute_quantities(self):
         res = self._compute_quantities_dict()
         for template in self:
@@ -757,6 +776,11 @@ class ProductTemplate(models.Model):
 
         return action
 
+    def action_product_tmpl_forecast_report(self):
+        action = self.env.ref('stock.report_stock_quantity_action').read()[0]
+        action['domain'] = [('product_id', 'in', self.product_variant_ids.ids)]
+        return action
+
 class ProductCategory(models.Model):
     _inherit = 'product.category'
 
@@ -813,7 +837,9 @@ class UoM(models.Model):
         procurement_uom = self
         computed_qty = qty
         get_param = self.env['ir.config_parameter'].sudo().get_param
-        if procurement_uom.id != quant_uom.id and get_param('stock.propagate_uom') != '1':
+        if get_param('stock.propagate_uom') != '1':
             computed_qty = self._compute_quantity(qty, quant_uom, rounding_method='HALF-UP')
             procurement_uom = quant_uom
+        else:
+            computed_qty = self._compute_quantity(qty, procurement_uom, rounding_method='HALF-UP')
         return (computed_qty, procurement_uom)

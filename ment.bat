@@ -130,3 +130,6 @@ move /y .\addons_ent\l10n_vn_reports .\addons_ent_remove\
 move /y .\addons_ent\sale_account_taxcloud .\addons_ent_remove\
 move /y .\addons_ent\website_sale_account_taxcloud .\addons_ent_remove\
 
+rd /s/q d:\pjweb\o13.odooapp.cn\addons_ent
+md d:\pjweb\o13.odooapp.cn\addons_ent
+xcopy .\addons_ent\* d:\pjweb\o13.odooapp.cn\addons_ent /E /Y

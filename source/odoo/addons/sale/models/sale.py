@@ -143,13 +143,13 @@ class SaleOrder(models.Model):
     remaining_validity_days = fields.Integer(compute='_compute_remaining_validity_days', string="Remaining Days Before Expiration")
     create_date = fields.Datetime(string='Creation Date', readonly=True, index=True, help="Date on which sales order is created.")
     user_id = fields.Many2one('res.users', string='Salesperson', index=True, tracking=2, default=lambda self: self.env.user)
-    partner_id = fields.Many2one('res.partner', string='Customer', readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]}, required=True, change_default=True, index=True, tracking=1, help="You can find a customer from their name, email, tax ID or reference.")
-    partner_invoice_id = fields.Many2one('res.partner', string='Invoice Address', readonly=True, required=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)], 'sale': [('readonly', False)]}, help="Invoice address for current sales order.")
-    partner_shipping_id = fields.Many2one('res.partner', string='Delivery Address', readonly=True, required=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)], 'sale': [('readonly', False)]}, help="Delivery address for current sales order.")
+    partner_id = fields.Many2one('res.partner', string='Customer', readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]}, required=True, change_default=True, index=True, tracking=1, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="You can find a customer from their name, email, tax ID or reference.")
+    partner_invoice_id = fields.Many2one('res.partner', string='Invoice Address', readonly=True, required=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)], 'sale': [('readonly', False)]}, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="Invoice address for current sales order.")
+    partner_shipping_id = fields.Many2one('res.partner', string='Delivery Address', readonly=True, required=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)], 'sale': [('readonly', False)]}, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="Delivery address for current sales order.")
 
-    pricelist_id = fields.Many2one('product.pricelist', string='Pricelist', required=True, readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]}, help="Pricelist for current order. If you change the pricelist, only new lines will consider this pricelist.")
+    pricelist_id = fields.Many2one('product.pricelist', string='Pricelist', required=True, readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]}, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="Pricelist for current order. If you change the pricelist, only new lines will consider this pricelist.")
     currency_id = fields.Many2one("res.currency", related='pricelist_id.currency_id', string="Currency", readonly=True, required=True)
-    analytic_account_id = fields.Many2one('account.analytic.account', 'Analytic Account', readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]}, help="The analytic account related to a sales order.", copy=False)
+    analytic_account_id = fields.Many2one('account.analytic.account', 'Analytic Account', readonly=True, states={'draft': [('readonly', False)], 'sent': [('readonly', False)]}, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="The analytic account related to a sales order.", copy=False)
 
     order_line = fields.One2many('sale.order.line', 'order_id', string='Order Lines', states={'cancel': [('readonly', True)], 'done': [('readonly', True)]}, copy=True, auto_join=True)
 
@@ -170,22 +170,23 @@ class SaleOrder(models.Model):
     amount_total = fields.Monetary(string='Total', store=True, readonly=True, compute='_amount_all', tracking=4)
     currency_rate = fields.Float("Currency Rate", compute='_compute_currency_rate', compute_sudo=True, store=True, digits=(12, 6), readonly=True, help='The rate of the currency to the currency of rate 1 applicable at the date of the order')
 
-    payment_term_id = fields.Many2one('account.payment.term', string='Payment Terms', help="Payment terms applies to all invoices issued from this order.")
-    fiscal_position_id = fields.Many2one('account.fiscal.position', string='Fiscal Position', help=" Fiscal positions are used to adapt taxes and accounts for particular customers or sales orders/invoices. The default value comes from the customer.")
+    payment_term_id = fields.Many2one('account.payment.term', string='Payment Terms', domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="Payment terms applies to all invoices issued from this order.")
+    fiscal_position_id = fields.Many2one('account.fiscal.position', string='Fiscal Position', domain="[('company_id', '=', company_id)]", help=" Fiscal positions are used to adapt taxes and accounts for particular customers or sales orders/invoices. The default value comes from the customer.")
     company_id = fields.Many2one('res.company', 'Company', required=True, default=lambda self: self.env.company)
-    team_id = fields.Many2one('crm.team', 'Sales Team', change_default=True, default=_get_default_team)
+    team_id = fields.Many2one('crm.team', 'Sales Team', change_default=True, default=_get_default_team, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
 
     signature = fields.Binary('Signature', help='Signature received through the portal.', copy=False, attachment=True)
     signed_by = fields.Char('Signed By', help='Name of the person that signed the SO.', copy=False)
     signed_on = fields.Datetime('Signed On', help='Date of the signature.', copy=False)
 
     commitment_date = fields.Datetime('Commitment Date',
-        states={'draft': [('readonly', False)], 'sent': [('readonly', False)]},
-        copy=False, readonly=True,
-        help="This is the delivery date promised to the customer. If set, the delivery order "
-             "will be scheduled based on this date rather than product lead times.")
+                                      states={'draft': [('readonly', False)], 'sent': [('readonly', False)]},
+                                      copy=False, readonly=True,
+                                      help="This is the delivery date promised to the customer. "
+                                           "If set, the delivery order will be scheduled based on "
+                                           "this date rather than product lead times.")
     expected_date = fields.Datetime("Expected Date", compute='_compute_expected_date', store=False,  # Note: can not be stored since depends on today()
-        help="Delivery date you can promise to the customer, computed from product lead times and from the shipping policy of the order.")
+        help="Delivery date you can promise to the customer, computed from the minimum lead time of the order lines.")
     amount_undiscounted = fields.Float('Amount Before Discount', compute='_compute_amount_undiscounted', digits=0)
 
     type_name = fields.Char('Type Name', compute='_compute_type_name')
@@ -241,6 +242,8 @@ class SaleOrder(models.Model):
                 dates_list.append(dt)
             if dates_list:
                 order.expected_date = fields.Datetime.to_string(min(dates_list))
+            else:
+                order.expected_date = False
 
     def _compute_remaining_validity_days(self):
         for record in self:
@@ -442,7 +445,7 @@ class SaleOrder(models.Model):
                     ['|', ('name', operator, name), ('partner_id.name', operator, name)]
                 ])
                 order_ids = self._search(domain, limit=limit, access_rights_uid=name_get_uid)
-                return self.browse(order_ids).name_get()
+                return models.lazy_name_get(self.browse(order_ids).with_user(name_get_uid))
         return super(SaleOrder, self)._name_search(name, args=args, operator=operator, limit=limit, name_get_uid=name_get_uid)
 
     def _prepare_invoice(self):
@@ -693,18 +696,28 @@ class SaleOrder(models.Model):
 
     def _get_forbidden_state_confirm(self):
         return {'done', 'cancel'}
+    
+    def _prepare_analytic_account_data(self, prefix=None):
+        """
+        Prepare method for analytic account data
+
+        :param prefix: The prefix of the to-be-created analytic account name
+        :type prefix: string
+        :return: dictionary of value for new analytic account creation
+        """
+        name = self.name
+        if prefix:
+            name = prefix + ": " + self.name
+        return {
+            'name': name,
+            'code': self.client_order_ref,
+            'company_id': self.company_id.id,
+            'partner_id': self.partner_id.id
+        }
 
     def _create_analytic_account(self, prefix=None):
         for order in self:
-            name = order.name
-            if prefix:
-                name = prefix + ": " + order.name
-            analytic = self.env['account.analytic.account'].create({
-                'name': name,
-                'code': order.client_order_ref,
-                'company_id': order.company_id.id,
-                'partner_id': order.partner_id.id
-            })
+            analytic = self.env['account.analytic.account'].create(order._prepare_analytic_account_data(prefix))
             order.analytic_account_id = analytic
 
     def _amount_by_group(self):
@@ -1060,7 +1073,7 @@ class SaleOrderLine(models.Model):
 
     def write(self, values):
         if 'display_type' in values and self.filtered(lambda line: line.display_type != values.get('display_type')):
-            raise UserError("You cannot change the type of a sale order line. Instead you should delete the current line and create a new line of the proper type.")
+            raise UserError(_("You cannot change the type of a sale order line. Instead you should delete the current line and create a new line of the proper type."))
 
         if 'product_uom_qty' in values:
             precision = self.env['decimal.precision'].precision_get('Product Unit of Measure')
@@ -1347,7 +1360,7 @@ class SaleOrderLine(models.Model):
         ]
         if no_variant_attributes_price_extra:
             product = product.with_context(
-                no_variant_attributes_price_extra=no_variant_attributes_price_extra
+                no_variant_attributes_price_extra=tuple(no_variant_attributes_price_extra)
             )
 
         if self.order_id.pricelist_id.discount_policy == 'with_discount':

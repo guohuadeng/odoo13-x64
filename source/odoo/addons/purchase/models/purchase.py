@@ -71,8 +71,8 @@ class PurchaseOrder(models.Model):
     date_order = fields.Datetime('Order Date', required=True, states=READONLY_STATES, index=True, copy=False, default=fields.Datetime.now,\
         help="Depicts the date where the Quotation should be validated and converted into a purchase order.")
     date_approve = fields.Datetime('Confirmation Date', readonly=1, index=True, copy=False)
-    partner_id = fields.Many2one('res.partner', string='Vendor', required=True, states=READONLY_STATES, change_default=True, tracking=True, help="You can find a vendor by its Name, TIN, Email or Internal Reference.")
-    dest_address_id = fields.Many2one('res.partner', string='Drop Ship Address', states=READONLY_STATES,
+    partner_id = fields.Many2one('res.partner', string='Vendor', required=True, states=READONLY_STATES, change_default=True, tracking=True, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", help="You can find a vendor by its Name, TIN, Email or Internal Reference.")
+    dest_address_id = fields.Many2one('res.partner', domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]", string='Drop Ship Address', states=READONLY_STATES,
         help="Put an address if you want to deliver directly from the vendor to the customer. "
              "Otherwise, keep empty to deliver to your own company.")
     currency_id = fields.Many2one('res.currency', 'Currency', required=True, states=READONLY_STATES,
@@ -103,8 +103,8 @@ class PurchaseOrder(models.Model):
     amount_tax = fields.Monetary(string='Taxes', store=True, readonly=True, compute='_amount_all')
     amount_total = fields.Monetary(string='Total', store=True, readonly=True, compute='_amount_all')
 
-    fiscal_position_id = fields.Many2one('account.fiscal.position', string='Fiscal Position')
-    payment_term_id = fields.Many2one('account.payment.term', 'Payment Terms')
+    fiscal_position_id = fields.Many2one('account.fiscal.position', string='Fiscal Position', domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
+    payment_term_id = fields.Many2one('account.payment.term', 'Payment Terms', domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
     incoterm_id = fields.Many2one('account.incoterms', 'Incoterm', states={'done': [('readonly', True)]}, help="International Commercial Terms are a series of predefined commercial terms used in international transactions.")
 
     product_id = fields.Many2one('product.product', related='order_line.product_id', string='Product', readonly=False)
@@ -213,7 +213,7 @@ class PurchaseOrder(models.Model):
 
     @api.onchange('partner_id')
     def onchange_partner_id_warning(self):
-        if not self.partner_id:
+        if not self.partner_id or not self.env.user.has_group('purchase.group_warning_purchase'):
             return
         warning = {}
         title = False
@@ -393,6 +393,8 @@ class PurchaseOrder(models.Model):
             'default_type': 'in_invoice',
             'default_purchase_id': self.id,
         }
+        if self.user_id:
+            result['context']['default_user_id'] = self.user_id.id
         # choose the view_mode accordingly
         if len(self.invoice_ids) > 1 and not create_bill:
             result['domain'] = "[('id', 'in', " + str(self.invoice_ids.ids) + ")]"
@@ -518,12 +520,16 @@ class PurchaseOrderLine(models.Model):
         for line in self:
             if line.product_id.type in ['consu', 'service']:
                 line.qty_received_method = 'manual'
+            else:
+                line.qty_received_method = False
 
     @api.depends('qty_received_method', 'qty_received_manual')
     def _compute_qty_received(self):
         for line in self:
             if line.qty_received_method == 'manual':
                 line.qty_received = line.qty_received_manual or 0.0
+            else:
+                line.qty_received = 0.0
 
     @api.onchange('qty_received')
     def _inverse_qty_received(self):
@@ -620,7 +626,7 @@ class PurchaseOrderLine(models.Model):
 
     @api.onchange('product_id')
     def onchange_product_id_warning(self):
-        if not self.product_id:
+        if not self.product_id or not self.env.user.has_group('purchase.group_warning_purchase'):
             return
         warning = {}
         title = False

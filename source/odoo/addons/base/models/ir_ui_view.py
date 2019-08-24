@@ -321,6 +321,8 @@ actual arch.
     @api.depends('write_date')
     def _compute_model_data_id(self):
         # get the first ir_model_data record corresponding to self
+        for view in self:
+            view.model_data_id = False
         domain = [('model', '=', 'ir.ui.view'), ('res_id', 'in', self.ids)]
         for data in self.env['ir.model.data'].sudo().search_read(domain, ['res_id'], order='id desc'):
             view = self.browse(data['res_id'])
@@ -374,6 +376,8 @@ actual arch.
         # Any exception raised below will cause a transaction rollback.
         self = self.with_context(check_field_names=True)
         for view in self:
+            if not view.arch:
+                continue
             view_arch = etree.fromstring(view.arch.encode('utf-8'))
             view._valid_inheritance(view_arch)
             view_def = view.read_combined(['arch'])

@@ -39,7 +39,7 @@ class account_payment(models.Model):
     # Money flows from the journal_id's default_debit_account_id or default_credit_account_id to the destination_account_id
     destination_account_id = fields.Many2one('account.account', compute='_compute_destination_account_id', readonly=True)
     # For money transfer, money goes from journal_id to a transfer account, then from the transfer account to destination_journal_id
-    destination_journal_id = fields.Many2one('account.journal', string='Transfer To', domain=[('type', 'in', ('bank', 'cash'))], readonly=True, states={'draft': [('readonly', False)]})
+    destination_journal_id = fields.Many2one('account.journal', string='Transfer To', domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]", readonly=True, states={'draft': [('readonly', False)]})
 
     invoice_ids = fields.Many2many('account.move', 'account_invoice_payment_rel', 'payment_id', 'invoice_id', string="Invoices", copy=False, readonly=True,
                                    help="""Technical field containing the invoice for which the payment has been generated.
@@ -63,13 +63,13 @@ class account_payment(models.Model):
         help="Technical field used to adapt the interface to the payment type selected.", readonly=True)
 
     partner_type = fields.Selection([('customer', 'Customer'), ('supplier', 'Vendor')], tracking=True, readonly=True, states={'draft': [('readonly', False)]})
-    partner_id = fields.Many2one('res.partner', string='Partner', tracking=True, readonly=True, states={'draft': [('readonly', False)]})
+    partner_id = fields.Many2one('res.partner', string='Partner', tracking=True, readonly=True, states={'draft': [('readonly', False)]}, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
 
     amount = fields.Monetary(string='Payment Amount', required=True, readonly=True, states={'draft': [('readonly', False)]}, tracking=True)
     currency_id = fields.Many2one('res.currency', string='Currency', required=True, readonly=True, states={'draft': [('readonly', False)]}, default=lambda self: self.env.company.currency_id)
     payment_date = fields.Date(string='Payment Date', default=fields.Date.context_today, required=True, readonly=True, states={'draft': [('readonly', False)]}, copy=False, tracking=True)
     communication = fields.Char(string='Memo', readonly=True, states={'draft': [('readonly', False)]})
-    journal_id = fields.Many2one('account.journal', string='Payment Journal', required=True, readonly=True, states={'draft': [('readonly', False)]}, tracking=True, domain=[('type', 'in', ('bank', 'cash'))])
+    journal_id = fields.Many2one('account.journal', string='Payment Journal', required=True, readonly=True, states={'draft': [('readonly', False)]}, tracking=True, domain="[('type', 'in', ('bank', 'cash')), ('company_id', '=', company_id)]")
     company_id = fields.Many2one('res.company', related='journal_id.company_id', string='Company', readonly=True)
 
     hide_payment_method = fields.Boolean(compute='_compute_hide_payment_method',
@@ -78,12 +78,12 @@ class account_payment(models.Model):
 
     payment_difference = fields.Monetary(compute='_compute_payment_difference', readonly=True)
     payment_difference_handling = fields.Selection([('open', 'Keep open'), ('reconcile', 'Mark invoice as fully paid')], default='open', string="Payment Difference Handling", copy=False)
-    writeoff_account_id = fields.Many2one('account.account', string="Difference Account", domain=[('deprecated', '=', False)], copy=False)
+    writeoff_account_id = fields.Many2one('account.account', string="Difference Account", domain="[('deprecated', '=', False), ('company_id', '=', company_id)]", copy=False)
     writeoff_label = fields.Char(
         string='Journal Item Label',
         help='Change label of the counterpart that will hold the payment difference',
         default='Write-Off')
-    partner_bank_account_id = fields.Many2one('res.partner.bank', string="Recipient Bank Account", readonly=True, states={'draft': [('readonly', False)]})
+    partner_bank_account_id = fields.Many2one('res.partner.bank', string="Recipient Bank Account", readonly=True, states={'draft': [('readonly', False)]}, domain="['|', ('company_id', '=', False), ('company_id', '=', company_id)]")
     show_partner_bank_account = fields.Boolean(compute='_compute_show_partner_bank', help='Technical field used to know whether the field `partner_bank_account_id` needs to be displayed or not in the payments form views')
     require_partner_bank_account = fields.Boolean(compute='_compute_show_partner_bank', help='Technical field used to know whether the field `partner_bank_account_id` needs to be required or not in the payments form views')
 
@@ -160,9 +160,11 @@ class account_payment(models.Model):
 
     @api.depends('invoice_ids', 'amount', 'payment_date', 'currency_id', 'payment_type')
     def _compute_payment_difference(self):
-        for pay in self.filtered(lambda p: p.invoice_ids and p.state == 'draft'):
+        draft_payments = self.filtered(lambda p: p.invoice_ids and p.state == 'draft')
+        for pay in draft_payments:
             payment_amount = -pay.amount if pay.payment_type == 'outbound' else pay.amount
             pay.payment_difference = pay._compute_payment_amount(pay.invoice_ids, pay.currency_id, pay.journal_id, pay.payment_date) - payment_amount
+        (self - draft_payments).payment_difference = 0
 
     @api.onchange('journal_id')
     def _onchange_journal(self):
@@ -210,13 +212,6 @@ class account_payment(models.Model):
             else:
                 self.partner_bank_account_id = False
         return {'domain': {'partner_bank_account_id': [('partner_id', 'in', [self.partner_id.id, self.partner_id.commercial_partner_id.id])]}}
-
-    @api.onchange('partner_type')
-    def _onchange_partner_type(self):
-        self.ensure_one()
-        # Set partner_id domain
-        if self.partner_type:
-            return {'domain': {'partner_id': [(self.partner_type, '=', True)]}}
 
     @api.onchange('payment_type')
     def _onchange_payment_type(self):
@@ -298,6 +293,10 @@ class account_payment(models.Model):
         if not invoices:
             return 0.0
 
+        self.env['account.move'].flush(['type', 'currency_id'])
+        self.env['account.move.line'].flush(['amount_residual', 'amount_residual_currency', 'move_id', 'account_id'])
+        self.env['account.account'].flush(['user_type_id'])
+        self.env['account.account.type'].flush(['type'])
         self._cr.execute('''
             SELECT
                 move.type AS type,
@@ -444,7 +443,10 @@ class account_payment(models.Model):
                     move.line_ids.remove_move_reconcile()
                 move.button_cancel()
                 move.unlink()
-            rec.state = 'cancelled'
+            rec.write({
+                'state': 'cancelled',
+                'move_name': False,
+            })
 
     def unlink(self):
         if any(bool(rec.move_line_ids) for rec in self):
@@ -793,7 +795,7 @@ class payment_register(models.TransientModel):
         grouped = defaultdict(lambda: self.env["account.move"])
         for inv in self.invoice_ids:
             if self.group_payment:
-                grouped[(inv.commercial_partner_id, inv.currency_id, inv.partner_bank_id, MAP_INVOICE_TYPE_PARTNER_TYPE[inv.type])] += inv
+                grouped[(inv.commercial_partner_id, inv.currency_id, inv.invoice_partner_bank_id, MAP_INVOICE_TYPE_PARTNER_TYPE[inv.type])] += inv
             else:
                 grouped[inv.id] += inv
         return [self._prepare_payment_vals(invoices) for invoices in grouped.values()]
