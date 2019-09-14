@@ -1,6 +1,6 @@
 {
     'name': "Password Policy",
-    "summary": "Implement basic password policy configuration & check",
+    "summary": "Implements basic password policy configuration & check",
     'depends': ['base_setup', 'web'],
     'data': [
         'data/defaults.xml',

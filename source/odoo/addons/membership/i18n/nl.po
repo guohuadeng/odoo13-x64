@@ -1,20 +1,18 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* membership
+# * membership
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Erwin van der Ploeg <erwin@odooexperts.nl>, 2019
-# Yenthe Van Ginneken <yenthespam@gmail.com>, 2019
-# Gunther Clauwaert <gclauwae@hotmail.com>, 2019
-# 
+# Martin Trigaux, 2018
+# Erwin van der Ploeg <erwin@odooexperts.nl>, 2018
+# Gunther Clauwaert <gclauwae@hotmail.com>, 2018
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:11+0000\n"
-"Last-Translator: Gunther Clauwaert <gclauwae@hotmail.com>, 2019\n"
+"POT-Creation-Date: 2018-09-21 13:17+0000\n"
+"PO-Revision-Date: 2018-09-21 13:17+0000\n"
+"Last-Translator: Gunther Clauwaert <gclauwae@hotmail.com>, 2018\n"
 "Language-Team: Dutch (https://www.transifex.com/odoo/teams/41243/nl/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -43,13 +41,8 @@ msgid ""
 "<i class=\"fa fa-clock-o\" role=\"img\" aria-label=\"Period\" "
 "title=\"Period\"/><strong> From: </strong>"
 msgstr ""
-"<i class=\"fa fa-clock-o\" role=\"img\" aria-label=\"Periode\" "
-"title=\"Periode\"/><strong> Van: </strong>"
-
-#. module: membership
-#: model_terms:ir.ui.view,arch_db:membership.membership_products_kanban
-msgid "<i class=\"fa fa-money\" role=\"img\" aria-label=\"Price\" title=\"Price\"/>"
-msgstr "<i class=\"fa fa-money\" role=\"img\" aria-label=\"Prijs\" title=\"Prijs\"/>"
+"<i class=\"fa fa-clock-o\" role=\"img\" aria-label=\"Period\" "
+"title=\"Period\"/><strong> Van: </strong>"
 
 #. module: membership
 #: model_terms:ir.ui.view,arch_db:membership.membership_products_kanban
@@ -82,6 +75,16 @@ msgid "Add a new member"
 msgstr "Voeg een nieuw lid toe"
 
 #. module: membership
+#: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
+msgid "All Members"
+msgstr "Alle leden"
+
+#. module: membership
+#: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
+msgid "All non Members"
+msgstr "Alle niet-leden"
+
+#. module: membership
 #: model:ir.model.fields,help:membership.field_membership_membership_line__member_price
 msgid "Amount for the membership"
 msgstr "Bedrag voor het lidmaatschap"
@@ -107,7 +110,7 @@ msgstr "Koop lidmaatschap"
 #. module: membership
 #: model_terms:ir.ui.view,arch_db:membership.view_membership_invoice_view
 msgid "Cancel"
-msgstr "Annuleren"
+msgstr "Annuleer"
 
 #. module: membership
 #: model:ir.model.fields,field_description:membership.field_res_partner__membership_cancel
@@ -121,9 +124,9 @@ msgid "Cancel date"
 msgstr "Annuleringsdatum"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__canceled
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__canceled
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__canceled
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Cancelled Member"
 msgstr "Opgezegd lid"
 
@@ -143,17 +146,12 @@ msgstr "Controleer of het product in aanmerking komt voor het lidmaatschap."
 #: model:ir.model.fields,field_description:membership.field_report_membership__company_id
 #: model_terms:ir.ui.view,arch_db:membership.view_report_membership_search
 msgid "Company"
-msgstr "Bedrijf"
-
-#. module: membership
-#: model:ir.model.fields,help:membership.field_membership_membership_line__company_id
-msgid "Company related to this journal"
-msgstr "Bedrijf gerelateerd aan dit dagboek"
+msgstr "Bedijf"
 
 #. module: membership
 #: model:ir.ui.menu,name:membership.menu_marketing_config_association
 msgid "Configuration"
-msgstr "Configuratie"
+msgstr "Instellingen"
 
 #. module: membership
 #: model:ir.model,name:membership.model_res_partner
@@ -255,21 +253,21 @@ msgid "Ending Date Of Membership"
 msgstr "Einddatum lidmaatschap"
 
 #. module: membership
-#: model:ir.model.constraint,message:membership.constraint_product_template_membership_date_greater
+#: sql_constraint:product.template:0
 msgid "Error ! Ending Date cannot be set before Beginning Date."
 msgstr "Fout! Einddatum kan niet voor de begindatum liggen."
 
 #. module: membership
 #: model_terms:ir.ui.view,arch_db:membership.view_report_membership_search
 msgid "Forecast"
-msgstr "Planning"
+msgstr "Prognose"
 
 #. module: membership
 #: model:ir.model.fields,field_description:membership.field_res_partner__free_member
 #: model:ir.model.fields,field_description:membership.field_res_users__free_member
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__free
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__free
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__free
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Free Member"
 msgstr "Gratis lid"
 
@@ -302,19 +300,26 @@ msgid "Inactive"
 msgstr "Inactief"
 
 #. module: membership
+#: model:ir.model,name:membership.model_account_invoice
 #: model:ir.model.fields,field_description:membership.field_membership_membership_line__account_invoice_id
 msgid "Invoice"
 msgstr "Factuur"
 
 #. module: membership
+#: model:ir.model,name:membership.model_account_invoice_line
+msgid "Invoice Line"
+msgstr "Factuurregel"
+
+#. module: membership
+#: model:ir.actions.act_window,name:membership.action_membership_invoice_view
 #: model_terms:ir.ui.view,arch_db:membership.view_membership_invoice_view
 msgid "Invoice Membership"
 msgstr "Factureer lidmaatschap"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__invoiced
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__invoiced
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__invoiced
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Invoiced Member"
 msgstr "Gefactureerd lid"
 
@@ -368,21 +373,6 @@ msgid "Join Date"
 msgstr "Startdatum lidmaatschap"
 
 #. module: membership
-#: model:ir.actions.act_window,name:membership.action_membership_invoice_view
-msgid "Join Membership"
-msgstr ""
-
-#. module: membership
-#: model:ir.model,name:membership.model_account_move
-msgid "Journal Entries"
-msgstr "Boekingen"
-
-#. module: membership
-#: model:ir.model,name:membership.model_account_move_line
-msgid "Journal Item"
-msgstr "Boeking"
-
-#. module: membership
 #: model:ir.model.fields,field_description:membership.field_membership_invoice____last_update
 #: model:ir.model.fields,field_description:membership.field_membership_membership_line____last_update
 #: model:ir.model.fields,field_description:membership.field_report_membership____last_update
@@ -416,7 +406,6 @@ msgstr "Prijs voor leden"
 #: model:ir.ui.menu,name:membership.menu_association
 #: model:ir.ui.menu,name:membership.menu_membership
 #: model_terms:ir.ui.view,arch_db:membership.membership_members_tree
-#: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
 msgid "Members"
 msgstr "Leden"
 
@@ -541,11 +530,16 @@ msgid "Month"
 msgstr "Maand"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__none
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__none
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__none
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Non Member"
 msgstr "Niet-lid"
+
+#. module: membership
+#: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
+msgid "None/Canceled/Old/Waiting"
+msgstr "Geen/Geannuleerd/Oud/Wachtend"
 
 #. module: membership
 #: model_terms:ir.actions.act_window,help:membership.action_membership_members
@@ -554,19 +548,19 @@ msgid ""
 "                  Current Membership Status, Discussions and History of Membership, etc."
 msgstr ""
 "Odoo laat u toe om gemakkelijk alle activiteiten van leden op te volgen:\n"
-"Huidige status van het lidmaatschap, discussies en historie van het lidmaatschap, enz."
+"Huidige status van het lidmaatschap, discussies en historiek van het lidmaatschap, enz."
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__old
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__old
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__old
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Old Member"
 msgstr "Oud-lid"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__paid
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__paid
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__paid
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Paid Member"
 msgstr "Betaald lid"
 
@@ -576,13 +570,13 @@ msgid "Partner"
 msgstr "Relatie"
 
 #. module: membership
-#: code:addons/membership/models/partner.py:0
+#: code:addons/membership/models/partner.py:186
 #, python-format
 msgid "Partner doesn't have an address to make the invoice."
 msgstr "Relatie heeft geen adres om de factuur te maken"
 
 #. module: membership
-#: code:addons/membership/models/partner.py:0
+#: code:addons/membership/models/partner.py:184
 #, python-format
 msgid "Partner is a free Member."
 msgstr "Relatie is een gratis lid."
@@ -643,11 +637,6 @@ msgid "Taxes"
 msgstr "BTW"
 
 #. module: membership
-#: model:ir.model.fields,help:membership.field_membership_membership_line__account_invoice_id
-msgid "The move of this entry line."
-msgstr "De mutatie van deze boekingsregel."
-
-#. module: membership
 #: model:ir.model.fields,help:membership.field_res_partner__membership_amount
 #: model:ir.model.fields,help:membership.field_res_users__membership_amount
 msgid "The price negotiated by the partner"
@@ -680,14 +669,14 @@ msgid "Vendors"
 msgstr "Leveranciers"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__waiting
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__waiting
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__waiting
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Waiting Member"
 msgstr "Wachtend lid"
 
 #. module: membership
-#: code:addons/membership/models/partner.py:0
+#: code:addons/membership/models/partner.py:162
 #, python-format
 msgid "You cannot create recursive associated members."
 msgstr "Het is niet mogelijk om recursieve geassocieerde leden te maken."

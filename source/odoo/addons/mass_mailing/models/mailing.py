@@ -39,7 +39,6 @@ class MassMailing(models.Model):
     A mass mailing is an occurence of sending emails. """
     _name = 'mailing.mailing'
     _description = 'Mass Mailing'
-    _inherit = [ 'mail.thread', 'mail.activity.mixin']
     # number of periods for tracking mail_mail statistics
     _period_number = 6
     _order = 'sent_date DESC'
@@ -65,12 +64,12 @@ class MassMailing(models.Model):
                 res['reply_to_mode'] = 'thread'
         return res
 
-    active = fields.Boolean(default=True, tracking=True)
+    active = fields.Boolean(default=True)
     subject = fields.Char('Subject', help='Subject of emails to send', required=True, translate=True)
-    email_from = fields.Char(string='Send From', required=True,
+    email_from = fields.Char(string='From', required=True,
         default=lambda self: self.env['mail.message']._get_default_from())
     sent_date = fields.Datetime(string='Sent Date', copy=False)
-    schedule_date = fields.Datetime(string='Scheduled for', tracking=True)
+    schedule_date = fields.Datetime(string='Schedule in the Future')
     # don't translate 'body_arch', the translations are only on 'body_html'
     body_arch = fields.Html(string='Body', translate=False)
     body_html = fields.Html(string='Body converted to be send by mail', sanitize_attributes=False)
@@ -83,9 +82,9 @@ class MassMailing(models.Model):
     medium_id = fields.Many2one('utm.medium', string='Medium', help="Delivery method: Email")
     clicks_ratio = fields.Integer(compute="_compute_clicks_ratio", string="Number of Clicks")
     state = fields.Selection([('draft', 'Draft'), ('in_queue', 'In Queue'), ('sending', 'Sending'), ('done', 'Sent')],
-        string='Status', required=True, tracking=True, copy=False, default='draft', group_expand='_group_expand_states')
+        string='Status', required=True, copy=False, default='draft', group_expand='_group_expand_states')
     color = fields.Integer(string='Color Index')
-    user_id = fields.Many2one('res.users', string='Responsible', tracking=True,  default=lambda self: self.env.user)
+    user_id = fields.Many2one('res.users', string='Responsible', default=lambda self: self.env.user)
     # mailing options
     mailing_type = fields.Selection([('mail', 'Email')], string="Mailing Type", default="mail", required=True)
     reply_to_mode = fields.Selection(

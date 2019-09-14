@@ -25,6 +25,7 @@ State Data/省份数据
     """,
     'depends': ['base', 'account', 'l10n_multilang'],
     'data': [
+        'data/account_account_type_data.xml',
         'data/account_tax_group_data.xml',
     ],
 }

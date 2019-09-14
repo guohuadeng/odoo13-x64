@@ -68,7 +68,6 @@ var ThreadWidget = Widget.extend({
             displayEmailIcons: true,
             displayReplyIcons: false,
             loadMoreOnScroll: false,
-            hasMessageAttachmentDeletable: false,
         });
         // options when the thread is disabled
         this._disabledOptions = {
@@ -82,7 +81,6 @@ var ThreadWidget = Widget.extend({
             displayEmailIcons: false,
             displayReplyIcons: false,
             loadMoreOnScroll: this._enabledOptions.loadMoreOnScroll,
-            hasMessageAttachmentDeletable: false,
         };
         this._selectedMessageID = null;
         this._currentThreadID = null;

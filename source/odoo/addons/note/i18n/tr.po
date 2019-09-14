@@ -1,28 +1,26 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* note
+# * note
 # 
 # Translators:
-# Ediz Duman <neps1192@gmail.com>, 2019
-# Ayhan KIZILTAN <akiziltan76@hotmail.com>, 2019
-# Martin Trigaux, 2019
-# Levent Karakaş <levent@mektup.at>, 2019
-# Murat Kaplan <muratk@projetgrup.com>, 2019
-# Ahmet Altinisik <aaltinisik@altinkaya.com.tr>, 2019
-# Mehmet Demirel <mdemirell@gmail.com>, 2019
-# Ramiz Deniz Öner <deniz@denizoner.com>, 2019
-# Abdullah Onur Uğur <aonurugur@outlook.com>, 2019
-# Umur Akın <umura@projetgrup.com>, 2019
-# Buket Şeker <buket_skr@hotmail.com>, 2019
-# Metin Akın <aknmetin@gmail.com>, 2019
-# 
+# Ediz Duman <neps1192@gmail.com>, 2018
+# Ayhan KIZILTAN <akiziltan76@hotmail.com>, 2018
+# Martin Trigaux, 2018
+# Levent Karakaş <levent@mektup.at>, 2018
+# Murat Kaplan <muratk@projetgrup.com>, 2018
+# Ahmet Altinisik <aaltinisik@altinkaya.com.tr>, 2018
+# Mehmet Demirel <mdemirell@gmail.com>, 2018
+# Ramiz Deniz Öner <deniz@denizoner.com>, 2018
+# UNIBRAVO SOFTWARE <unibravo@gmail.com>, 2018
+# Metin Akın <aknmetin@gmail.com>, 2018
+# Buket Şeker <buket_skr@hotmail.com>, 2018
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:12+0000\n"
-"Last-Translator: Metin Akın <aknmetin@gmail.com>, 2019\n"
+"POT-Creation-Date: 2018-09-21 13:17+0000\n"
+"PO-Revision-Date: 2018-09-21 13:17+0000\n"
+"Last-Translator: Buket Şeker <buket_skr@hotmail.com>, 2018\n"
 "Language-Team: Turkish (https://www.transifex.com/odoo/teams/41243/tr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -31,31 +29,9 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
 #. module: note
-#: model_terms:ir.ui.view,arch_db:note.view_note_note_kanban
-msgid "<i class=\"fa fa-check\" role=\"img\" aria-label=\"Opened\" title=\"Opened\"/>"
-msgstr ""
-
-#. module: note
-#: model_terms:ir.ui.view,arch_db:note.view_note_note_kanban
-msgid "<i class=\"fa fa-undo\" role=\"img\" aria-label=\"Closed\" title=\"Closed\"/>"
-msgstr ""
-
-#. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__message_needaction
 msgid "Action Needed"
 msgstr "Eylem Gerekiyor"
-
-#. module: note
-#: model:ir.model.fields,field_description:note.field_mail_activity_type__category
-msgid "Action to Perform"
-msgstr ""
-
-#. module: note
-#: model:ir.model.fields,help:note.field_mail_activity_type__category
-msgid ""
-"Actions may trigger specific behavior like opening calendar view or "
-"automatically mark as done when a document is uploaded"
-msgstr ""
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__open
@@ -74,11 +50,6 @@ msgid "Activity"
 msgstr "Aktivite"
 
 #. module: note
-#: model:ir.model.fields,field_description:note.field_note_note__activity_exception_decoration
-msgid "Activity Exception Decoration"
-msgstr ""
-
-#. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__activity_state
 msgid "Activity State"
 msgstr "Aktivite Durumu"
@@ -86,12 +57,12 @@ msgstr "Aktivite Durumu"
 #. module: note
 #: model:ir.model,name:note.model_mail_activity_type
 msgid "Activity Type"
-msgstr "Aktivite Türü"
+msgstr "Aktivite Tipi"
 
 #. module: note
 #: model_terms:ir.actions.act_window,help:note.action_note_note
 msgid "Add a new personal note"
-msgstr "Yeni bir özel not ekleyin."
+msgstr ""
 
 #. module: note
 #: model_terms:ir.actions.act_window,help:note.note_tag_action
@@ -100,17 +71,17 @@ msgstr "Yeni bir etiket ekle"
 
 #. module: note
 #. openerp-web
-#: code:addons/note/static/src/xml/systray.xml:0
+#: code:addons/note/static/src/xml/systray.xml:14
 #, python-format
 msgid "Add a note"
-msgstr "Bir Not Ekle"
+msgstr "Yeni bir not ekle"
 
 #. module: note
 #. openerp-web
-#: code:addons/note/static/src/xml/systray.xml:0
+#: code:addons/note/static/src/xml/systray.xml:6
 #, python-format
 msgid "Add new note"
-msgstr "Yeni not ekle"
+msgstr ""
 
 #. module: note
 #: model_terms:ir.ui.view,arch_db:note.view_note_note_filter
@@ -128,8 +99,18 @@ msgid "By sticky note Category"
 msgstr "Yapışkan nota göre Kategori"
 
 #. module: note
+#: model:ir.model.fields,help:note.field_mail_activity_type__category
+msgid "Categories may trigger specific behavior like opening calendar view"
+msgstr ""
+
+#. module: note
+#: model:ir.model.fields,field_description:note.field_mail_activity_type__category
+msgid "Category"
+msgstr "Kategori"
+
+#. module: note
 #. openerp-web
-#: code:addons/note/static/src/xml/systray.xml:0
+#: code:addons/note/static/src/xml/systray.xml:10
 #, python-format
 msgid "Channel"
 msgstr "Kanal"
@@ -182,11 +163,6 @@ msgid "Dropdown menu"
 msgstr "Dropdown Menü"
 
 #. module: note
-#: model_terms:ir.ui.view,arch_db:note.view_note_note_filter
-msgid "Exception Activities"
-msgstr ""
-
-#. module: note
 #: model:ir.model.fields,field_description:note.field_note_stage__fold
 msgid "Folded by Default"
 msgstr "Varsayılan Olarak Katlanmış"
@@ -194,7 +170,7 @@ msgstr "Varsayılan Olarak Katlanmış"
 #. module: note
 #: model_terms:ir.ui.view,arch_db:note.view_note_note_kanban
 msgid "Follower"
-msgstr "Takipçi"
+msgstr ""
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__message_follower_ids
@@ -214,7 +190,7 @@ msgstr "Tekipçiler (İş ortakları)"
 #. module: note
 #: model_terms:ir.ui.view,arch_db:note.view_note_note_filter
 msgid "Future Activities"
-msgstr "Sonraki Aktiviteler"
+msgstr "Yapılacaklar"
 
 #. module: note
 #: model_terms:ir.ui.view,arch_db:note.view_note_note_filter
@@ -229,16 +205,6 @@ msgid "ID"
 msgstr "ID"
 
 #. module: note
-#: model:ir.model.fields,field_description:note.field_note_note__activity_exception_icon
-msgid "Icon"
-msgstr "İkon"
-
-#. module: note
-#: model:ir.model.fields,help:note.field_note_note__activity_exception_icon
-msgid "Icon to indicate an exception activity."
-msgstr ""
-
-#. module: note
 #: model:ir.model.fields,help:note.field_note_note__message_unread
 msgid "If checked new messages require your attention."
 msgstr "Eğer işaretliyse yeni iletiler ilginizi gerektirir."
@@ -251,7 +217,7 @@ msgstr "İşaretliyse, yeni mesajlar dikkatinize sunulacak."
 #. module: note
 #: model:ir.model.fields,help:note.field_note_note__message_has_error
 msgid "If checked, some messages have a delivery error."
-msgstr "İşaretliyse,bazı mesajlar gönderi hatası içermektedir."
+msgstr ""
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__message_is_follower
@@ -290,19 +256,29 @@ msgid "Main Attachment"
 msgstr "Ana Ek"
 
 #. module: note
+#: selection:mail.activity.type,category:0
+msgid "Meeting"
+msgstr "Toplantı"
+
+#. module: note
 #: model:note.stage,name:note.note_stage_01
 msgid "Meeting Minutes"
-msgstr "Toplantı Tutanakları"
+msgstr ""
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__message_has_error
 msgid "Message Delivery error"
-msgstr "Mesaj Teslim hatası"
+msgstr "Mesaj İletilme Hatası"
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__message_ids
 msgid "Messages"
 msgstr "Mesajlar"
+
+#. module: note
+#: model_terms:ir.ui.view,arch_db:note.view_note_note_filter
+msgid "My Activities"
+msgstr "Aktivitelerim"
 
 #. module: note
 #: model:note.stage,name:note.note_stage_00
@@ -312,17 +288,17 @@ msgstr "Yeni"
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__activity_date_deadline
 msgid "Next Activity Deadline"
-msgstr "Sonraki Aktivite Zaman Sınırı"
+msgstr "Sonraki Faaliyet Zaman Sınırı"
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__activity_summary
 msgid "Next Activity Summary"
-msgstr "Sonraki Aktivite Özeti"
+msgstr "Sonraki Faaliyet Özeti"
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__activity_type_id
 msgid "Next Activity Type"
-msgstr "Sonraki Aktivite Türü"
+msgstr "Sonraki Faaliyet Türü"
 
 #. module: note
 #: model:ir.model,name:note.model_note_note
@@ -352,7 +328,7 @@ msgid "Note Tag"
 msgstr "Not Etiketi"
 
 #. module: note
-#: code:addons/note/models/res_users.py:0
+#: code:addons/note/models/res_users.py:61
 #: model:ir.actions.act_window,name:note.action_note_note
 #: model:ir.ui.menu,name:note.menu_note_notes
 #: model_terms:ir.ui.view,arch_db:note.view_note_note_filter
@@ -386,12 +362,22 @@ msgstr "Eylem gerektiren mesaj sayısı"
 #. module: note
 #: model:ir.model.fields,help:note.field_note_note__message_has_error_counter
 msgid "Number of messages with delivery error"
-msgstr "Teslimat hatası olan mesaj sayısı"
+msgstr ""
 
 #. module: note
 #: model:ir.model.fields,help:note.field_note_note__message_unread_counter
 msgid "Number of unread messages"
 msgstr "Okunmamış mesaj sayısı"
+
+#. module: note
+#: selection:mail.activity.type,category:0
+msgid "Other"
+msgstr "Diğer"
+
+#. module: note
+#: selection:note.note,activity_state:0
+msgid "Overdue"
+msgstr "Geciken"
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__user_id
@@ -405,22 +391,27 @@ msgid "Owner of the note stage"
 msgstr "Not aşamasının sahini"
 
 #. module: note
+#: selection:note.note,activity_state:0
+msgid "Planned"
+msgstr "Planlanan"
+
+#. module: note
 #: model:ir.model.fields,field_description:note.field_mail_activity__note_id
 msgid "Related Note"
-msgstr "İlgili Not"
+msgstr ""
 
 #. module: note
 #. openerp-web
-#: code:addons/note/static/src/xml/systray.xml:0
+#: code:addons/note/static/src/xml/systray.xml:23
 #, python-format
 msgid "Remember..."
 msgstr ""
 
 #. module: note
-#: model:ir.model.fields.selection,name:note.selection__mail_activity_type__category__reminder
+#: selection:mail.activity.type,category:0
 #: model:mail.activity.type,name:note.mail_activity_data_reminder
 msgid "Reminder"
-msgstr "Hatırlatma"
+msgstr ""
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__activity_user_id
@@ -429,10 +420,10 @@ msgstr "Sorumlu Kullanıcı"
 
 #. module: note
 #. openerp-web
-#: code:addons/note/static/src/xml/systray.xml:0
+#: code:addons/note/static/src/xml/systray.xml:25
 #, python-format
 msgid "SAVE"
-msgstr "Kaydet"
+msgstr ""
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__sequence
@@ -442,10 +433,10 @@ msgstr "Sıra"
 
 #. module: note
 #. openerp-web
-#: code:addons/note/static/src/xml/systray.xml:0
+#: code:addons/note/static/src/xml/systray.xml:18
 #, python-format
 msgid "Set date and time"
-msgstr "Tarih tanımla"
+msgstr ""
 
 #. module: note
 #: model_terms:ir.ui.view,arch_db:note.view_note_note_filter
@@ -493,10 +484,6 @@ msgid ""
 "Today: Activity date is today\n"
 "Planned: Future activities."
 msgstr ""
-"Etkinliklerdeki aşamalar\n"
-"Zamanı Geçmiş: Tarihi geçmiş \n"
-"Bugün: Etkinlik günü bugün\n"
-"Planlanan: Gelecek etkinlikler."
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_tag__name
@@ -504,7 +491,7 @@ msgid "Tag Name"
 msgstr "Etiket Adı"
 
 #. module: note
-#: model:ir.model.constraint,message:note.constraint_note_tag_name_uniq
+#: sql_constraint:note.tag:0
 msgid "Tag name already exists !"
 msgstr "Etiket adı halihazırda mevcut !"
 
@@ -520,7 +507,8 @@ msgstr "Etiketler"
 
 #. module: note
 #. openerp-web
-#: code:addons/note/static/src/js/systray_activity_menu.js:0
+#: code:addons/note/static/src/js/systray_activity_menu.js:97
+#: selection:note.note,activity_state:0
 #, python-format
 msgid "Today"
 msgstr "Bugün"
@@ -534,11 +522,6 @@ msgstr "Bugünkü Aktiviteler"
 #: model:note.stage,name:note.note_stage_03
 msgid "Todo"
 msgstr "Yapma"
-
-#. module: note
-#: model:ir.model.fields,help:note.field_note_note__activity_exception_decoration
-msgid "Type of the exception activity on record."
-msgstr ""
 
 #. module: note
 #: model:ir.model.fields,field_description:note.field_note_note__message_unread
@@ -559,3 +542,13 @@ msgstr "Not aşamalarını sıralamak için kullanılır"
 #: model:ir.model,name:note.model_res_users
 msgid "Users"
 msgstr "Kullanıcılar"
+
+#. module: note
+#: model:ir.model.fields,field_description:note.field_note_note__website_message_ids
+msgid "Website Messages"
+msgstr "Websitesi Mesajları"
+
+#. module: note
+#: model:ir.model.fields,help:note.field_note_note__website_message_ids
+msgid "Website communication history"
+msgstr "Web Sitesi iletişim geçmişi"

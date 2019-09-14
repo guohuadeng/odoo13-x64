@@ -8,12 +8,7 @@ var _t = core._t;
 function parseAndTransform(htmlString, transformFunction) {
     var openToken = "OPEN" + Date.now();
     var string = htmlString.replace(/&lt;/g, openToken);
-    var children;
-    try {
-        children = $('<div>').html(string).contents();
-    } catch (e) {
-        children = $('<div>').html('<pre>' + string + '</pre>').contents();
-    }
+    var children = $('<div>').html(string).contents();
     return _parseAndTransform(children, transformFunction)
                 .replace(new RegExp(openToken, "g"), "&lt;");
 }

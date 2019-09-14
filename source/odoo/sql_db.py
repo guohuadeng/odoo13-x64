@@ -22,6 +22,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, ISOLATION_LEVEL_READ
 from psycopg2.pool import PoolError
 from werkzeug import urls
 
+from odoo.api import Environment
+
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 
 _logger = logging.getLogger(__name__)
@@ -56,25 +58,6 @@ if pv(psycopg2.__version__) < pv('2.7'):
 from datetime import timedelta
 import threading
 from inspect import currentframe
-
-
-SENTINEL = object()
-
-
-def get_env(frame, back=0):
-    """ Retrieve an environment from the given stack frame. """
-    for i in range(back):
-        frame = frame.f_back
-    while frame:
-        env = frame.f_locals.get('env', SENTINEL)
-        if env is not SENTINEL:
-            return env
-        env = getattr(frame.f_locals.get('self'), 'env', SENTINEL)
-        if env is not SENTINEL:
-            return env
-        frame = frame.f_back
-    return None
-
 
 import re
 re_from = re.compile('.* from "?([a-zA-Z_0-9]+)"? .*$')
@@ -386,9 +369,10 @@ class Cursor(object):
     def commit(self):
         """ Perform an SQL `COMMIT`
         """
-        env = get_env(currentframe(), 2)
-        if env is not None:
-            env['base'].flush()
+        for env in Environment.envs:
+            if env.cr is self:
+                env['base'].flush()
+                break
         result = self._cnx.commit()
         for func in self._pop_event_handlers()['commit']:
             func()
@@ -398,9 +382,10 @@ class Cursor(object):
     def rollback(self):
         """ Perform an SQL `ROLLBACK`
         """
-        env = get_env(currentframe(), 2)
-        if env is not None:
-            env.clear()
+        for env in Environment.envs:
+            if env.cr is self:
+                env.clear()
+                break
         result = self._cnx.rollback()
         for func in self._pop_event_handlers()['rollback']:
             func()
@@ -425,20 +410,13 @@ class Cursor(object):
 
     @contextmanager
     @check
-    def savepoint(self, flush=True):
+    def savepoint(self):
         """context manager entering in a new savepoint"""
         name = uuid.uuid1().hex
-        env = get_env(currentframe(), 2) if flush else None
-        if env is not None:
-            env['base'].flush()
         self.execute('SAVEPOINT "%s"' % name)
         try:
             yield
-            if env is not None:
-                env['base'].flush()
         except Exception:
-            if env is not None:
-                env.clear()
             self.execute('ROLLBACK TO SAVEPOINT "%s"' % name)
             raise
         else:
@@ -495,15 +473,17 @@ class TestCursor(object):
         _logger.debug("TestCursor.autocommit(%r) does nothing", on)
 
     def commit(self):
-        env = get_env(currentframe(), 1)
-        if env is not None:
-            env['base'].flush()
+        for env in Environment.envs:
+            if env.cr is self:
+                env['base'].flush()
+                break
         self._cursor.execute('SAVEPOINT "%s"' % self._savepoint)
 
     def rollback(self):
-        env = get_env(currentframe(), 1)
-        if env is not None:
-            env.clear()
+        for env in Environment.envs:
+            if env.cr is self:
+                env.clear()
+                break
         self._cursor.execute('ROLLBACK TO SAVEPOINT "%s"' % self._savepoint)
 
     def __enter__(self):

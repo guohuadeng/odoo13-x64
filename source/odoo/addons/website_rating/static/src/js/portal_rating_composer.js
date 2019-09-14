@@ -3,9 +3,9 @@ odoo.define('portal.rating.composer', function (require) {
 
 var publicWidget = require('web.public.widget');
 var session = require('web.session');
-var portalComposer = require('portal.composer');
+var portalChatter = require('portal.chatter');
 
-var PortalComposer = portalComposer.PortalComposer;
+var PortalComposer = portalChatter.PortalComposer;
 
 var STAR_RATING_RATIO = 2;  // conversion factor from the star (1-5) to the db rating range (1-10)
 
@@ -61,8 +61,7 @@ publicWidget.registry.RatingPopupComposer = publicWidget.Widget.extend({
      * @override
      */
     start: function () {
-        var ratingPopupData = this.$el.data();
-        var ratingPopup = new RatingPopupComposer(this, ratingPopupData);
+        var ratingPopup = new RatingPopupComposer(this, this.$el.data());
         return Promise.all([
             this._super.apply(this, arguments),
             ratingPopup.appendTo(this.$el)

@@ -22,6 +22,7 @@ class HrWorkEntry(models.Model):
     color = fields.Integer(related='work_entry_type_id.color', readonly=True)
     state = fields.Selection([
         ('draft', 'Draft'),
+        ('confirmed', 'Confirmed'),
         ('validated', 'Validated'),
         ('conflict', 'Conflict'),
         ('cancelled', 'Cancelled')
@@ -136,7 +137,7 @@ class HrWorkEntry(models.Model):
                 skip_check &= all(self.mapped(lambda w: w.state != 'conflict'))
 
         if 'active' in vals:
-            vals['state'] = 'draft' if vals['active'] else 'cancelled'
+            vals['state'] = 'confirmed' if vals['active'] else 'cancelled'
 
         with self._error_checking(skip=skip_check):
             return super(HrWorkEntry, self).write(vals)
@@ -146,7 +147,7 @@ class HrWorkEntry(models.Model):
             return super().unlink()
 
     def _reset_conflicting_state(self):
-        self.filtered(lambda w: w.state == 'conflict').write({'state': 'draft'})
+        self.filtered(lambda w: w.state == 'conflict').write({'state': 'confirmed'})
 
     @contextmanager
     def _error_checking(self, start=None, stop=None, skip=False):

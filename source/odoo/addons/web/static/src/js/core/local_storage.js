@@ -35,10 +35,12 @@ try {
             var newValue = e.originalEvent.newValue;
             try {
                 JSON.parse(newValue);
-                storage.trigger('storage', {
-                    key: key,
-                    newValue: newValue,
-                });
+                if (localStorage.getItem(key) === newValue) {
+                    storage.trigger('storage', {
+                        key: key,
+                        newValue: newValue,
+                    });
+                }
             } catch (error) {}
         });
         return storage;

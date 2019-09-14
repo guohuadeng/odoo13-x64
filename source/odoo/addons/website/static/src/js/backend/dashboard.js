@@ -185,7 +185,7 @@ var Dashboard = AbstractAction.extend({
             };
         });
 
-        var ctx = this.$canvas[0];
+        var ctx = document.getElementById(chart_id);
         this.chart = new Chart(ctx, {
             type: 'line',
             data: {

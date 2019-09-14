@@ -17,16 +17,14 @@ class TestStockProductionLot(TestStockCommon):
         self.productAAA = self.ProductObj.create({
             'name': 'Product AAA',
             'type': 'product',
-            'tracking':'lot',
-            'company_id': self.env.company.id,
+            'tracking':'lot'
         })
 
         # create a new lot with with alert date in the past
         self.lot1_productAAA = self.LotObj.create({
             'name': 'Lot 1 ProductAAA',
             'product_id': self.productAAA.id,
-            'alert_date': fields.Date.to_string(datetime.today() - relativedelta(days=15)),
-            'company_id': self.env.company.id,
+            'alert_date': fields.Date.to_string(datetime.today() - relativedelta(days=15))
         })
 
         picking_in = self.PickingObj.create({
@@ -122,8 +120,7 @@ class TestStockProductionLot(TestStockCommon):
         self.lot1_productBBB = self.LotObj.create({
             'name': 'Lot 1 ProductBBB',
             'product_id': self.productBBB.id,
-            'alert_date': fields.Date.to_string(datetime.today() + relativedelta(days=15)),
-            'company_id': self.env.company.id,
+            'alert_date': fields.Date.to_string(datetime.today() + relativedelta(days=15))
         })
 
         picking_in = self.PickingObj.create({
@@ -172,7 +169,7 @@ class TestStockProductionLot(TestStockCommon):
         self.productCCC = self.ProductObj.create({'name': 'Product CCC', 'type': 'product', 'tracking':'lot'})
 
         # create a new lot with with alert date in the past
-        self.lot1_productCCC = self.LotObj.create({'name': 'Lot 1 ProductCCC', 'product_id': self.productCCC.id, 'company_id': self.env.company.id})
+        self.lot1_productCCC = self.LotObj.create({'name': 'Lot 1 ProductCCC', 'product_id': self.productCCC.id})
 
         picking_in = self.PickingObj.create({
             'picking_type_id': self.picking_type_in,

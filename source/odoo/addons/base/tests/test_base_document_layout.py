@@ -185,8 +185,7 @@ class TestBaseDocumentLayout(TestBaseDocumentLayoutHelpers):
 
         with Form(self.env['base.document.layout']) as doc_layout:
             self.assertColors(doc_layout, self.company)
-            doc_layout.primary_color = doc_layout.logo_primary_color
-            doc_layout.secondary_color = doc_layout.logo_secondary_color
+            doc_layout.custom_colors = False
             self.assertColors(doc_layout, self.company_imgs['overwatch']['colors'])
 
     # /!\ This case is NOT supported, and probably not supportable

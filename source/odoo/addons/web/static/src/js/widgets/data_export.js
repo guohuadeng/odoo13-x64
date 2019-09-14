@@ -178,7 +178,7 @@ var DataExport = Dialog.extend({
                 })
             },
             complete: framework.unblockUI,
-            error: (error) => this.call('crash_manager', 'rpc_error', error),
+            error: () => this.call('crash_manager', 'rpc_error', ...arguments),
         });
     },
     /**
@@ -647,9 +647,7 @@ var DataExport = Dialog.extend({
         }
 
         var matchItems = this.$(".o_tree_column").filter(function () {
-            var title = this.getAttribute('title');
-            return this.innerText.toUpperCase().indexOf(searchText) >= 0
-                || title && title.toUpperCase().indexOf(searchText) >= 0;
+            return this.innerText.toUpperCase().indexOf(searchText) >= 0;
         }).parent();
         this.$(".o_export_tree_item").hide();
         if (matchItems.length) {

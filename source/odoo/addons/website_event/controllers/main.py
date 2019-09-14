@@ -3,7 +3,7 @@
 import babel.dates
 import re
 import werkzeug
-from werkzeug.datastructures import OrderedMultiDict
+import json
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -28,7 +28,6 @@ class WebsiteEventController(http.Controller):
         searches.setdefault('type', 'all')
         searches.setdefault('country', 'all')
 
-        website = request.website
 
         def sdn(date):
             return fields.Datetime.to_string(date.replace(hour=23, minute=59, second=59))
@@ -64,7 +63,7 @@ class WebsiteEventController(http.Controller):
         ]
 
         # search domains
-        domain_search = {'website_specific': website.website_domain()}
+        domain_search = {'website_specific': request.website.website_domain()}
         current_date = None
         current_type = None
         current_country = None
@@ -111,7 +110,7 @@ class WebsiteEventController(http.Controller):
 
         step = 10  # Number of events per page
         event_count = Event.search_count(dom_without("none"))
-        pager = website.pager(
+        pager = request.website.pager(
             url="/event",
             url_args={'date': searches.get('date'), 'type': searches.get('type'), 'country': searches.get('country')},
             total=event_count,
@@ -139,10 +138,6 @@ class WebsiteEventController(http.Controller):
             'searches': searches,
             'search_path': "?%s" % werkzeug.url_encode(searches),
         }
-
-        if searches['date'] == 'old':
-            # the only way to display this content is to set date=old so it must be canonical
-            values['canonical_params'] = OrderedMultiDict([('date', 'old')])
 
         return request.render("website_event.index", values)
 

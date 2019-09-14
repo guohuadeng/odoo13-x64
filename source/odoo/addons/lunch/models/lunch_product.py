@@ -9,7 +9,6 @@ from odoo.tools import formatLang
 class LunchProductCategory(models.Model):
     """ Category of the product such as pizza, sandwich, pasta, chinese, burger... """
     _name = 'lunch.product.category'
-    _inherit = 'image.mixin'
     _description = 'Lunch Product Category'
 
     name = fields.Char('Product Category', required=True)

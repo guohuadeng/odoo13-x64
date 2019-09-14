@@ -1,19 +1,17 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* sale_quotation_builder
+# * sale_quotation_builder
 # 
 # Translators:
-# Martin Trigaux, 2019
-# 敬雲 林 <chingyun@yuanchih-consult.com>, 2019
-# Jeanphy <hzh0292@qq.com>, 2019
-# 
+# Martin Trigaux, 2018
+# 敬雲 林 <chingyun@yuanchih-consult.com>, 2018
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:17+0000\n"
-"PO-Revision-Date: 2019-08-26 09:14+0000\n"
-"Last-Translator: Jeanphy <hzh0292@qq.com>, 2019\n"
+"POT-Creation-Date: 2018-09-21 13:17+0000\n"
+"PO-Revision-Date: 2018-09-21 13:17+0000\n"
+"Last-Translator: 敬雲 林 <chingyun@yuanchih-consult.com>, 2018\n"
 "Language-Team: Chinese (Taiwan) (https://www.transifex.com/odoo/teams/41243/zh_TW/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -22,9 +20,9 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 #. module: sale_quotation_builder
-#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.sale_order_portal_content_inherit_sale_quotation_builder
+#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
 msgid "&amp;times;"
-msgstr "&amp;次數;"
+msgstr "&amp;times;"
 
 #. module: sale_quotation_builder
 #: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
@@ -49,14 +47,6 @@ msgstr ""
 "         這個產品出現在報價單。"
 
 #. module: sale_quotation_builder
-#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.sale_order_portal_content_inherit_sale_quotation_builder
-msgid ""
-":\n"
-"                        this content will appear on the quotation only if this\n"
-"                        product is not removed."
-msgstr ""
-
-#. module: sale_quotation_builder
 #: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
 msgid ""
 "<strong>Template Header:</strong> this content\n"
@@ -72,11 +62,6 @@ msgid "About us"
 msgstr "關於我們"
 
 #. module: sale_quotation_builder
-#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.brand_promotion
-msgid "An awesome"
-msgstr ""
-
-#. module: sale_quotation_builder
 #: model_terms:sale.order.template,website_description:sale_quotation_builder.sale_order_template_default
 msgid ""
 "As a leading professional services firm,\n"
@@ -88,7 +73,12 @@ msgstr ""
 "                                       是我們對優質服務的承諾。"
 
 #. module: sale_quotation_builder
-#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.sale_order_portal_content_inherit_sale_quotation_builder
+#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
+msgid "Back"
+msgstr "退回"
+
+#. module: sale_quotation_builder
+#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
 msgid "Close"
 msgstr "關閉"
 
@@ -99,8 +89,8 @@ msgstr "配置設定"
 
 #. module: sale_quotation_builder
 #: model_terms:ir.ui.view,arch_db:sale_quotation_builder.sale_order_template_view_form_inherit_sale_quotation_builder
-msgid "Design Template"
-msgstr ""
+msgid "Edit Template"
+msgstr "編輯模板"
 
 #. module: sale_quotation_builder
 #: model_terms:sale.order.template,website_description:sale_quotation_builder.sale_order_template_default
@@ -131,11 +121,6 @@ msgstr ""
 " 使用此修改後的模板。"
 
 #. module: sale_quotation_builder
-#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.brand_promotion
-msgid "Open Source CRM"
-msgstr "開源客戶關係管理軟體"
-
-#. module: sale_quotation_builder
 #: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
 msgid "Optional Product:"
 msgstr "可選產品："
@@ -163,7 +148,7 @@ msgstr "價格"
 #. module: sale_quotation_builder
 #: model:ir.model,name:sale_quotation_builder.model_product_template
 msgid "Product Template"
-msgstr "产品模板"
+msgstr "產品模板"
 
 #. module: sale_quotation_builder
 #: model_terms:sale.order.template,website_description:sale_quotation_builder.sale_order_template_default
@@ -177,7 +162,6 @@ msgstr ""
 "        專注於產品質地、性能和工藝。"
 
 #. module: sale_quotation_builder
-#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.sale_order_portal_content_inherit_sale_quotation_builder
 #: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
 msgid "Product:"
 msgstr "產品："
@@ -216,13 +200,13 @@ msgstr "銷售選項"
 
 #. module: sale_quotation_builder
 #: model:ir.model,name:sale_quotation_builder.model_sale_order
-msgid "Sales Order"
+msgid "Sale Order"
 msgstr "銷售訂單"
 
 #. module: sale_quotation_builder
 #: model:ir.model,name:sale_quotation_builder.model_sale_order_line
 msgid "Sales Order Line"
-msgstr "銷售訂單明細"
+msgstr "銷售訂單行"
 
 #. module: sale_quotation_builder
 #: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
@@ -255,11 +239,6 @@ msgstr ""
 "這是一個<strong>報價模板示例</strong>。您應該\n"
 "           從<i>銷售</i>\n"
 "           應用定制它以滿足自己的需求，使用選單：配置/ 報價單模板。"
-
-#. module: sale_quotation_builder
-#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
-msgid "This is a preview of the sale order template."
-msgstr ""
 
 #. module: sale_quotation_builder
 #: model_terms:ir.ui.view,arch_db:sale_quotation_builder.so_template
@@ -308,8 +287,3 @@ msgstr ""
 "                        自動創建一個報價。左邊的內容表\n"
 "                        是根據您描述中使用的樣式\n"
 "                        自動生成的（標題 1、標題 2…）"
-
-#. module: sale_quotation_builder
-#: model_terms:ir.ui.view,arch_db:sale_quotation_builder.brand_promotion
-msgid "portal"
-msgstr ""

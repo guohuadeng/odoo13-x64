@@ -223,9 +223,9 @@
         <field name="context">{'search_default_filter_not_email_bl': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                Create a mailing contact
+                Create a contact in your address book
             </p><p>
-                Mailing contacts allow you to separate your marketing audience from your business contact directory.
+                Odoo helps you to easily track all activities related to a customer.
             </p>
         </field>
     </record>

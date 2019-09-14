@@ -23,9 +23,13 @@ odoo.define("website_blog.tour", function (require) {
         position: "top",
         run: "text",
     }, {
-        trigger: "we-button:containsExact(" + _t("Change Cover") + "):visible",
+        trigger: "#oe_manipulators .oe_overlay.oe_active a.btn.btn-primary",
         extra_trigger: "#wrap div[data-oe-expression=\"blog_post.name\"]:not(:containsExact(\"\"))",
         content: _t("Set a blog post <b>cover</b>."),
+        position: "bottom",
+    }, {
+        trigger: "a:containsExact(" + _t("Change Cover") + "):visible",
+        content: _t("Click here to change your post cover."),
         position: "right",
     }, {
         trigger: ".o_select_media_dialog .o_existing_attachment_cell:nth(1) img",

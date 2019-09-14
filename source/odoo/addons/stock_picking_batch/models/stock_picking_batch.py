@@ -16,14 +16,10 @@ class StockPickingBatch(models.Model):
         copy=False, required=True,
         help='Name of the batch transfer')
     user_id = fields.Many2one(
-        'res.users', string='Responsible', tracking=True, check_company=True,
+        'res.users', string='Responsible', tracking=True,
         help='Person responsible for this batch transfer')
-    company_id = fields.Many2one(
-        'res.company', string="Company", required=True, readonly=True,
-        index=True)
     picking_ids = fields.One2many(
         'stock.picking', 'batch_id', string='Transfers',
-        domain="[('company_id', '=', company_id), ('state', 'not in', ('done', 'cancel'))]",
         help='List of transfers associated to this batch')
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -39,7 +35,6 @@ class StockPickingBatch(models.Model):
         return super(StockPickingBatch, self).create(vals)
 
     def confirm_picking(self):
-        self._check_company()
         pickings_todo = self.mapped('picking_ids')
         self.write({'state': 'in_progress'})
         return pickings_todo.action_assign()
@@ -55,7 +50,6 @@ class StockPickingBatch(models.Model):
         return self.env.ref('stock_picking_batch.action_report_picking_batch').report_action(self)
 
     def done(self):
-        self._check_company()
         pickings = self.mapped('picking_ids').filtered(lambda picking: picking.state not in ('cancel', 'done'))
         if any(picking.state not in ('assigned') for picking in pickings):
             raise UserError(_('Some transfers are still waiting for goods. Please check or force their availability before setting this batch to done.'))
@@ -116,6 +110,5 @@ class StockPicking(models.Model):
 
     batch_id = fields.Many2one(
         'stock.picking.batch', string='Batch Transfer',
-        check_company=True,
         states={'done': [('readonly', True)], 'cancel': [('readonly', True)]},
         help='Batch associated to this transfer', copy=False)

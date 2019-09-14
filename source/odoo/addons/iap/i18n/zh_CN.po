@@ -1,23 +1,18 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* iap
+# * iap
 # 
 # Translators:
-# Martin Trigaux, 2019
-# liAnGjiA <liangjia@qq.com>, 2019
-# guohuadeng <guohuadeng@hotmail.com>, 2019
-# keecome <7017511@qq.com>, 2019
-# 卫安琪 <weianqi1991@gmail.com>, 2019
-# xu xiaohu <xu.xiaohu@gmail.com>, 2019
-# inspur qiuguodong <qiuguodong@inspur.com>, 2019
-# 
+# Martin Trigaux, 2018
+# liAnGjiA <liangjia@qq.com>, 2018
+# xu xiaohu <xu.xiaohu@gmail.com>, 2018
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:11+0000\n"
-"Last-Translator: inspur qiuguodong <qiuguodong@inspur.com>, 2019\n"
+"POT-Creation-Date: 2018-10-02 10:05+0000\n"
+"PO-Revision-Date: 2018-10-02 10:05+0000\n"
+"Last-Translator: xu xiaohu <xu.xiaohu@gmail.com>, 2018\n"
 "Language-Team: Chinese (China) (https://www.transifex.com/odoo/teams/41243/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -37,39 +32,41 @@ msgstr "账户令牌"
 
 #. module: iap
 #. openerp-web
-#: code:addons/iap/static/src/xml/iap_templates.xml:0
-#, python-format
-msgid "Buy credits"
-msgstr "购买信用"
-
-#. module: iap
-#. openerp-web
-#: code:addons/iap/static/src/js/crash_manager.js:0
+#: code:addons/iap/static/src/js/crash_manager.js:23
 #, python-format
 msgid "Buy credits at Odoo"
 msgstr "在odoo中购买信用"
 
 #. module: iap
 #. openerp-web
-#: code:addons/iap/static/src/js/crash_manager.js:0
+#: code:addons/iap/static/src/xml/iap_templates.xml:41
 #, python-format
-msgid "Cancel"
-msgstr "取消日期"
+msgid "Buy more credits"
+msgstr "购买更多信用"
 
 #. module: iap
-#: model:ir.model.fields,field_description:iap.field_iap_account__company_ids
+#. openerp-web
+#: code:addons/iap/static/src/js/crash_manager.js:61
+#, python-format
+msgid "Cancel"
+msgstr "取消"
+
+#. module: iap
+#. openerp-web
+#: code:addons/iap/static/src/xml/iap_templates.xml:28
+#, python-format
+msgid "Checking remaining credit ..."
+msgstr "正在检查剩余信用..."
+
+#. module: iap
+#: model:ir.model.fields,field_description:iap.field_iap_account__company_id
 msgid "Company"
 msgstr "公司"
 
 #. module: iap
-#: model:ir.model,name:iap.model_res_config_settings
-msgid "Config Settings"
-msgstr "配置设置"
-
-#. module: iap
 #: model:ir.model.fields,field_description:iap.field_iap_account__create_uid
 msgid "Created by"
-msgstr "创建者"
+msgstr "创建人"
 
 #. module: iap
 #: model:ir.model.fields,field_description:iap.field_iap_account__create_date
@@ -105,20 +102,29 @@ msgid "ID"
 msgstr "ID"
 
 #. module: iap
-#: model_terms:ir.ui.view,arch_db:iap.res_config_settings_view_form
+#. openerp-web
+#: code:addons/iap/static/src/xml/iap_templates.xml:21
+#, python-format
 msgid "In-App Purchases"
-msgstr "应用内购买"
+msgstr "IAP在线采购"
 
 #. module: iap
 #. openerp-web
-#: code:addons/iap/static/src/js/crash_manager.js:0
+#: code:addons/iap/static/src/js/crash_manager.js:51
 #, python-format
 msgid "Insufficient Balance"
 msgstr "余额不足"
 
 #. module: iap
 #. openerp-web
-#: code:addons/iap/static/src/xml/iap_templates.xml:0
+#: code:addons/iap/static/src/xml/iap_templates.xml:31
+#, python-format
+msgid "Insufficient credit"
+msgstr "信用不足"
+
+#. module: iap
+#. openerp-web
+#: code:addons/iap/static/src/xml/iap_templates.xml:14
 #, python-format
 msgid "Insufficient credit to perform this service."
 msgstr "额度不足，无法执行此服务。"
@@ -126,27 +132,24 @@ msgstr "额度不足，无法执行此服务。"
 #. module: iap
 #: model:ir.model.fields,field_description:iap.field_iap_account____last_update
 msgid "Last Modified on"
-msgstr "最后更改日"
+msgstr "最后修改时间"
 
 #. module: iap
 #: model:ir.model.fields,field_description:iap.field_iap_account__write_uid
 msgid "Last Updated by"
-msgstr "最后更新者"
+msgstr "最后更新人"
 
 #. module: iap
 #: model:ir.model.fields,field_description:iap.field_iap_account__write_date
 msgid "Last Updated on"
-msgstr "更新时间"
+msgstr "最后更新时间"
 
 #. module: iap
-#: model_terms:ir.ui.view,arch_db:iap.res_config_settings_view_form
-msgid "Odoo IAP"
-msgstr ""
-
-#. module: iap
-#: model:ir.actions.server,name:iap.open_iap_account
-msgid "Open IAP Account"
-msgstr ""
+#. openerp-web
+#: code:addons/iap/static/src/xml/iap_templates.xml:34
+#, python-format
+msgid "Remaining :"
+msgstr "剩余："
 
 #. module: iap
 #: model:ir.model.fields,field_description:iap.field_iap_account__service_name
@@ -155,25 +158,21 @@ msgstr "服务名称"
 
 #. module: iap
 #. openerp-web
-#: code:addons/iap/static/src/js/crash_manager.js:0
+#: code:addons/iap/static/src/js/crash_manager.js:23
 #, python-format
 msgid "Start a Trial at Odoo"
 msgstr "在odoo中开始试用"
 
 #. module: iap
-#: code:addons/iap/models/iap.py:0
+#. openerp-web
+#: code:addons/iap/static/src/xml/iap_templates.xml:37
 #, python-format
-msgid ""
-"The url that this service requested returned an error. Please contact the "
-"author of the app. The url it tried to contact was %s"
-msgstr ""
+msgid "Temporarily unavailable"
+msgstr "暂时不可用"
 
 #. module: iap
-#: model_terms:ir.ui.view,arch_db:iap.res_config_settings_view_form
-msgid "View My Services"
-msgstr ""
-
-#. module: iap
-#: model_terms:ir.ui.view,arch_db:iap.res_config_settings_view_form
-msgid "View your IAP Services and recharge your credits"
-msgstr ""
+#. openerp-web
+#: code:addons/iap/static/src/xml/iap_templates.xml:34
+#, python-format
+msgid "credits"
+msgstr "信用"

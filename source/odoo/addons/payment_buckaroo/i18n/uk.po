@@ -1,18 +1,18 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* payment_buckaroo
+# * payment_buckaroo
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2018
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2018
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:12+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2018-09-18 09:49+0000\n"
+"PO-Revision-Date: 2018-08-24 09:22+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2018\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -21,37 +21,47 @@ msgstr ""
 "Plural-Forms: nplurals=4; plural=(n % 1 == 0 && n % 10 == 1 && n % 100 != 11 ? 0 : n % 1 == 0 && n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : n % 1 == 0 && (n % 10 ==0 || (n % 10 >=5 && n % 10 <=9) || (n % 100 >=11 && n % 100 <=14 )) ? 2: 3);\n"
 
 #. module: payment_buckaroo
-#: code:addons/payment_buckaroo/models/payment.py:0
+#: code:addons/payment_buckaroo/models/payment.py:141
 #, python-format
 msgid "; multiple order found"
-msgstr "; знайдено кілька замовлень"
+msgstr "; знайдено декілька замовлень"
 
 #. module: payment_buckaroo
-#: code:addons/payment_buckaroo/models/payment.py:0
+#: code:addons/payment_buckaroo/models/payment.py:139
 #, python-format
 msgid "; no order found"
 msgstr "; не знайдено жодного замовлення"
 
 #. module: payment_buckaroo
-#: model:ir.model.fields.selection,name:payment_buckaroo.selection__payment_acquirer__provider__buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "Adyen"
+msgstr "Adyen"
+
+#. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "Authorize.Net"
+msgstr "Authorize.Net"
+
+#. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
 msgid "Buckaroo"
 msgstr "Buckaroo"
 
 #. module: payment_buckaroo
-#: code:addons/payment_buckaroo/models/payment.py:0
+#: code:addons/payment_buckaroo/models/payment.py:148
 #, python-format
 msgid "Buckaroo: invalid shasign, received %s, computed %s, for data %s"
 msgstr ""
 "Buckaroo: недійсний shasign, отриманий %s, обчислений %s, для даних %s"
 
 #. module: payment_buckaroo
-#: code:addons/payment_buckaroo/models/payment.py:0
+#: code:addons/payment_buckaroo/models/payment.py:137
 #, python-format
 msgid "Buckaroo: received data for reference %s"
 msgstr "Buckaroo: отримані дані для довідки %s"
 
 #. module: payment_buckaroo
-#: code:addons/payment_buckaroo/models/payment.py:0
+#: code:addons/payment_buckaroo/models/payment.py:131
 #, python-format
 msgid ""
 "Buckaroo: received data with missing reference (%s) or pay_id (%s) or "
@@ -59,6 +69,21 @@ msgid ""
 msgstr ""
 "Buckaroo: отримані дані з відсутньою довідкою (%s) або pay_id (%s) або "
 "shasign (%s)"
+
+#. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "Manual Configuration"
+msgstr "Ручне налаштування"
+
+#. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "Ogone"
+msgstr "Ogone"
+
+#. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "PayUmoney"
+msgstr "PayUmoney"
 
 #. module: payment_buckaroo
 #: model:ir.model,name:payment_buckaroo.model_payment_acquirer
@@ -71,6 +96,11 @@ msgid "Payment Transaction"
 msgstr "Платіжна операція"
 
 #. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "Paypal"
+msgstr "Paypal"
+
+#. module: payment_buckaroo
 #: model:ir.model.fields,field_description:payment_buckaroo.field_payment_acquirer__provider
 msgid "Provider"
 msgstr "Провайдер"
@@ -81,6 +111,21 @@ msgid "SecretKey"
 msgstr "SecretKey"
 
 #. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "Sips"
+msgstr "Набирає"
+
+#. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "Stripe"
+msgstr "Stripe"
+
+#. module: payment_buckaroo
 #: model:ir.model.fields,field_description:payment_buckaroo.field_payment_acquirer__brq_websitekey
 msgid "WebsiteKey"
 msgstr "WebsiteKey"
+
+#. module: payment_buckaroo
+#: selection:payment.acquirer,provider:0
+msgid "Wire Transfer"
+msgstr "Банківський переказ"

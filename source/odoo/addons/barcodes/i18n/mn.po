@@ -1,19 +1,16 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* barcodes
+# * barcodes
 # 
 # Translators:
-# Baskhuu Lodoikhuu <baskhuujacara@gmail.com>, 2019
-# Martin Trigaux, 2019
-# nurbakhit nurka <nurbakhit@bumanit.mn>, 2019
-# 
+# Martin Trigaux, 2018
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:09+0000\n"
-"Last-Translator: nurbakhit nurka <nurbakhit@bumanit.mn>, 2019\n"
+"POT-Creation-Date: 2018-09-21 13:17+0000\n"
+"PO-Revision-Date: 2018-09-21 13:17+0000\n"
+"Last-Translator: Martin Trigaux, 2018\n"
 "Language-Team: Mongolian (https://www.transifex.com/odoo/teams/41243/mn/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -22,27 +19,25 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. module: barcodes
-#: code:addons/barcodes/models/barcodes.py:0
+#: code:addons/barcodes/models/barcodes.py:204
 #, python-format
 msgid " '*' is not a valid Regex Barcode Pattern. Did you mean '.*' ?"
-msgstr ""
-" '*' Зураасан кодны Regex хэв маягт тохирохгүй байна. Таны хүссэн зүйл '.*' "
-"үү?"
+msgstr " '*' Зураасан кодын зөв биш RegEx. Таны санаа '.*' үү?"
 
 #. module: barcodes
-#: code:addons/barcodes/models/barcodes.py:0
+#: code:addons/barcodes/models/barcodes.py:202
 #, python-format
 msgid ": a rule can only contain one pair of braces."
 msgstr ": дүрэм нь нэг л хаалтын хосыг агуулж чадна."
 
 #. module: barcodes
-#: code:addons/barcodes/models/barcodes.py:0
+#: code:addons/barcodes/models/barcodes.py:198
 #, python-format
 msgid ": braces can only contain N's followed by D's."
 msgstr ": хаалт нь N-үүд араас D-үүдийг л агуулж чадна."
 
 #. module: barcodes
-#: code:addons/barcodes/models/barcodes.py:0
+#: code:addons/barcodes/models/barcodes.py:200
 #, python-format
 msgid ": empty braces."
 msgstr ": хоосон хаалтууд."
@@ -66,24 +61,24 @@ msgid ""
 "A barcode nomenclature defines how the point of sale identify and interprets"
 " barcodes"
 msgstr ""
-"Зураасан кодын задлах дүрэм нь борлуулалтын цэг дээр зураасан кодыг хэрхэн "
-"задлан унших арга, дүрмийг тодорхойлдог."
+"Зураасан кодын нэр төрөл нь борлуулалтын цэг зураасан кодыг хэрхэн "
+"боловсруулахыг тодорхойлдог."
 
 #. module: barcodes
 #: model_terms:ir.actions.act_window,help:barcodes.action_barcode_nomenclature_form
 msgid "Add a new barcode nomenclature"
-msgstr "Шинэ зураасан кодны задлах дүрэм бүртгэх"
+msgstr ""
 
 #. module: barcodes
+#: selection:barcode.rule,type:0
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__alias
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_rule__type__alias
 msgid "Alias"
-msgstr "Alias"
+msgstr "Хуурмаг нэр"
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_nomenclature__upc_ean_conv__always
+#: selection:barcode.nomenclature,upc_ean_conv:0
 msgid "Always"
-msgstr "Үргэлж"
+msgstr "Байнга"
 
 #. module: barcodes
 #: model:ir.model.fields,help:barcodes.field_barcode_rule__name
@@ -96,14 +91,14 @@ msgid "An internal identification of the barcode nomenclature"
 msgstr "Зураасан кодын энэ дүрэмийн хувьд дотоод танилт"
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_rule__encoding__any
+#: selection:barcode.rule,encoding:0
 msgid "Any"
 msgstr "Дурын"
 
 #. module: barcodes
 #: model:ir.model,name:barcodes.model_barcodes_barcode_events_mixin
 msgid "Barcode Event Mixin"
-msgstr "Зураасан кодны үзэгдэл танигч"
+msgstr ""
 
 #. module: barcodes
 #: model:ir.model,name:barcodes.model_barcode_nomenclature
@@ -111,18 +106,18 @@ msgstr "Зураасан кодны үзэгдэл танигч"
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__barcode_nomenclature_id
 #: model_terms:ir.ui.view,arch_db:barcodes.view_barcode_nomenclature_form
 msgid "Barcode Nomenclature"
-msgstr "Зураасан кодын дүрэм"
+msgstr "Зураасан кодын нэр төрөл"
 
 #. module: barcodes
 #: model:ir.actions.act_window,name:barcodes.action_barcode_nomenclature_form
 #: model_terms:ir.ui.view,arch_db:barcodes.view_barcode_nomenclature_tree
 msgid "Barcode Nomenclatures"
-msgstr "Зураасан код задлах дүрэм"
+msgstr "Зураасан кодын нэр төрөл"
 
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__pattern
 msgid "Barcode Pattern"
-msgstr "Зураасан кодын хэв загвар"
+msgstr "Зураасан кодын хэв"
 
 #. module: barcodes
 #: model:ir.model,name:barcodes.model_barcode_rule
@@ -136,6 +131,16 @@ msgid "Barcode Scanned"
 msgstr "Зураасан код уншигдсан"
 
 #. module: barcodes
+#: selection:barcode.rule,type:0
+msgid "Cashier"
+msgstr "Кассчин"
+
+#. module: barcodes
+#: selection:barcode.rule,type:0
+msgid "Client"
+msgstr "Клиент"
+
+#. module: barcodes
 #: model:ir.model,name:barcodes.model_res_company
 msgid "Companies"
 msgstr "Компаниуд"
@@ -144,40 +149,50 @@ msgstr "Компаниуд"
 #: model:ir.model.fields,field_description:barcodes.field_barcode_nomenclature__create_uid
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__create_uid
 msgid "Created by"
-msgstr "Үүсгэсэн этгээд"
+msgstr "Үүсгэгч"
 
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_nomenclature__create_date
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__create_date
 msgid "Created on"
-msgstr "Үүсгэсэн огноо"
+msgstr "Үүсгэсэн"
+
+#. module: barcodes
+#: selection:barcode.rule,type:0
+msgid "Credit Card"
+msgstr "Зээлийн карт"
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:390
 #, python-format
 msgid "Discard"
 msgstr "Үл хэрэгсэх"
+
+#. module: barcodes
+#: selection:barcode.rule,type:0
+msgid "Discounted Product"
+msgstr "Хямдарсан Бараа"
 
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_nomenclature__display_name
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__display_name
 #: model:ir.model.fields,field_description:barcodes.field_barcodes_barcode_events_mixin__display_name
 msgid "Display Name"
-msgstr "Дэлгэрэнгүй нэр"
+msgstr "Дэлгэцийн Нэр"
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_rule__encoding__ean13
+#: selection:barcode.rule,encoding:0
 msgid "EAN-13"
 msgstr "EAN-13"
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_nomenclature__upc_ean_conv__ean2upc
+#: selection:barcode.nomenclature,upc_ean_conv:0
 msgid "EAN-13 to UPC-A"
 msgstr "EAN-13-с UPC-A-руу"
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_rule__encoding__ean8
+#: selection:barcode.rule,encoding:0
 msgid "EAN-8"
 msgstr "EAN-8"
 
@@ -188,39 +203,39 @@ msgstr "Кодчлол"
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:326
 #, python-format
 msgid "Error: Barcode command is undefined"
-msgstr "Алдаа: Зураасан кодны команд тодорхойлогдоогүй"
+msgstr ""
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:63
 #, python-format
 msgid "Error: Document not editable"
-msgstr "Алдаа: Баримт засварлах боломжгүй"
+msgstr ""
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:362
 #, python-format
 msgid "Error: No last scanned barcode"
-msgstr "Алдаа: Сүүлд ямар нэг баркод уншигдаагүй"
+msgstr ""
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:95
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:110
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:126
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:139
 #, python-format
 msgid "Error: Pager not available"
-msgstr "Алдаа: Хуудаслалт боломжгүй"
+msgstr ""
 
 #. module: barcodes
 #: model:ir.model,name:barcodes.model_ir_http
 msgid "HTTP Routing"
-msgstr "HTTP Routing"
+msgstr ""
 
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_nomenclature__id
@@ -234,29 +249,44 @@ msgstr "ID"
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule____last_update
 #: model:ir.model.fields,field_description:barcodes.field_barcodes_barcode_events_mixin____last_update
 msgid "Last Modified on"
-msgstr "Сүүлд зассан огноо"
+msgstr "Сүүлийн засвар хийсэн огноо"
 
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_nomenclature__write_uid
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__write_uid
 msgid "Last Updated by"
-msgstr "Сүүлд зассан этгээд"
+msgstr "Сүүлийн засвар хийсэн"
 
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_nomenclature__write_date
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__write_date
 msgid "Last Updated on"
-msgstr "Сүүлд зассан огноо"
+msgstr "Сүүлийн засвар хийсэн огноо"
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_nomenclature__upc_ean_conv__none
+#: selection:barcode.rule,type:0
+msgid "Location"
+msgstr "Байршил"
+
+#. module: barcodes
+#: selection:barcode.rule,type:0
+msgid "Lot"
+msgstr "Цуврал"
+
+#. module: barcodes
+#: selection:barcode.nomenclature,upc_ean_conv:0
 msgid "Never"
 msgstr "Хэзээ ч үгүй"
 
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_res_company__nomenclature_id
 msgid "Nomenclature"
-msgstr "Задлах дүрэм"
+msgstr ""
+
+#. module: barcodes
+#: selection:barcode.rule,type:0
+msgid "Package"
+msgstr "Баглаа"
 
 #. module: barcodes
 #: model_terms:ir.ui.view,arch_db:barcodes.view_barcode_nomenclature_form
@@ -276,6 +306,11 @@ msgstr ""
 "                                эдгээр тоог харуулах талбарууд нь тоонуудыг тэгээр харуулах<i>ёстой</i> "
 
 #. module: barcodes
+#: selection:barcode.rule,type:0
+msgid "Priced Product"
+msgstr "Үнэлсэн Бараа"
+
+#. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__name
 msgid "Rule Name"
 msgstr "Дүрмийн нэр"
@@ -283,11 +318,11 @@ msgstr "Дүрмийн нэр"
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_nomenclature__rule_ids
 msgid "Rules"
-msgstr "Дүрэм"
+msgstr "Дүрэмүүд"
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:382
 #, python-format
 msgid "Select"
 msgstr "Сонгох"
@@ -295,14 +330,14 @@ msgstr "Сонгох"
 #. module: barcodes
 #: model:ir.model.fields,field_description:barcodes.field_barcode_rule__sequence
 msgid "Sequence"
-msgstr "Дугаарлалт"
+msgstr "Дараалал"
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:381
 #, python-format
 msgid "Set quantity"
-msgstr "Тоо оруулна уу"
+msgstr "Тоо тааруулна уу"
 
 #. module: barcodes
 #: model_terms:ir.ui.view,arch_db:barcodes.view_barcode_nomenclature_form
@@ -325,9 +360,9 @@ msgid "The matched pattern will alias to this barcode"
 msgstr "Таарсан хэв нь энэ зураасан код руу давхар холбогдоно."
 
 #. module: barcodes
-#: code:addons/barcodes/models/barcodes.py:0
-#: code:addons/barcodes/models/barcodes.py:0
-#: code:addons/barcodes/models/barcodes.py:0
+#: code:addons/barcodes/models/barcodes.py:198
+#: code:addons/barcodes/models/barcodes.py:200
+#: code:addons/barcodes/models/barcodes.py:202
 #, python-format
 msgid "There is a syntax error in the barcode pattern "
 msgstr "Зураасан кодын хэвд бичлэгийн алдаа байна"
@@ -343,14 +378,14 @@ msgstr ""
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:64
 #, python-format
 msgid "To modify this document, please first start edition."
 msgstr "Энэ баримтыг засахын тулд эхлээд засварлалтыг эхлүүлнэ үү."
 
 #. module: barcodes
 #. openerp-web
-#: code:addons/barcodes/static/src/js/barcode_form_view.js:0
+#: code:addons/barcodes/static/src/js/barcode_form_view.js:363
 #, python-format
 msgid "To set the quantity please scan a barcode first."
 msgstr "Тоо хэмжээг тааруулахын өмнө эхлээд зураасан кодыг уншуулна уу."
@@ -371,12 +406,12 @@ msgstr ""
 " нь UPC/EAN зураасан кодууд автоматаар хөрвүүлэгдэхийг тодорхойлдог."
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_rule__encoding__upca
+#: selection:barcode.rule,encoding:0
 msgid "UPC-A"
 msgstr "UPC-A"
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_nomenclature__upc_ean_conv__upc2ean
+#: selection:barcode.nomenclature,upc_ean_conv:0
 msgid "UPC-A to EAN-13"
 msgstr "UPC-A -с EAN-13-руу"
 
@@ -386,19 +421,24 @@ msgid "UPC/EAN Conversion"
 msgstr "UPC/EAN хөрвүүлэлт"
 
 #. module: barcodes
-#: model:ir.model.fields.selection,name:barcodes.selection__barcode_rule__type__product
+#: selection:barcode.rule,type:0
 msgid "Unit Product"
-msgstr "Барааны нэр төрөл"
+msgstr "Нэгж Бараа"
 
 #. module: barcodes
 #: model:ir.model.fields,help:barcodes.field_barcode_rule__sequence
 msgid ""
 "Used to order rules such that rules with a smaller sequence match first"
 msgstr ""
-"Дүрмүүдэд эрэмбэ дараалал тогтооно. Ингэснээр бага эрэмбэтэй дүрэм түрүүлж "
-"шалгагдана"
+"Дүрмийг эрэмбэлэхэд хэрэглэгддэг, бага дарааллын дүгээртэй нь эхлэж "
+"тулгагдана."
 
 #. module: barcodes
 #: model:ir.model.fields,help:barcodes.field_barcodes_barcode_events_mixin___barcode_scanned
 msgid "Value of the last barcode scanned."
 msgstr "Сүүлд уншуулсан зураасан кодын утга."
+
+#. module: barcodes
+#: selection:barcode.rule,type:0
+msgid "Weighted Product"
+msgstr "Жигнэсэн бараа"

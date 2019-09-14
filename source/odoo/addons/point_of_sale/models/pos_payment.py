@@ -1,5 +1,4 @@
-from odoo import api, fields, models, _
-from odoo.tools import formatLang
+from odoo import api, fields, models
 
 
 class PosPayment(models.Model):
@@ -22,17 +21,5 @@ class PosPayment(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', related='pos_order_id.currency_id')
     currency_rate = fields.Float(string='Conversion Rate', related='pos_order_id.currency_rate', help='Conversion rate from company currency to order currency.')
     partner_id = fields.Many2one('res.partner', string='Customer', related='pos_order_id.partner_id')
-    session_id = fields.Many2one('pos.session', string='Session', related='pos_order_id.session_id', store=True)
+    session_id = fields.Many2one('pos.session', string='Session', related='pos_order_id.session_id')
     company_id = fields.Many2one('res.company', string='Company', related='pos_order_id.company_id')
-    card_type = fields.Char('Type of card used')
-    transaction_id = fields.Char('Payment Transaction ID')
-
-    @api.model
-    def name_get(self):
-        res = []
-        for payment in self:
-            if payment.name:
-                res.append((payment.id, _('%s %s') % (payment.name, formatLang(self.env, payment.amount, currency_obj=payment.currency_id))))
-            else:
-                res.append((payment.id, formatLang(self.env, payment.amount, currency_obj=payment.currency_id)))
-        return res

@@ -1,20 +1,19 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* base_import_module
+# * base_import_module
 # 
 # Translators:
-# Martin Trigaux, 2019
-# liAnGjiA <liangjia@qq.com>, 2019
-# guohuadeng <guohuadeng@hotmail.com>, 2019
-# inspur qiuguodong <qiuguodong@inspur.com>, 2019
+# inspur qiuguodong <qiuguodong@inspur.com>, 2018
+# Martin Trigaux, 2018
+# liAnGjiA <liangjia@qq.com>, 2018
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:09+0000\n"
-"Last-Translator: inspur qiuguodong <qiuguodong@inspur.com>, 2019\n"
+"POT-Creation-Date: 2018-09-21 13:17+0000\n"
+"PO-Revision-Date: 2018-08-24 09:16+0000\n"
+"Last-Translator: liAnGjiA <liangjia@qq.com>, 2018\n"
 "Language-Team: Chinese (China) (https://www.transifex.com/odoo/teams/41243/zh_CN/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -25,7 +24,7 @@ msgstr ""
 #. module: base_import_module
 #: model_terms:ir.ui.view,arch_db:base_import_module.view_base_module_import
 msgid "Cancel"
-msgstr "取消日期"
+msgstr "取消"
 
 #. module: base_import_module
 #: model_terms:ir.ui.view,arch_db:base_import_module.view_base_module_import
@@ -33,7 +32,7 @@ msgid "Close"
 msgstr "关闭"
 
 #. module: base_import_module
-#: code:addons/base_import_module/controllers/main.py:0
+#: code:addons/base_import_module/controllers/main.py:31
 #, python-format
 msgid "Could not select database '%s'"
 msgstr "无法选择数据库 '%s'"
@@ -41,7 +40,7 @@ msgstr "无法选择数据库 '%s'"
 #. module: base_import_module
 #: model:ir.model.fields,field_description:base_import_module.field_base_import_module__create_uid
 msgid "Created by"
-msgstr "创建者"
+msgstr "创建人"
 
 #. module: base_import_module
 #: model:ir.model.fields,field_description:base_import_module.field_base_import_module__create_date
@@ -54,7 +53,7 @@ msgid "Display Name"
 msgstr "显示名称"
 
 #. module: base_import_module
-#: code:addons/base_import_module/models/ir_module.py:0
+#: code:addons/base_import_module/models/ir_module.py:123
 #, python-format
 msgid "File '%s' exceed maximum allowed file size"
 msgstr "文件 '%s' 超过了允许的大小"
@@ -106,17 +105,17 @@ msgstr "导入的模块"
 #. module: base_import_module
 #: model:ir.model.fields,field_description:base_import_module.field_base_import_module____last_update
 msgid "Last Modified on"
-msgstr "最后更改日"
+msgstr "最后修改日"
 
 #. module: base_import_module
 #: model:ir.model.fields,field_description:base_import_module.field_base_import_module__write_uid
 msgid "Last Updated by"
-msgstr "最后更新者"
+msgstr "最后更新人"
 
 #. module: base_import_module
 #: model:ir.model.fields,field_description:base_import_module.field_base_import_module__write_date
 msgid "Last Updated on"
-msgstr "更新时间"
+msgstr "最后更新时间"
 
 #. module: base_import_module
 #: model:ir.model,name:base_import_module.model_ir_module_module
@@ -129,24 +128,19 @@ msgid "Module .ZIP file"
 msgstr "模块 .ZIP 文件"
 
 #. module: base_import_module
-#: code:addons/base_import_module/models/ir_module.py:0
+#: code:addons/base_import_module/models/ir_module.py:113
 #, python-format
 msgid "No file sent."
 msgstr "没有发送文件"
 
 #. module: base_import_module
-#: model_terms:ir.ui.view,arch_db:base_import_module.view_base_module_import
-msgid "Note: you can only import data modules (.xml files and static assets)"
-msgstr ""
-
-#. module: base_import_module
-#: code:addons/base_import_module/controllers/main.py:0
+#: code:addons/base_import_module/controllers/main.py:25
 #, python-format
 msgid "Only administrators can upload a module"
 msgstr "只有管理员能够上传模块"
 
 #. module: base_import_module
-#: code:addons/base_import_module/models/ir_module.py:0
+#: code:addons/base_import_module/models/ir_module.py:115
 #, python-format
 msgid "Only zip files are supported."
 msgstr "仅支持zip格式的文件。"
@@ -164,28 +158,25 @@ msgstr "选择要导入的模块包（.zip 文件）："
 #. module: base_import_module
 #: model:ir.model.fields,field_description:base_import_module.field_base_import_module__state
 msgid "Status"
-msgstr "省份"
+msgstr "状态"
 
 #. module: base_import_module
-#: code:addons/base_import_module/models/ir_module.py:0
+#: code:addons/base_import_module/models/ir_module.py:50
 #, python-format
 msgid "Studio customizations require Studio"
 msgstr "Studio 定制需要安装 Studio"
 
 #. module: base_import_module
-#: code:addons/base_import_module/models/ir_module.py:0
+#: code:addons/base_import_module/models/ir_module.py:57
 #, python-format
 msgid "Studio customizations require the Odoo Studio app."
 msgstr "Studio 定制需要安装 Odoo Studio应用。"
 
 #. module: base_import_module
-#: code:addons/base_import_module/models/ir_module.py:0
+#: code:addons/base_import_module/models/ir_module.py:52
 #, python-format
-msgid ""
-"Unmet module dependencies: \n"
-"\n"
-" - %s"
-msgstr ""
+msgid "Unmet module dependencies: %s"
+msgstr "未满足的模块依赖：%s"
 
 #. module: base_import_module
 #: model:ir.model,name:base_import_module.model_ir_ui_view
@@ -193,11 +184,11 @@ msgid "View"
 msgstr "视图"
 
 #. module: base_import_module
-#: model:ir.model.fields.selection,name:base_import_module.selection__base_import_module__state__done
+#: selection:base.import.module,state:0
 msgid "done"
 msgstr "完成"
 
 #. module: base_import_module
-#: model:ir.model.fields.selection,name:base_import_module.selection__base_import_module__state__init
+#: selection:base.import.module,state:0
 msgid "init"
 msgstr "初始化"

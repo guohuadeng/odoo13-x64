@@ -24,7 +24,6 @@ class TestBatchPicking(TransactionCase):
             'location_id': self.stock_location.id,
             'location_dest_id': self.customer_location.id,
             'picking_type_id': self.picking_type_out,
-            'company_id': self.env.company.id,
         })
 
         self.env['stock.move'].create({
@@ -41,7 +40,6 @@ class TestBatchPicking(TransactionCase):
             'location_id': self.stock_location.id,
             'location_dest_id': self.customer_location.id,
             'picking_type_id': self.picking_type_out,
-            'company_id': self.env.company.id,
         })
 
         self.env['stock.move'].create({
@@ -56,7 +54,6 @@ class TestBatchPicking(TransactionCase):
 
         self.batch = self.env['stock.picking.batch'].create({
             'name': 'Batch 1',
-            'company_id': self.env.company.id,
             'picking_ids': [(4, self.picking_client_1.id), (4, self.picking_client_2.id)]
         })
 

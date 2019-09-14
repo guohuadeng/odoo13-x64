@@ -1,19 +1,18 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* maintenance
+# * maintenance
 # 
 # Translators:
-# nurbakhit nurka <nurbakhit@bumanit.mn>, 2019
-# Baskhuu Lodoikhuu <baskhuujacara@gmail.com>, 2019
-# Martin Trigaux, 2019
-# 
+# Martin Trigaux, 2018
+# Khishigbat Ganbold <khishigbat@asterisk-tech.mn>, 2018
+# Onii Onii <onii0223@yahoo.com>, 2018
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server 12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:17+0000\n"
-"PO-Revision-Date: 2019-08-26 09:11+0000\n"
-"Last-Translator: Martin Trigaux, 2019\n"
+"POT-Creation-Date: 2018-10-08 06:49+0000\n"
+"PO-Revision-Date: 2018-10-08 06:49+0000\n"
+"Last-Translator: Onii Onii <onii0223@yahoo.com>, 2018\n"
 "Language-Team: Mongolian (https://www.transifex.com/odoo/teams/41243/mn/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -42,16 +41,6 @@ msgid "<b>Serial Number:</b>"
 msgstr "<b>Серийн Дугаар:</b>"
 
 #. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_kanban
-msgid "<i class=\"fa fa-comments\" role=\"img\" aria-label=\"Unread Messages\"/>"
-msgstr ""
-
-#. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
-msgid "<i class=\"fa fa-ellipsis-v\" role=\"img\" aria-label=\"Manage\" title=\"Manage\"/>"
-msgstr "<i class=\"fa fa-ellipsis-v\" role=\"img\" aria-label=\"Manage\" title=\"Manage\"/>"
-
-#. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_form
 msgid "<span class=\"badge badge-warning float-right\">Canceled</span>"
 msgstr ""
@@ -64,12 +53,12 @@ msgstr ""
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
 msgid "<span>Reporting</span>"
-msgstr "<span>Тайлан</span>"
+msgstr "<span>Тайлангууд</span>"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
 msgid "<span>View</span>"
-msgstr "<span>Харах</span>"
+msgstr "<span>Харагдац</span>"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.view_maintenance_equipment_category_kanban
@@ -91,11 +80,17 @@ msgstr ""
 "Python толь бичиг."
 
 #. module: maintenance
+#: model:maintenance.equipment,name:maintenance.equipment_computer3
+#: model:maintenance.equipment,name:maintenance.equipment_computer5
+msgid "Acer Laptop"
+msgstr "Acer Зөөврийн компьютер"
+
+#. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__message_needaction
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__message_needaction
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__message_needaction
 msgid "Action Needed"
-msgstr "Үйлдэл шаардсан"
+msgstr "Үйлдэл Шаардлагатай"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__active
@@ -110,22 +105,16 @@ msgid "Activities"
 msgstr "Ажилбар"
 
 #. module: maintenance
-#: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__activity_exception_decoration
-#: model:ir.model.fields,field_description:maintenance.field_maintenance_request__activity_exception_decoration
-msgid "Activity Exception Decoration"
-msgstr ""
-
-#. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__activity_state
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__activity_state
 msgid "Activity State"
-msgstr "Ажилбарын төлөв"
+msgstr "Ажилбарын Төлөв"
 
 #. module: maintenance
 #: model:ir.actions.act_window,name:maintenance.mail_activity_type_action_config_maintenance
 #: model:ir.ui.menu,name:maintenance.maintenance_menu_config_activity_type
 msgid "Activity Types"
-msgstr "Ажилбарын төрөл"
+msgstr ""
 
 #. module: maintenance
 #: model_terms:ir.actions.act_window,help:maintenance.hr_equipment_action
@@ -162,7 +151,7 @@ msgstr ""
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__alias_id
 msgid "Alias"
-msgstr "Alias"
+msgstr "Хуурмаг нэр"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__alias_contact
@@ -177,7 +166,7 @@ msgstr "Хуурмаг нэр"
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__alias_domain
 msgid "Alias domain"
-msgstr "Имэйл домэйн"
+msgstr "Хуурмаг домэйн"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__alias_model_id
@@ -187,10 +176,10 @@ msgstr "Хуурмаг модель"
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
 msgid "All"
-msgstr "Бүх"
+msgstr "Бүгд"
 
 #. module: maintenance
-#: model:ir.model.constraint,message:maintenance.constraint_maintenance_equipment_serial_no
+#: sql_constraint:maintenance.equipment:0
 msgid "Another asset already exists with this serial number!"
 msgstr "Энэ серийн дугаартай өөр хөрөнгө аль хэдийн үүсгэгдсэн байна!"
 
@@ -213,6 +202,7 @@ msgid "Assign To User"
 msgstr "Хэрэглэгчид оноох"
 
 #. module: maintenance
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
 msgid "Assigned"
 msgstr "Оноогдсон"
@@ -223,21 +213,21 @@ msgid "Assigned Date"
 msgstr "Оноосон Огноо"
 
 #. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
-msgid "Assigned to"
-msgstr "Хариуцагч"
-
-#. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__message_attachment_count
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__message_attachment_count
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__message_attachment_count
 msgid "Attachment Count"
-msgstr "Хавсралтын тоо"
+msgstr ""
 
 #. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__kanban_state__blocked
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
+msgid "Available"
+msgstr "Бэлэн"
+
+#. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
+#: selection:maintenance.request,kanban_state:0
 msgid "Blocked"
 msgstr "Хоригдсон"
 
@@ -271,7 +261,7 @@ msgstr "Хаах огноо"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__color
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team__color
 msgid "Color Index"
-msgstr "Өнгөний индекс"
+msgstr "Өнгөний Индекс"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__note
@@ -287,12 +277,17 @@ msgid "Company"
 msgstr "Компани"
 
 #. module: maintenance
+#: model:maintenance.equipment.category,name:maintenance.equipment_computer
+msgid "Computers"
+msgstr "Компьютер"
+
+#. module: maintenance
 #: model:ir.ui.menu,name:maintenance.menu_maintenance_configuration
 msgid "Configuration"
 msgstr "Тохиргоо"
 
 #. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__maintenance_type__corrective
+#: selection:maintenance.request,maintenance_type:0
 msgid "Corrective"
 msgstr "Засвар"
 
@@ -313,7 +308,7 @@ msgstr "Үүсгэсэн"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage__create_uid
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team__create_uid
 msgid "Created by"
-msgstr "Үүсгэсэн этгээд"
+msgstr "Үүсгэгч"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__owner_user_id
@@ -327,7 +322,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage__create_date
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team__create_date
 msgid "Created on"
-msgstr "Үүсгэсэн огноо"
+msgstr "Үүсгэсэн"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__maintenance_open_count
@@ -390,7 +385,7 @@ msgstr "Устгах"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__description
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_form
 msgid "Description"
-msgstr "Тайлбар"
+msgstr "Тодорхойлолт"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__display_name
@@ -399,9 +394,10 @@ msgstr "Тайлбар"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage__display_name
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team__display_name
 msgid "Display Name"
-msgstr "Дэлгэрэнгүй нэр"
+msgstr "Дэлгэцийн Нэр"
 
 #. module: maintenance
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
 msgid "Done"
 msgstr "Дууссан"
@@ -410,7 +406,7 @@ msgstr "Дууссан"
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_kanban
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_kanban
 msgid "Dropdown menu"
-msgstr "Эвхэгддэг цэс"
+msgstr ""
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__duration
@@ -419,8 +415,8 @@ msgstr "Үргэлжлэх хугацаа"
 
 #. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_request__duration
-msgid "Duration in hours."
-msgstr ""
+msgid "Duration in minutes and seconds."
+msgstr "Үргэлжлэх хугацаа минут ба секундээр"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_kanban
@@ -436,27 +432,21 @@ msgstr "Зохимжтой Огноо"
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_category_view_form
 msgid "Email Alias"
-msgstr "Имэйл өмнөтгөл"
+msgstr "Хуурмаг имэйл"
 
 #. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment_category__alias_id
 msgid ""
 "Email alias for this equipment category. New emails will automatically "
-"create a new equipment under this category."
+"create new maintenance request for this equipment category."
 msgstr ""
-
-#. module: maintenance
-#: model:ir.model.fields,field_description:maintenance.field_maintenance_request__email_cc
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_form
-msgid "Email cc"
-msgstr ""
+"Энэ тоногын ангилалын имэйл дэд нэр. Шинэ имэйл нь энэ тоногын ангилалд "
+"автоматаар шинэ арчилгааны хүсэлт үүсгэх болно."
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__equipment_count
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__equipment_id
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team__equipment_ids
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_category_view_form
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
 msgid "Equipment"
 msgstr "Тоног"
 
@@ -495,15 +485,10 @@ msgstr "Тоногын Нэр"
 #: model:ir.actions.act_window,name:maintenance.hr_equipment_action_from_category_form
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__equipment_ids
 #: model:ir.ui.menu,name:maintenance.menu_equipment_form
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_category_view_form
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_form
 msgid "Equipments"
 msgstr "Тоногууд"
-
-#. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
-msgid "Exception Activities"
-msgstr ""
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__fold
@@ -547,7 +532,7 @@ msgstr "Дагагчид (Харилцагчид)"
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
 msgid "Future Activities"
-msgstr "Ирээдүйн ажилбар"
+msgstr "Ирээдүйн Үйл ажиллагаанууд"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_category_view_search
@@ -557,14 +542,20 @@ msgid "Group by..."
 msgstr "Бүлэглэх..."
 
 #. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__priority__3
-msgid "High"
-msgstr "Өндөр"
+#: model:maintenance.equipment,name:maintenance.equipment_printer1
+msgid "HP Inkjet printer"
+msgstr "HP Inkjet хэвлэгч"
 
 #. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
-msgid "High-priority"
-msgstr ""
+#: model:maintenance.equipment,name:maintenance.equipment_computer11
+#: model:maintenance.equipment,name:maintenance.equipment_computer9
+msgid "HP Laptop"
+msgstr "HP Зөөврийн компьютер"
+
+#. module: maintenance
+#: selection:maintenance.request,priority:0
+msgid "High"
+msgstr "Өндөр"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__id
@@ -585,44 +576,35 @@ msgstr ""
 " нэрийг агуулж байгаа төсөл)"
 
 #. module: maintenance
-#: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__activity_exception_icon
-#: model:ir.model.fields,field_description:maintenance.field_maintenance_request__activity_exception_icon
-msgid "Icon"
-msgstr "Дүрс"
-
-#. module: maintenance
-#: model:ir.model.fields,help:maintenance.field_maintenance_equipment__activity_exception_icon
-#: model:ir.model.fields,help:maintenance.field_maintenance_request__activity_exception_icon
-msgid "Icon to indicate an exception activity."
-msgstr ""
-
-#. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment__message_unread
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment_category__message_unread
 #: model:ir.model.fields,help:maintenance.field_maintenance_request__message_unread
 msgid "If checked new messages require your attention."
-msgstr "Хэрэв сонгогдсон тохиолдолд шинэ зурвасууд таны анхаарлыг шаардана."
+msgstr ""
+"Хэрэв тэмдэглэгдсэн бол таныг шинэ зурвасуудад анхаарал хандуулахыг "
+"шаардана."
 
 #. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment__message_needaction
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment_category__message_needaction
 #: model:ir.model.fields,help:maintenance.field_maintenance_request__message_needaction
 msgid "If checked, new messages require your attention."
-msgstr "Хэрэв сонгогдсон бол, шинэ зурвасууд таны анхаарлыг шаардана."
+msgstr "Хэрэв сонгосон бол, шинэ зурвасуудад анхаарал хандуулахыг шаардана."
 
 #. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment__message_has_error
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment_category__message_has_error
 #: model:ir.model.fields,help:maintenance.field_maintenance_request__message_has_error
 msgid "If checked, some messages have a delivery error."
-msgstr "Үүнийг сонговол алдаа үүсэх үед зурвасууд ирнэ."
+msgstr ""
 
 #. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__kanban_state__normal
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
+#: selection:maintenance.request,kanban_state:0
 #: model:maintenance.stage,name:maintenance.stage_1
 msgid "In Progress"
-msgstr "Явагдаж буй"
+msgstr "Боловсруулагдаж буй"
 
 #. module: maintenance
 #: model:maintenance.team,name:maintenance.equipment_team_maintenance
@@ -653,7 +635,7 @@ msgstr "Канбан Төлөв"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage____last_update
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team____last_update
 msgid "Last Modified on"
-msgstr "Сүүлд зассан огноо"
+msgstr "Сүүлийн засвар хийсэн огноо"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__write_uid
@@ -662,7 +644,7 @@ msgstr "Сүүлд зассан огноо"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage__write_uid
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team__write_uid
 msgid "Last Updated by"
-msgstr "Сүүлд зассан этгээд"
+msgstr "Сүүлийн засвар хийсэн"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__write_date
@@ -671,18 +653,13 @@ msgstr "Сүүлд зассан этгээд"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage__write_date
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team__write_date
 msgid "Last Updated on"
-msgstr "Сүүлд зассан огноо"
+msgstr "Сүүлийн засвар хийсэн огноо"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
 msgid "Late Activities"
-msgstr "Хоцорсон ажилбар"
-
-#. module: maintenance
-#: model:ir.model.fields,help:maintenance.field_maintenance_request__email_cc
-msgid "List of cc from incoming emails."
-msgstr ""
+msgstr "Хожимдсон Үйл ажиллагаанууд"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__location
@@ -695,7 +672,7 @@ msgid "Losses Analysis"
 msgstr "Алдагдлын Шинжилгээ"
 
 #. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__priority__1
+#: selection:maintenance.request,priority:0
 msgid "Low"
 msgstr "Нам"
 
@@ -704,7 +681,7 @@ msgstr "Нам"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__message_main_attachment_id
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__message_main_attachment_id
 msgid "Main Attachment"
-msgstr "Үндсэн хавсралт"
+msgstr ""
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__maintenance_ids
@@ -759,11 +736,6 @@ msgstr "Арчилгааны Хүсэлт"
 #: model:mail.message.subtype,name:maintenance.mt_cat_req_created
 msgid "Maintenance Request Created"
 msgstr "Арчилгааны Хүсэлт Үүссэн"
-
-#. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
-msgid "Maintenance Request Search"
-msgstr ""
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_stage_view_tree
@@ -834,7 +806,7 @@ msgstr ""
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__message_has_error
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__message_has_error
 msgid "Message Delivery error"
-msgstr "Алдаа үүссэн талаарх зурвас"
+msgstr ""
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__message_ids
@@ -844,15 +816,25 @@ msgid "Messages"
 msgstr "Зурвасууд"
 
 #. module: maintenance
+#: model:maintenance.team,name:maintenance.equipment_team_metrology
+msgid "Metrology"
+msgstr ""
+
+#. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__model
 msgid "Model"
 msgstr "Модел"
 
 #. module: maintenance
+#: model:maintenance.equipment.category,name:maintenance.equipment_monitor
+msgid "Monitors"
+msgstr "Дэлгэцүүд"
+
+#. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
 msgid "My Activities"
-msgstr "Миний ажилбар"
+msgstr "Миний Үйл ажиллагаанууд"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
@@ -861,12 +843,14 @@ msgstr "Миний Тоногууд"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
-msgid "My Maintenances"
-msgstr ""
+msgid "My Requests"
+msgstr "Миний Хүсэлтүүд"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage__name
+#: model:ir.model.fields,field_description:maintenance.field_maintenance_team__name
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_category_view_tree
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_form
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_form
 msgid "Name"
 msgstr "Нэр"
@@ -880,19 +864,19 @@ msgstr "Шинэ Хүсэлт"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__activity_date_deadline
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__activity_date_deadline
 msgid "Next Activity Deadline"
-msgstr "Дараагийн ажилбарын эцсийн огноо"
+msgstr ""
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__activity_summary
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__activity_summary
 msgid "Next Activity Summary"
-msgstr "Дараагийн ажилбарын гарчиг"
+msgstr "Дараагийн Ажилбарын Хураангуй"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__activity_type_id
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__activity_type_id
 msgid "Next Activity Type"
-msgstr "Дараагийн ажилбарын төрөл"
+msgstr ""
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_form
@@ -900,7 +884,7 @@ msgid "Next Preventive Maintenance"
 msgstr "Дараагийн Сэргийлэх Арчилгаа"
 
 #. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__priority__2
+#: selection:maintenance.request,priority:0
 msgid "Normal"
 msgstr "Хэвийн"
 
@@ -946,21 +930,21 @@ msgstr ""
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment_category__message_has_error_counter
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__message_has_error_counter
 msgid "Number of error"
-msgstr "Алдааны тоо"
+msgstr ""
 
 #. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment__message_needaction_counter
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment_category__message_needaction_counter
 #: model:ir.model.fields,help:maintenance.field_maintenance_request__message_needaction_counter
 msgid "Number of messages which requires an action"
-msgstr "Үйлдэл шаардсан зурвасын тоо"
+msgstr "Үйлдэл шаардлагатай зурвасын тоо"
 
 #. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment__message_has_error_counter
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment_category__message_has_error_counter
 #: model:ir.model.fields,help:maintenance.field_maintenance_request__message_has_error_counter
 msgid "Number of messages with delivery error"
-msgstr "Алдааны мэдэгдэл бүхий зурвасын тоо"
+msgstr ""
 
 #. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment__message_unread_counter
@@ -984,6 +968,12 @@ msgstr ""
 #: model:ir.ui.menu,name:maintenance.menu_m_reports_oee
 msgid "Overall Equipment Effectiveness (OEE)"
 msgstr "Төхөөрөмжийн Нийт Ашиглалт (ТНА)"
+
+#. module: maintenance
+#: selection:maintenance.equipment,activity_state:0
+#: selection:maintenance.request,activity_state:0
+msgid "Overdue"
+msgstr "Хугацаа хэтэрсэн"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__owner_user_id
@@ -1016,6 +1006,17 @@ msgstr ""
 "(parent_model) ба даалгавар (model))"
 
 #. module: maintenance
+#: model:maintenance.equipment.category,name:maintenance.equipment_phone
+msgid "Phones"
+msgstr "Утсууд"
+
+#. module: maintenance
+#: selection:maintenance.equipment,activity_state:0
+#: selection:maintenance.request,activity_state:0
+msgid "Planned"
+msgstr "Төлөвлөсөн"
+
+#. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment_category__alias_contact
 msgid ""
 "Policy to post a message on the document using the mailgateway.\n"
@@ -1029,12 +1030,12 @@ msgstr ""
 "- дагагчид: баримтын зөвхөн дагагчид эсвэл сувгийн гишүүд\n"
 
 #. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__maintenance_type__preventive
+#: selection:maintenance.request,maintenance_type:0
 msgid "Preventive"
 msgstr "Урьдчилан сануулах"
 
 #. module: maintenance
-#: code:addons/maintenance/models/maintenance.py:0
+#: code:addons/maintenance/models/maintenance.py:231
 #, python-format
 msgid "Preventive Maintenance - %s"
 msgstr "Сэргийлэх Арчилгаа - %s"
@@ -1043,6 +1044,11 @@ msgstr "Сэргийлэх Арчилгаа - %s"
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_form
 msgid "Preventive Maintenance Frequency"
 msgstr "Сэргийлэх Арчилгааны Давтамж"
+
+#. module: maintenance
+#: model:maintenance.equipment.category,name:maintenance.equipment_printer
+msgid "Printers"
+msgstr "Хэвлэгчүүд"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__priority
@@ -1055,12 +1061,7 @@ msgid "Product Information"
 msgstr "Барааны мэдээлэл"
 
 #. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
-msgid "Ready"
-msgstr "Бэлэн"
-
-#. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__kanban_state__done
+#: selection:maintenance.request,kanban_state:0
 msgid "Ready for next stage"
 msgstr "Дараагийн үед бэлэн"
 
@@ -1092,7 +1093,6 @@ msgstr "Тайлан"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_team__request_ids
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_kanban
 msgid "Request"
 msgstr "Хүсэлт"
@@ -1108,13 +1108,12 @@ msgid "Request Date"
 msgstr "Хүсэлтийн огноо"
 
 #. module: maintenance
-#: model:ir.model.fields,field_description:maintenance.field_maintenance_request__done
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage__done
 msgid "Request Done"
 msgstr "Хүсэлт хийгдсэн"
 
 #. module: maintenance
-#: code:addons/maintenance/models/maintenance.py:0
+#: code:addons/maintenance/models/maintenance.py:375
 #, python-format
 msgid "Request planned for <a href=\"#\" data-oe-model=\"%s\" data-oe-id=\"%s\">%s</a>"
 msgstr ""
@@ -1145,7 +1144,14 @@ msgstr "Хариуцагч"
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__activity_user_id
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__activity_user_id
 msgid "Responsible User"
-msgstr "Хариуцсан хэрэглэгч"
+msgstr "Хариуцагч хэрэглэгч"
+
+#. module: maintenance
+#: model:maintenance.equipment,name:maintenance.equipment_monitor1
+#: model:maintenance.equipment,name:maintenance.equipment_monitor4
+#: model:maintenance.equipment,name:maintenance.equipment_monitor6
+msgid "Samsung Monitor 15\""
+msgstr "Samsung Дэлгэц 15\""
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
@@ -1155,7 +1161,7 @@ msgstr "Товолсон"
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__schedule_date
 msgid "Scheduled Date"
-msgstr "Товлосон огноо"
+msgstr "Товлогдсон Огноо"
 
 #. module: maintenance
 #: model:maintenance.stage,name:maintenance.stage_4
@@ -1177,7 +1183,7 @@ msgstr "Хайх"
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_stage__sequence
 msgid "Sequence"
-msgstr "Дугаарлалт"
+msgstr "Дараалал"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__serial_no
@@ -1201,18 +1207,21 @@ msgstr "Тохиргоо"
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
 msgid "Show all records which has next action date is before today"
-msgstr ""
-"Өнөөдрийг хүртэлх хугацаанд дараагийн ажилбарын огноо нь тохируулагдсан бүх "
-"тэмдэглэлүүд"
+msgstr "Өнөөдрөөс өмнө дараагийн арга хэмжээг товлосон бүх рекордыг харуулах"
+
+#. module: maintenance
+#: model:maintenance.equipment.category,name:maintenance.equipment_software
+msgid "Software"
+msgstr "Програм хангамж"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__stage_id
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 msgid "Stage"
 msgstr "Үе шат"
 
 #. module: maintenance
 #: model:ir.actions.act_window,name:maintenance.hr_equipment_stage_action
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 msgid "Stages"
 msgstr "Үе шат"
 
@@ -1230,15 +1239,16 @@ msgid ""
 "Today: Activity date is today\n"
 "Planned: Future activities."
 msgstr ""
-"Ажилбаруудын төлөв байдал\n"
-"Хоцорсон: Гүйцэтгэх огноо нь аль хэдий нь өнгөрсөн\n"
-"Өнөөдөр: Өнөөдөр гүйцэтгэх ёстой\n"
-"Төлөвлөгдсөн: Ирээдүйд гүйцэтгэх ажилбарууд"
 
 #. module: maintenance
 #: model:mail.message.subtype,description:maintenance.mt_req_status
 msgid "Status changed"
 msgstr "Төлөв өөрчлөгдсөн"
+
+#. module: maintenance
+#: model:maintenance.team,name:maintenance.equipment_team_subcontractor
+msgid "Subcontractor"
+msgstr ""
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__name
@@ -1247,7 +1257,6 @@ msgstr "Сэдвүүд"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__maintenance_team_id
-#: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_view_search
 msgid "Team"
 msgstr "Баг"
 
@@ -1257,7 +1266,6 @@ msgid "Team Members"
 msgstr "Багийн гишүүд"
 
 #. module: maintenance
-#: model:ir.model.fields,field_description:maintenance.field_maintenance_team__name
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_view_form
 msgid "Team Name"
 msgstr ""
@@ -1270,9 +1278,13 @@ msgstr "Багууд"
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__technician_user_id
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_request__user_id
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
 msgid "Technician"
 msgstr "Техникч"
+
+#. module: maintenance
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
+msgid "Technicians"
+msgstr "Техникчүүд"
 
 #. module: maintenance
 #: model:ir.model.fields,help:maintenance.field_maintenance_equipment_category__alias_model_id
@@ -1313,23 +1325,29 @@ msgid "The user will be able to manage equipments."
 msgstr "Хэрэглэгч тоног төхөөрөмжүүдийг удирдах боломжтой болно."
 
 #. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_form
-msgid "Title"
-msgstr "Гарчиг"
-
-#. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
 msgid "To Do"
 msgstr "Хийх"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
-msgid "Today Activities"
-msgstr "Өнөөдрийн ажилбар"
+msgid "To do"
+msgstr "Хийх"
 
 #. module: maintenance
+#: selection:maintenance.equipment,activity_state:0
+#: selection:maintenance.request,activity_state:0
+msgid "Today"
+msgstr "Өнөөдөр"
+
+#. module: maintenance
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
+msgid "Today Activities"
+msgstr "Өнөөдрийн Ажилбарууд"
+
+#. module: maintenance
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
 msgid "Top Priorities"
 msgstr "Тэргүүлэх Урьтамжууд"
@@ -1341,17 +1359,6 @@ msgid ""
 "Track equipments and link it to an employee or department.\n"
 "                You will be able to manage allocations, issues and maintenance of your equipment."
 msgstr ""
-
-#. module: maintenance
-#: model:ir.model.fields,help:maintenance.field_maintenance_equipment__activity_exception_decoration
-#: model:ir.model.fields,help:maintenance.field_maintenance_request__activity_exception_decoration
-msgid "Type of the exception activity on record."
-msgstr ""
-
-#. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
-msgid "Unassigned"
-msgstr "Эзэнгүй"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
@@ -1366,7 +1373,7 @@ msgstr "Арчилж буй"
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_search
 msgid "Unread Messages"
-msgstr "Уншаагүй зурвас"
+msgstr "Уншаагүй Зурвасууд"
 
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__message_unread_counter
@@ -1376,10 +1383,14 @@ msgid "Unread Messages Counter"
 msgstr "Уншаагүй зурвасын тоолуур"
 
 #. module: maintenance
-#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
 #: model_terms:ir.ui.view,arch_db:maintenance.maintenance_team_kanban
 msgid "Unscheduled"
 msgstr ""
+
+#. module: maintenance
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
+msgid "Unscheduled Maintenance"
+msgstr "Төлөвлөөгүй Арчилгаа"
 
 #. module: maintenance
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_view_form
@@ -1395,10 +1406,10 @@ msgstr "Нийлүүлэгч"
 #. module: maintenance
 #: model:ir.model.fields,field_description:maintenance.field_maintenance_equipment__partner_ref
 msgid "Vendor Reference"
-msgstr "Нийлүүлэгчийн дугаар"
+msgstr "Нийлүүлэгчийн Дугаар"
 
 #. module: maintenance
-#: model:ir.model.fields.selection,name:maintenance.selection__maintenance_request__priority__0
+#: selection:maintenance.request,priority:0
 msgid "Very Low"
 msgstr "Маш бага"
 
@@ -1408,7 +1419,7 @@ msgid "Warranty Expiration Date"
 msgstr ""
 
 #. module: maintenance
-#: code:addons/maintenance/models/maintenance.py:0
+#: code:addons/maintenance/models/maintenance.py:77
 #, python-format
 msgid ""
 "You cannot delete an equipment category containing equipments or maintenance"
@@ -1432,3 +1443,8 @@ msgstr "цаг"
 #: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_tree
 msgid "maintenance Request"
 msgstr "арчилгааны Хүсэлт"
+
+#. module: maintenance
+#: model_terms:ir.ui.view,arch_db:maintenance.hr_equipment_request_view_search
+msgid "maintenance Request Search"
+msgstr "арчилгааны Хүсэлт Хайх"

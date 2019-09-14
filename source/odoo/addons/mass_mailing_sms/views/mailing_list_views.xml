@@ -15,7 +15,7 @@
         </field>
     </record>
 
-    <!-- SMS Marketing / Contacts Lists / Contacts Lists -->
+    <!-- Mass SMS / Contacts Lists / Contacts Lists -->
     <record id="mass_mailing_sms.mailing_list_menu_sms" model="ir.ui.menu">
         <field name="action" ref="mailing_list_action_sms"/>
     </record>

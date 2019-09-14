@@ -1,20 +1,20 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* account_payment
+# * account_payment
 # 
 # Translators:
+# Tina Milas, 2017
+# Karolina Tonković <karolina.tonkovic@storm.hr>, 2017
+# Vladimir Olujić <olujic.vladimir@storm.hr>, 2017
 # Bole <bole@dajmi5.com>, 2019
-# Vladimir Olujić <olujic.vladimir@storm.hr>, 2019
-# Karolina Tonković <karolina.tonkovic@storm.hr>, 2019
-# Tina Milas, 2019
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.4\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-12 11:32+0000\n"
-"PO-Revision-Date: 2019-08-26 09:08+0000\n"
-"Last-Translator: Tina Milas, 2019\n"
+"POT-Creation-Date: 2018-09-18 09:49+0000\n"
+"PO-Revision-Date: 2017-12-13 14:50+0000\n"
+"Last-Translator: Bole <bole@dajmi5.com>, 2019\n"
 "Language-Team: Croatian (https://www.transifex.com/odoo/teams/41243/hr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -30,7 +30,7 @@ msgstr "&amp;puta;"
 #. module: account_payment
 #: model_terms:ir.ui.view,arch_db:account_payment.portal_invoice_success
 msgid "<b>Communication: </b>"
-msgstr "<b>Komunikacija: </b>"
+msgstr ""
 
 #. module: account_payment
 #: model_terms:ir.ui.view,arch_db:account_payment.portal_my_invoices_payment
@@ -38,18 +38,16 @@ msgid ""
 "<i class=\"fa fa-arrow-circle-right\"/><span class=\"d-none d-md-inline\"> "
 "Pay Now</span>"
 msgstr ""
-"<i class=\"fa fa-arrow-circle-right\"/><span class=\"d-none d-md-inline\"> "
-"Plati sad</span>"
 
 #. module: account_payment
 #: model_terms:ir.ui.view,arch_db:account_payment.portal_invoice_page_inherit_payment
 msgid "<i class=\"fa fa-fw fa-arrow-circle-right\"/> Pay Now"
-msgstr "<i class=\"fa fa-arrow-circle-right\"/> Plati odmah"
+msgstr ""
 
 #. module: account_payment
 #: model_terms:ir.ui.view,arch_db:account_payment.portal_invoice_page_inherit_payment
 msgid "<i class=\"fa fa-fw fa-check-circle\"/> Paid"
-msgstr "<i class=\"fa fa-check-circle\"/> Plaćeno"
+msgstr ""
 
 #. module: account_payment
 #: model_terms:ir.ui.view,arch_db:account_payment.portal_invoice_page_inherit_payment
@@ -107,7 +105,7 @@ msgid ""
 msgstr ""
 
 #. module: account_payment
-#: code:addons/account_payment/controllers/payment.py:53
+#: code:addons/account_payment/controllers/payment.py:47
 #, python-format
 msgid ""
 "If we store your payment information on our server, subscription payments "
@@ -115,14 +113,13 @@ msgid ""
 msgstr ""
 
 #. module: account_payment
-#: code:addons/account_payment/controllers/payment.py:50
+#: code:addons/account_payment/controllers/payment.py:44
 #, python-format
 msgid "Pay & Confirm"
 msgstr "Plati i potvrdi"
 
 #. module: account_payment
-#: code:addons/account_payment/models/payment.py:21
-#: model_terms:ir.ui.view,arch_db:account_payment.portal_invoice_payment
+#: code:addons/account_payment/models/payment.py:22
 #, python-format
 msgid "Pay Now"
 msgstr "Plaćanje"
@@ -130,7 +127,7 @@ msgstr "Plaćanje"
 #. module: account_payment
 #: model_terms:ir.ui.view,arch_db:account_payment.portal_my_invoices_payment
 msgid "Pay now"
-msgstr "Plati odmah"
+msgstr ""
 
 #. module: account_payment
 #: model_terms:ir.ui.view,arch_db:account_payment.portal_invoice_payment

@@ -32,10 +32,10 @@ class TestTraceability(TestMrpCommon):
         inventory_adjustment.write({
             'line_ids': [
                 (0,0, {'product_id': consumed_no_track.id, 'product_qty': 3, 'location_id': stock_id}),
-                (0,0, {'product_id': consumed_lot.id, 'product_qty': 3, 'prod_lot_id': self.env['stock.production.lot'].create({'name': 'L1', 'product_id': consumed_lot.id, 'company_id': self.env.company.id}).id, 'location_id': stock_id}),
-                (0,0, {'product_id': consumed_serial.id, 'product_qty': 1, 'prod_lot_id': self.env['stock.production.lot'].create({'name': 'S1', 'product_id': consumed_serial.id, 'company_id': self.env.company.id}).id, 'location_id': stock_id}),
-                (0,0, {'product_id': consumed_serial.id, 'product_qty': 1, 'prod_lot_id': self.env['stock.production.lot'].create({'name': 'S2', 'product_id': consumed_serial.id, 'company_id': self.env.company.id}).id, 'location_id': stock_id}),
-                (0,0, {'product_id': consumed_serial.id, 'product_qty': 1, 'prod_lot_id': self.env['stock.production.lot'].create({'name': 'S3', 'product_id': consumed_serial.id, 'company_id': self.env.company.id}).id, 'location_id': stock_id}),
+                (0,0, {'product_id': consumed_lot.id, 'product_qty': 3, 'prod_lot_id': self.env['stock.production.lot'].create({'name': 'L1', 'product_id': consumed_lot.id}).id, 'location_id': stock_id}),
+                (0,0, {'product_id': consumed_serial.id, 'product_qty': 1, 'prod_lot_id': self.env['stock.production.lot'].create({'name': 'S1', 'product_id': consumed_serial.id}).id, 'location_id': stock_id}),
+                (0,0, {'product_id': consumed_serial.id, 'product_qty': 1, 'prod_lot_id': self.env['stock.production.lot'].create({'name': 'S2', 'product_id': consumed_serial.id}).id, 'location_id': stock_id}),
+                (0,0, {'product_id': consumed_serial.id, 'product_qty': 1, 'prod_lot_id': self.env['stock.production.lot'].create({'name': 'S3', 'product_id': consumed_serial.id}).id, 'location_id': stock_id}),
             ]
         })
         inventory_adjustment.action_validate()
@@ -72,7 +72,7 @@ class TestTraceability(TestMrpCommon):
                 produce_form.qty_producing = 1
 
             if finished_product.tracking != 'none':
-                produce_form.finished_lot_id = self.env['stock.production.lot'].create({'name': 'Serial or Lot finished', 'product_id': finished_product.id, 'company_id': self.env.company.id})
+                produce_form.finished_lot_id = self.env['stock.production.lot'].create({'name': 'Serial or Lot finished', 'product_id': finished_product.id})
             produce_wizard = produce_form.save()
 
             produce_wizard.do_produce()
@@ -166,32 +166,27 @@ class TestTraceability(TestMrpCommon):
         }))
         produce_form.finished_lot_id = self.env['stock.production.lot'].create({
             'product_id': product_final.id,
-            'name': 'Final_lot_1',
-            'company_id': self.env.company.id,
+            'name': 'Final_lot_1'
         })
         with produce_form.raw_workorder_line_ids.edit(0) as line:
             line.lot_id = self.env['stock.production.lot'].create({
                 'product_id': product_1.id,
-                'name': 'Raw_1_lot_1',
-                'company_id': self.env.company.id,
+                'name': 'Raw_1_lot_1'
             })
         with produce_form.raw_workorder_line_ids.edit(1) as line:
             line.lot_id = self.env['stock.production.lot'].create({
                 'product_id': product_2.id,
-                'name': 'Raw_2_lot_1',
-                'company_id': self.env.company.id,
+                'name': 'Raw_2_lot_1'
             })
         with produce_form.finished_workorder_line_ids.edit(0) as line:
             line.lot_id = self.env['stock.production.lot'].create({
                 'product_id': byproduct_1.id,
-                'name': 'Byproduct_1_lot_1',
-                'company_id': self.env.company.id,
+                'name': 'Byproduct_1_lot_1'
             })
         with produce_form.finished_workorder_line_ids.edit(1) as line:
             line.lot_id = self.env['stock.production.lot'].create({
                 'product_id': byproduct_2.id,
-                'name': 'Byproduct_2_lot_1',
-                'company_id': self.env.company.id,
+                'name': 'Byproduct_2_lot_1'
             })
         produce_wizard = produce_form.save()
         produce_wizard.continue_production()
@@ -202,32 +197,27 @@ class TestTraceability(TestMrpCommon):
         }))
         produce_form.finished_lot_id = self.env['stock.production.lot'].create({
             'product_id': product_final.id,
-            'name': 'Final_lot_2',
-            'company_id': self.env.company.id,
+            'name': 'Final_lot_2'
         })
         with produce_form.raw_workorder_line_ids.edit(0) as line:
             line.lot_id = self.env['stock.production.lot'].create({
                 'product_id': product_1.id,
-                'name': 'Raw_1_lot_2',
-                'company_id': self.env.company.id,
+                'name': 'Raw_1_lot_2'
             })
         with produce_form.raw_workorder_line_ids.edit(1) as line:
             line.lot_id = self.env['stock.production.lot'].create({
                 'product_id': product_2.id,
-                'name': 'Raw_2_lot_2',
-                'company_id': self.env.company.id,
+                'name': 'Raw_2_lot_2'
             })
         with produce_form.finished_workorder_line_ids.edit(0) as line:
             line.lot_id = self.env['stock.production.lot'].create({
                 'product_id': byproduct_1.id,
-                'name': 'Byproduct_1_lot_2',
-                'company_id': self.env.company.id,
+                'name': 'Byproduct_1_lot_2'
             })
         with produce_form.finished_workorder_line_ids.edit(1) as line:
             line.lot_id = self.env['stock.production.lot'].create({
                 'product_id': byproduct_2.id,
-                'name': 'Byproduct_2_lot_2',
-                'company_id': self.env.company.id,
+                'name': 'Byproduct_2_lot_2'
             })
         produce_wizard = produce_form.save()
         produce_wizard.do_produce()

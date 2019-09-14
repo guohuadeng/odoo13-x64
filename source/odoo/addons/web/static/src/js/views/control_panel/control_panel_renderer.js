@@ -292,7 +292,9 @@ var ControlPanelRenderer = Renderer.extend({
             context: this.context,
             facets: this.state.facets,
             fields: this.state.fields,
+            filters: this.state.filters,
             filterFields: this.state.filterFields,
+            groupBys: this.state.groupBys,
         });
         return this.searchBar.appendTo(this.$('.o_searchview')).then(function () {
             if (oldSearchBar) {

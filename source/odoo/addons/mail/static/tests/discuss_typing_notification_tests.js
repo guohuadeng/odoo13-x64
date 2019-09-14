@@ -205,13 +205,13 @@ QUnit.test('notify is typing', async function (assert) {
     // STEP 1: current user is typing something
     step = 1;
     $input.focus();
-    await testUtils.fields.editInput($input, '1');
+    testUtils.fields.editInput($input, '1');
 
     assert.verifySteps(['notify_typing']);
 
     // STEP 2: current user clears input
     step = 2;
-    await testUtils.fields.editInput($input, '');
+    testUtils.fields.editInput($input, '');
 
     assert.verifySteps(['notify_typing']);
 

@@ -4,7 +4,7 @@
 {
     'name': 'Payment Acquirer',
     'category': 'Accounting',
-    'summary': 'Base Module for Payment Acquirers',
+    'summary': 'Payment Acquirer Base Module',
     'version': '1.0',
     'description': """Payment Acquirer Base Module""",
     'depends': ['account'],

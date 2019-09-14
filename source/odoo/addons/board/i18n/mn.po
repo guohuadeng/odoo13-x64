@@ -1,18 +1,16 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* board
+# * board
 # 
 # Translators:
-# Baskhuu Lodoikhuu <baskhuujacara@gmail.com>, 2019
-# Martin Trigaux, 2019
-# 
+# Martin Trigaux, 2018
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.4\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-12 11:32+0000\n"
-"PO-Revision-Date: 2019-08-26 09:09+0000\n"
-"Last-Translator: Martin Trigaux, 2019\n"
+"POT-Creation-Date: 2018-08-24 09:04+0000\n"
+"PO-Revision-Date: 2018-08-24 09:04+0000\n"
+"Last-Translator: Martin Trigaux, 2018\n"
 "Language-Team: Mongolian (https://www.transifex.com/odoo/teams/41243/mn/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -22,7 +20,7 @@ msgstr ""
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:58
+#: code:addons/board/static/src/xml/board.xml:53
 #, python-format
 msgid ""
 "\"Add to\n"
@@ -31,44 +29,42 @@ msgstr ""
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:30
+#: code:addons/board/static/src/xml/board.xml:25
 #, python-format
 msgid "&nbsp;"
 msgstr "&nbsp;"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/js/add_to_board_menu.js:132
+#: code:addons/board/static/src/js/favorite_menu.js:103
 #, python-format
 msgid "'%s' added to dashboard"
 msgstr "'%s' хяналтын самбарт нэмэгдсэн"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:88
-#: code:addons/board/static/src/xml/board.xml:98
+#: code:addons/board/static/src/xml/board.xml:83
 #, python-format
 msgid "Add"
 msgstr "Нэмэх"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:83
-#: code:addons/board/static/src/xml/board.xml:93
+#: code:addons/board/static/src/xml/board.xml:78
 #, python-format
 msgid "Add to my Dashboard"
 msgstr "Миний Хяналтын Самбарт Нэмэх"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/js/board_view.js:378
+#: code:addons/board/static/src/js/board_view.js:362
 #, python-format
 msgid "Are you sure you want to remove this item?"
 msgstr ""
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/js/board_view.js:432
+#: code:addons/board/static/src/js/board_view.js:439
 #: model:ir.model,name:board.model_board_board
 #, python-format
 msgid "Board"
@@ -76,28 +72,28 @@ msgstr "Самбар"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:11
+#: code:addons/board/static/src/xml/board.xml:7
 #, python-format
 msgid "Change Layout"
 msgstr "Зохиомжийг Солих"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:9
+#: code:addons/board/static/src/xml/board.xml:5
 #, python-format
 msgid "Change Layout.."
 msgstr "Зохиомжийг Солих.."
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:41
+#: code:addons/board/static/src/xml/board.xml:36
 #, python-format
 msgid "Choose dashboard layout"
 msgstr "Хянах самбарын зохиомжийг сонгох"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/js/add_to_board_menu.js:136
+#: code:addons/board/static/src/js/favorite_menu.js:107
 #, python-format
 msgid "Could not add filter to dashboard"
 msgstr "Шүүлтүүрийг хянах самбарруу нэмж чадсангүй"
@@ -105,11 +101,11 @@ msgstr "Шүүлтүүрийг хянах самбарруу нэмж чадса
 #. module: board
 #: model:ir.model.fields,field_description:board.field_board_board__display_name
 msgid "Display Name"
-msgstr "Дэлгэрэнгүй нэр"
+msgstr "Дэлгэцийн Нэр"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/js/board_view.js:83
+#: code:addons/board/static/src/js/board_view.js:80
 #, python-format
 msgid "Edit Layout"
 msgstr "Зохиомжийг Засварлах"
@@ -122,18 +118,18 @@ msgstr "ID"
 #. module: board
 #: model:ir.model.fields,field_description:board.field_board_board____last_update
 msgid "Last Modified on"
-msgstr "Сүүлд зассан огноо"
+msgstr "Сүүлийн засвар хийсэн огноо"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:46
+#: code:addons/board/static/src/xml/board.xml:41
 #, python-format
 msgid "Layout"
-msgstr "Хэв загвар"
+msgstr ""
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/js/board_view.js:46
+#: code:addons/board/static/src/js/board_view.js:43
 #: model:ir.actions.act_window,name:board.open_board_my_dash_action
 #: model:ir.ui.menu,name:board.menu_board_my_dash
 #: model_terms:ir.ui.view,arch_db:board.board_my_dash_view
@@ -143,14 +139,14 @@ msgstr "Миний хянах самбар"
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/js/add_to_board_menu.js:133
+#: code:addons/board/static/src/js/favorite_menu.js:104
 #, python-format
 msgid "Please refresh your browser for the changes to take effect."
 msgstr ""
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:56
+#: code:addons/board/static/src/xml/board.xml:51
 #, python-format
 msgid ""
 "To add your first report into this dashboard, go to any\n"
@@ -159,7 +155,7 @@ msgstr ""
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:60
+#: code:addons/board/static/src/xml/board.xml:55
 #, python-format
 msgid ""
 "You can filter and group data before inserting into the\n"
@@ -168,14 +164,14 @@ msgstr ""
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:54
+#: code:addons/board/static/src/xml/board.xml:49
 #, python-format
 msgid "Your personal dashboard is empty"
 msgstr ""
 
 #. module: board
 #. openerp-web
-#: code:addons/board/static/src/xml/board.xml:58
+#: code:addons/board/static/src/xml/board.xml:53
 #, python-format
 msgid "in the extended search options."
 msgstr ""

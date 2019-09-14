@@ -1,19 +1,17 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* base_import
+# * base_import
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Collex100, 2019
-# Vasiliy Korobatov <korobatov@gmail.com>, 2019
-# 
+# Martin Trigaux, 2018
+# Collex100, 2018
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:09+0000\n"
-"Last-Translator: Vasiliy Korobatov <korobatov@gmail.com>, 2019\n"
+"POT-Creation-Date: 2018-10-02 10:05+0000\n"
+"PO-Revision-Date: 2018-10-02 10:05+0000\n"
+"Last-Translator: Collex100, 2018\n"
 "Language-Team: Russian (https://www.transifex.com/odoo/teams/41243/ru/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -23,21 +21,21 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:612
 #, python-format
 msgid "%d records were successfully imported"
 msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:647
 #, python-format
 msgid "(%d more)"
 msgstr "(%d больше)"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:378
 #, python-format
 msgid ""
 "A single column was found in the file, this often means the file separator "
@@ -48,7 +46,7 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:582
 #, python-format
 msgid ""
 "An unknown issue occurred during import (possibly lost connection, data "
@@ -74,26 +72,19 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
-#, python-format
-msgid "Between rows %d and %d"
-msgstr ""
-
-#. module: base_import
-#. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:102
 #, python-format
 msgid "Cancel"
 msgstr "Отменить"
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:693
 #, python-format
 msgid "Column %s contains incorrect values (value: %s)"
 msgstr "Колонка %s содержит неверные значения (значение: %s)"
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:788
 #, python-format
 msgid "Column %s contains incorrect values. Error in line %d: %s"
 msgstr "Столбец %s содержит неверные значения. Ошибка в строке %d: %s"
@@ -105,14 +96,14 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:211
+#: code:addons/base_import/static/src/js/import_action.js:228
 #, python-format
 msgid "Comma"
 msgstr "Запятая"
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:825
 #, python-format
 msgid ""
 "Could not retrieve URL: %(url)s [%(field_name)s: L%(line_number)d]: "
@@ -121,7 +112,7 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:108
 #, python-format
 msgid "Create if doesn't exist"
 msgstr ""
@@ -170,7 +161,7 @@ msgstr "Создан"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:107
 #, python-format
 msgid ""
 "Creates new records if they can't be found (instead of failing to import). "
@@ -185,36 +176,36 @@ msgid "Currency"
 msgstr "Валюта"
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:207
+#: code:addons/base_import/models/base_import.py:212
 #, python-format
 msgid "Database ID"
 msgstr "ID базы данных"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:83
 #, python-format
 msgid "Date Format:"
 msgstr "Формат даты: "
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:84
 #, python-format
 msgid "Datetime Format:"
 msgstr "Формат даты и времени:"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:88
 #, python-format
 msgid "Decimal Separator:"
 msgstr "Десятичный разделитель:"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:56
 #, python-format
 msgid "Defer parent/child computation"
 msgstr ""
@@ -242,21 +233,21 @@ msgstr "Отображаемое Имя"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:445
 #, python-format
 msgid "Don't import"
 msgstr "Не импортировать"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:229
 #, python-format
 msgid "Dot"
 msgstr "Точка"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:87
 #, python-format
 msgid "Download"
 msgstr "Скачать"
@@ -268,34 +259,40 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:78
 #, python-format
 msgid "Encoding:"
 msgstr "Кодировка:"
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:790
 #, python-format
 msgid "Error Parsing Date [%s:L%d]: %s"
 msgstr "Ошибка парсинга данных [%s: L %d]: %s"
 
 #. module: base_import
+#: code:addons/base_import/models/base_import.py:289
+#, python-format
+msgid "Error cell found while reading XLS/XLSX file: %s"
+msgstr "Найдены ошибки в ячейках при чтении файла XLS/XLSX: %s"
+
+#. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:624
 #, python-format
 msgid "Everything seems valid."
 msgstr "Все кажется корректным."
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:82
 #, python-format
 msgid "Excel files are recommended as fields formatting is automatic."
 msgstr ""
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:169
+#: code:addons/base_import/models/base_import.py:206
 #, python-format
 msgid "External ID"
 msgstr "Внешний ID"
@@ -321,8 +318,8 @@ msgid "File Type"
 msgstr "Тип файла"
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:808
+#: code:addons/base_import/models/base_import.py:814
 #, python-format
 msgid "File size exceeds configured maximum (%s bytes)"
 msgstr ""
@@ -334,21 +331,35 @@ msgstr "Файл для проверки и/или импорта, двоичн�
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:137
 #, python-format
 msgid "For CSV files, you may need to select the correct separator."
 msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:13
 #, python-format
 msgid "Formatting Options…"
 msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/js/import_action.js:671
+#, python-format
+msgid "Get all possible values"
+msgstr "Получить все возможные значения"
+
+#. module: base_import
+#. openerp-web
+#: code:addons/base_import/static/src/js/import_action.js:658
+#, python-format
+msgid "Here are the possible values:"
+msgstr "Вот возможные значения:"
+
+#. module: base_import
+#. openerp-web
+#: code:addons/base_import/static/src/xml/base_import.xml:138
 #, python-format
 msgid "Here is the start of the file we could not import:"
 msgstr "Вот начало файла, который мы не могли импортировать:"
@@ -376,7 +387,7 @@ msgstr "Номер"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:67
 #, python-format
 msgid ""
 "If the file contains\n"
@@ -390,7 +401,7 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:45
 #, python-format
 msgid ""
 "If the model uses openchatter, history tracking                             "
@@ -403,7 +414,7 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:54
 #, python-format
 msgid ""
 "If the model uses parent/child relations, computing the                     "
@@ -413,54 +424,48 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:98
+#: code:addons/base_import/static/src/xml/base_import.xml:169
 #, python-format
 msgid "Import"
 msgstr "Импорт"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:91
 #, python-format
 msgid "Import FAQ"
 msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:140
 #, python-format
 msgid "Import a File"
 msgstr "Импортировать файл"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:612
 #, python-format
 msgid "Import completed"
 msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:136
 #, python-format
 msgid "Import preview failed due to:"
 msgstr "Импорт предварительного просмотра не удался по причине:"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:579
 #, python-format
 msgid ""
 "Import timed out. Please retry. If you still encounter this issue, the file "
 "may be too big for the system's configuration, try to split it (import less "
 "records per file)."
-msgstr ""
-
-#. module: base_import
-#: code:addons/base_import/models/base_import.py:0
-#, python-format
-msgid "Invalid cell value at row %(row)s, column %(col)s: %(cell_value)s"
 msgstr ""
 
 #. module: base_import
@@ -528,21 +533,21 @@ msgstr "Последнее обновление"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:101
 #, python-format
 msgid "Load File"
 msgstr "Загрузить файл"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:364
 #, python-format
 msgid "Load New File"
 msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:41
 #, python-format
 msgid "Map your columns to import"
 msgstr "Отметьте колонки для импорта"
@@ -559,21 +564,21 @@ msgstr "Название"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:85
 #, python-format
 msgid "Need Help?"
 msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:231
 #, python-format
 msgid "No Separator"
 msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:513
 #, python-format
 msgid "Normal Fields"
 msgstr "Обычные поля"
@@ -590,14 +595,14 @@ msgstr "Родитель"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:514
 #, python-format
 msgid "Relation Fields"
 msgstr "Поля отношений"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:100
 #, python-format
 msgid "Reload File"
 msgstr "Перезагрузить файл"
@@ -609,43 +614,28 @@ msgstr "Res Model"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
-#, python-format
-msgid "Row %d%s"
-msgstr ""
-
-#. module: base_import
-#. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
-#: code:addons/base_import/static/src/js/import_action.js:0
-#, python-format
-msgid "See possible values"
-msgstr ""
-
-#. module: base_import
-#. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:79
 #, python-format
 msgid "Select a CSV or Excel file to import."
 msgstr "Выбрать файл CSV или Excel для импорта."
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:212
 #, python-format
 msgid "Semicolon"
 msgstr "Точка с запятой"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:79
 #, python-format
 msgid "Separator:"
 msgstr "Разделитель:"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:66
 #, python-format
 msgid "Show fields of relation fields (advanced)"
 msgstr "Показать поля полей отношений (расширенные)"
@@ -657,21 +647,21 @@ msgstr "Некоторые Значения"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:214
 #, python-format
 msgid "Space"
 msgstr "Пробел"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:213
 #, python-format
 msgid "Tab"
 msgstr "Табуляция"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:99
 #, python-format
 msgid "Test Import"
 msgstr ""
@@ -753,14 +743,14 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:80
 #, python-format
 msgid "Text Delimiter:"
 msgstr "Ограничитель текста:"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:62
 #, python-format
 msgid ""
 "The first row\n"
@@ -771,27 +761,27 @@ msgstr ""
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:87
 #, python-format
 msgid "Thousands Separator:"
 msgstr "Разделитель тысяч:"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/xml/base_import.xml:0
+#: code:addons/base_import/static/src/xml/base_import.xml:47
 #, python-format
 msgid "Track history during import"
 msgstr "Отслеживание истории при импорте"
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:254
 #, python-format
 msgid "Unable to load \"{extension}\" file: requires Python module \"{modname}\""
 msgstr ""
 "Невозможно загрузить файл «{extension}»: требуется Python-модуль «{modname}»"
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:255
 #, python-format
 msgid ""
 "Unsupported file format \"{}\", import only supports CSV, ODS, XLS and XLSX"
@@ -827,7 +817,7 @@ msgid "Value2"
 msgstr ""
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:760
 #, python-format
 msgid ""
 "You can not import images via URL, check with your administrator or support "
@@ -835,34 +825,21 @@ msgid ""
 msgstr ""
 
 #. module: base_import
-#: code:addons/base_import/models/base_import.py:0
+#: code:addons/base_import/models/base_import.py:631
 #, python-format
 msgid "You must configure at least one field to import"
 msgstr "Вы должны настроить хотя бы одно поле для импорта"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:641
 #, python-format
-msgid "at %d different rows:"
-msgstr ""
+msgid "at row %d"
+msgstr "в строке %d"
 
 #. module: base_import
 #. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
-#, python-format
-msgid "at row %d%s"
-msgstr ""
-
-#. module: base_import
-#. openerp-web
-#: code:addons/base_import/static/src/js/import_action.js:0
+#: code:addons/base_import/static/src/js/import_action.js:643
 #, python-format
 msgid "between rows %d and %d"
 msgstr "между колонками %d и %d"
-
-#. module: base_import
-#: code:addons/base_import/models/base_import.py:0
-#, python-format
-msgid "unknown error code %s"
-msgstr ""

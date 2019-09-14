@@ -1,12 +1,9 @@
 odoo.define('web.KanbanColumnProgressBar', function (require) {
 'use strict';
 
-const core = require('web.core');
+var Widget = require('web.Widget');
 var session = require('web.session');
 var utils = require('web.utils');
-var Widget = require('web.Widget');
-
-const _t = core._t;
 
 var KanbanColumnProgressBar = Widget.extend({
     template: 'KanbanView.ColumnProgressBar',
@@ -31,9 +28,7 @@ var KanbanColumnProgressBar = Widget.extend({
 
         // <progressbar/> attributes
         this.fieldName = columnState.progressBarValues.field;
-        this.colors = _.extend({}, columnState.progressBarValues.colors, {
-            __false: 'muted', // color to use for false value
-        });
+        this.colors = columnState.progressBarValues.colors;
         this.sumField = columnState.progressBarValues.sum_field;
 
         // Previous progressBar state
@@ -60,7 +55,7 @@ var KanbanColumnProgressBar = Widget.extend({
 
         this.$bars = {};
         _.each(this.colors, function (val, key) {
-            self.$bars[key] = self.$(`.progress-bar[data-filter=${key}]`);
+            self.$bars[val] = self.$('.bg-' + val + '-full');
         });
         this.$counter = this.$('.o_kanban_counter_side');
         this.$number = this.$counter.find('b');
@@ -82,22 +77,18 @@ var KanbanColumnProgressBar = Widget.extend({
             // current use of progressbars
 
             var subgroupCounts = {};
-            let allSubgroupCount = 0;
             _.each(self.colors, function (val, key) {
                 var subgroupCount = self.columnState.progressBarValues.counts[key] || 0;
                 if (self.activeFilter === key && subgroupCount === 0) {
                     self.activeFilter = false;
                 }
                 subgroupCounts[key] = subgroupCount;
-                allSubgroupCount += subgroupCount;
             });
-            subgroupCounts.__false = self.columnState.count - allSubgroupCount;
 
             self.groupCount = self.columnState.count;
             self.subgroupCounts = subgroupCounts;
             self.prevTotalCounterValue = self.totalCounterValue;
             self.totalCounterValue = self.sumField ? (self.columnState.aggregateValues[self.sumField] || 0) : self.columnState.count;
-
             self._notifyState();
             self._render();
         });
@@ -130,7 +121,7 @@ var KanbanColumnProgressBar = Widget.extend({
         });
         this.trigger_up('tweak_column_records', {
             callback: function ($el, recordData) {
-                var categoryValue = recordData[self.fieldName] ? recordData[self.fieldName] : '__false';
+                var categoryValue = recordData[self.fieldName];
                 _.each(self.colors, function (val, key) {
                     $el.removeClass('oe_kanban_card_' + val);
                 });
@@ -143,9 +134,8 @@ var KanbanColumnProgressBar = Widget.extend({
         // Display and animate the progress bars
         var barNumber = 0;
         var barMinWidth = 6; // In %
-        const selection = self.columnState.fields[self.fieldName].selection;
         _.each(self.colors, function (val, key) {
-            var $bar = self.$bars[key];
+            var $bar = self.$bars[val];
             var count = self.subgroupCounts && self.subgroupCounts[key] || 0;
 
             if (!$bar) {
@@ -153,14 +143,7 @@ var KanbanColumnProgressBar = Widget.extend({
             }
 
             // Adapt tooltip
-            let value;
-            if (selection) { // progressbar on a field of type selection
-                const option = selection.find(option => option[0] === key);
-                value = option && option[1] || _t('Other');
-            } else {
-                value = key;
-            }
-            $bar.attr('data-original-title', count + ' ' + value);
+            $bar.attr('data-original-title', count + ' ' + key);
             $bar.tooltip({
                 delay: 0,
                 trigger: 'hover',
@@ -198,8 +181,7 @@ var KanbanColumnProgressBar = Widget.extend({
                 end = 0;
                 _.each(self.columnState.data, function (record) {
                     var recordData = record.data;
-                    if (self.activeFilter === recordData[self.fieldName] ||
-                        (self.activeFilter === '__false' && !recordData[self.fieldName])) {
+                    if (self.activeFilter === recordData[self.fieldName]) {
                         end += parseFloat(recordData[self.sumField]);
                     }
                 });

@@ -11,7 +11,7 @@ models.load_models([{
     loaded: function(self,users){
         // we attribute a role to the user, 'cashier' or 'manager', depending
         // on the group the user belongs.
-        users.forEach(function(user) {
+        self.users.forEach(function(user) {
             user.role = 'cashier';
             user.groups_id.some(function(group_id) {
                 if (group_id === self.config.group_pos_manager_id[0]) {
@@ -25,7 +25,6 @@ models.load_models([{
                 self.employee = self.user;
             }
         });
-        self.users = users;
     },
 },{
     model:  'hr.employee',

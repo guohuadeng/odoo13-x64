@@ -603,7 +603,7 @@ class PoFileReader:
             translation = entry.msgstr
             found_code_occurrence = False
             for occurrence, line_number in entry.occurrences:
-                match = re.match(r'(model|model_terms):([\w.]+),([\w]+):(\w+)\.([\w-]+)', occurrence)
+                match = re.match(r'(model|model_terms):([\w.]+),([\w]+):(\w+)\.(\w+)', occurrence)
                 if match:
                     type, model_name, field_name, module, xmlid = match.groups()
                     yield {
@@ -632,7 +632,7 @@ class PoFileReader:
                         'src': source,
                         'value': translation,
                         'comments': comments,
-                        'res_id': int(line_number or 0),
+                        'res_id': int(line_number),
                         'module': module,
                     }
                     continue
@@ -890,21 +890,6 @@ def trans_generate(lang, modules, cr):
         tnx = (module, source, name, id, type, tuple(comments or ()))
         to_translate.add(tnx)
 
-    def translatable_model(record):
-        if not record._translate:
-            return False
-
-        if record._name == 'ir.model.fields.selection':
-            record = record.field_id
-        if record._name == 'ir.model.fields':
-            field_name = record.name
-            field_model = env.get(record.model)
-            if (field_model is None or not field_model._translate or
-                    field_name not in field_model._fields):
-                return False
-
-        return True
-
     query = 'SELECT min(name), model, res_id, module FROM ir_model_data'
 
     if 'all_installed' in modules:
@@ -929,12 +914,25 @@ def trans_generate(lang, modules, cr):
             continue
 
         record = env[model].browse(res_id)
+        if not record._translate:
+            # explicitly disabled
+            continue
+
         if not record.exists():
             _logger.warning(u"Unable to find object %r with id %d", model, res_id)
-            return False
-
-        if not translatable_model(record):
             continue
+
+        if model==u'ir.model.fields':
+            try:
+                field_name = record.name
+            except AttributeError as exc:
+                _logger.error(u"name error in %s: %s", xml_name, str(exc))
+                continue
+            field_model = env.get(record.model)
+            if (field_model is None or not field_model._translate or
+                    field_name not in field_model._fields):
+                continue
+            field = field_model._fields[field_name]
 
         for field_name, field in record._fields.items():
             if field.translate:

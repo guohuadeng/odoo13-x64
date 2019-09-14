@@ -1,20 +1,19 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* website_links
+# * website_links
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Bohdan Lisnenko, 2019
-# ТАрас <tratatuta@i.ua>, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2018
+# ТАрас <tratatuta@i.ua>, 2018
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2018
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.4\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-12 11:32+0000\n"
-"PO-Revision-Date: 2019-08-26 09:15+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2018-09-18 09:49+0000\n"
+"PO-Revision-Date: 2018-08-24 09:34+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2018\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -24,24 +23,24 @@ msgstr ""
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links_charts.js:49
+#: code:addons/website_links/static/src/js/website_links_charts.js:53
 #, python-format
 msgid " clicks"
 msgstr "натискання"
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links_charts.js:99
+#: code:addons/website_links/static/src/js/website_links_charts.js:104
 #, python-format
 msgid " countries"
 msgstr "країни"
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links_charts.js:58
+#: code:addons/website_links/static/src/js/website_links_charts.js:57
 #, python-format
 msgid "# of clicks"
-msgstr "к-сть натискань"
+msgstr "# натискань"
 
 #. module: website_links
 #: model_terms:ir.ui.view,arch_db:website_links.share_page_menu
@@ -83,7 +82,7 @@ msgstr "<strong>Відстеження посилання</strong>"
 #. module: website_links
 #: model_terms:ir.ui.view,arch_db:website_links.graphs
 msgid "All Time"
-msgstr "Увесь час"
+msgstr "Весь час"
 
 #. module: website_links
 #: model_terms:ir.ui.view,arch_db:website_links.create_shorten_url
@@ -100,14 +99,6 @@ msgstr ""
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:411
-#, python-format
-msgid "Copied"
-msgstr "Скопійовано"
-
-#. module: website_links
-#. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:413
 #: code:addons/website_links/static/src/xml/recent_link.xml:37
 #, python-format
 msgid "Copy"
@@ -123,7 +114,7 @@ msgstr "Редагувати код"
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:488
+#: code:addons/website_links/static/src/js/website_links.js:356
 #, python-format
 msgid "Generating link..."
 msgstr "Створення посилання..."
@@ -154,7 +145,7 @@ msgstr "Останній тиждень"
 #: model_terms:ir.ui.view,arch_db:website_links.create_shorten_url
 #: model_terms:ir.ui.view,arch_db:website_links.graphs
 msgid "Link Tracker"
-msgstr "Відстежувач посилань"
+msgstr "Відстеження посилань"
 
 #. module: website_links
 #: model_terms:ir.ui.view,arch_db:website_links.create_shorten_url
@@ -220,28 +211,12 @@ msgstr "Статистика"
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:208
-#: code:addons/website_links/static/src/js/website_links_code_editor.js:54
-#, python-format
-msgid "The code cannot be left empty"
-msgstr "Не можна залишити код пустим"
-
-#. module: website_links
-#. openerp-web
-#: code:addons/website_links/static/src/js/website_links_charts.js:156
-#: code:addons/website_links/static/src/js/website_links_charts.js:157
-#: code:addons/website_links/static/src/js/website_links_charts.js:158
+#: code:addons/website_links/static/src/js/website_links_charts.js:229
+#: code:addons/website_links/static/src/js/website_links_charts.js:230
+#: code:addons/website_links/static/src/js/website_links_charts.js:231
 #, python-format
 msgid "There is no data to show"
 msgstr "Немає даних для показу"
-
-#. module: website_links
-#. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:245
-#: code:addons/website_links/static/src/js/website_links_code_editor.js:74
-#, python-format
-msgid "This code is already taken"
-msgstr "Цей код вже використано"
 
 #. module: website_links
 #: model_terms:ir.ui.view,arch_db:website_links.create_shorten_url
@@ -260,21 +235,21 @@ msgstr "URL"
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:303
+#: code:addons/website_links/static/src/js/website_links.js:225
 #, python-format
 msgid "Unable to get recent links"
 msgstr "Не вдається отримати останні посилання"
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links_charts.js:93
+#: code:addons/website_links/static/src/js/website_links_charts.js:99
 #, python-format
 msgid "Undefined"
 msgstr "Невизначений"
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:331
+#: code:addons/website_links/static/src/js/website_links.js:248
 #, python-format
 msgid "You don't have any recent links."
 msgstr "У вас немає останніх посилань."
@@ -306,21 +281,21 @@ msgstr "скопіювати"
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:361
+#: code:addons/website_links/static/src/js/website_links.js:266
 #, python-format
 msgid "e.g. Newsletter, Social Network, .."
 msgstr "напр. Розсилка, Соціальна мережа, .."
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:358
+#: code:addons/website_links/static/src/js/website_links.js:263
 #, python-format
 msgid "e.g. Promotion of June, Winter Newsletter, .."
 msgstr "напр. Реклама за червень, Зимова розсилка, .."
 
 #. module: website_links
 #. openerp-web
-#: code:addons/website_links/static/src/js/website_links.js:364
+#: code:addons/website_links/static/src/js/website_links.js:269
 #, python-format
 msgid "e.g. Search Engine, Website page, .."
 msgstr "наприклад, пошукова система, веб-сайт, .."

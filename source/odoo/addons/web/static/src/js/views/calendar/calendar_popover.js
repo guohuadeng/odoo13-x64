@@ -123,10 +123,7 @@ var CalendarPopover = Widget.extend(StandaloneFieldManagerMixin, {
      */
     _onClickPopoverEdit: function (ev) {
         ev.preventDefault();
-        this.trigger_up('edit_event', {
-            id: this.event.id,
-            title: this.event.record.display_name,
-        });
+        this.trigger_up('edit_event', {id: this.event.id});
     },
     /**
      * @private

@@ -20,10 +20,6 @@ _logger = logging.getLogger(__name__)
 
 class Survey(http.Controller):
 
-    # ------------------------------------------------------------
-    # ACCESS
-    # ------------------------------------------------------------
-
     def _fetch_from_access_token(self, survey_token, answer_token):
         """ Check that given token matches an answer from the given survey_id.
         Returns a sudo-ed browse record of survey in order to avoid access rights
@@ -185,10 +181,6 @@ class Survey(http.Controller):
             'input_type': answer.input_type,
             'deadline': answer.deadline,
         }
-
-    # ------------------------------------------------------------
-    # TAKING SURVEY ROUTES
-    # ------------------------------------------------------------
 
     @http.route('/survey/start/<string:survey_token>', type='http', auth='public', website=True)
     def survey_start(self, survey_token, answer_token=None, email=False, **post):
@@ -431,10 +423,6 @@ class Survey(http.Controller):
 
         return json.dumps(ret)
 
-    # ------------------------------------------------------------
-    # COMPLETED SURVEY ROUTES
-    # ------------------------------------------------------------
-
     @http.route('/survey/print/<string:survey_token>', type='http', auth='public', website=True)
     def survey_print(self, survey_token, review=False, answer_token=None, **post):
         '''Display an survey in printable view; if <answer_token> is set, it will
@@ -651,12 +639,4 @@ class Survey(http.Controller):
         values = {'survey': survey, 'answer': answer}
         if token:
             values['token'] = token
-        if survey.scoring_type != 'no_scoring' and survey.certificate:
-            answer_perf = survey._get_answers_correctness(answer)[answer]
-            values['graph_data'] = json.dumps([
-                {"text": "Correct", "count": answer_perf['correct']},
-                {"text": "Partially", "count": answer_perf['partial']},
-                {"text": "Incorrect", "count": answer_perf['incorrect']},
-                {"text": "Unanswered", "count": answer_perf['skipped']}
-            ])
         return values

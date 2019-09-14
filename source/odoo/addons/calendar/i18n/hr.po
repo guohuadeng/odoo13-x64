@@ -1,23 +1,23 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* calendar
+# * calendar
 # 
 # Translators:
-# Vladimir Olujić <olujic.vladimir@storm.hr>, 2019
-# Ivica Dimjašević <ivica.dimjasevic@storm.hr>, 2019
-# Martin Trigaux, 2019
-# Bole <bole@dajmi5.com>, 2019
-# Đurđica Žarković <durdica.zarkovic@storm.hr>, 2019
-# Karolina Tonković <karolina.tonkovic@storm.hr>, 2019
-# Tina Milas, 2019
-# 
+# Martin Trigaux, 2017
+# Bole <bole@dajmi5.com>, 2017
+# storm_mpildek <matija.pildek@storm.hr>, 2017
+# Vladimir Olujić <olujic.vladimir@storm.hr>, 2017
+# Karolina Tonković <karolina.tonkovic@storm.hr>, 2017
+# Đurđica Žarković <durdica.zarkovic@storm.hr>, 2017
+# Tina Milas, 2017
+# Ivica Dimjašević <ivica.dimjasevic@storm.hr>, 2017
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.4\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:17+0000\n"
-"PO-Revision-Date: 2019-08-26 09:09+0000\n"
-"Last-Translator: Tina Milas, 2019\n"
+"POT-Creation-Date: 2018-08-02 09:56+0000\n"
+"PO-Revision-Date: 2018-08-02 09:56+0000\n"
+"Last-Translator: Ivica Dimjašević <ivica.dimjasevic@storm.hr>, 2017\n"
 "Language-Team: Croatian (https://www.transifex.com/odoo/teams/41243/hr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -26,9 +26,274 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
 
 #. module: calendar
+#: model:mail.template,body_html:calendar.calendar_template_meeting_changedate
+msgid ""
+"\n"
+"<div summary=\"o_mail_template\" style=\"padding:0px;width:600px;margin:auto;background: #FFFFFF repeat top /100%;color:#777777\">\n"
+"% set colors = {'needsAction': 'grey', 'accepted': 'green', 'tentative': '#FFFF00',  'declined': 'red'}\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td valign=\"center\" width=\"200\" style=\"padding:10px 10px 10px 5px;font-size: 12px\">\n"
+"                <img src=\"/logo.png\" style=\"padding: 0px; margin: 0px; height: auto; width: 80px;\" alt=\"${user.company_id.name}\">\n"
+"            </td>\n"
+"            <td valign=\"center\" align=\"right\" width=\"340\" style=\"padding:10px 10px 10px 5px; font-size: 12px;\">\n"
+"                <p>\n"
+"                    <a href=\"/calendar/meeting/accept?db=${'dbname' in ctx and ctx['dbname'] or ''}&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">Accept</a>\n"
+"                    <a href=\"/calendar/meeting/decline?db=${'dbname' in ctx and ctx['dbname'] or '' }&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">Decline</a>\n"
+"                    <a href=\"/calendar/meeting/view?db=${'dbname' in ctx and ctx['dbname'] or ''}&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">View</a>\n"
+"                </p>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td valign=\"top\" style=\"width:600px; padding:10px 10px 10px 5px;\">\n"
+"                <div>\n"
+"                    <hr width=\"100%\" style=\"background-color:rgb(204,204,204);border:medium none;clear:both;display:block;font-size:0px;min-height:1px;line-height:0;margin:15px auto;padding:0\">\n"
+"                </div>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"</div>\n"
+"<div style=\"padding:0px;width:600px;margin:auto;background: #FFFFFF repeat top /100%;color:#777777\">\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td style=\"padding:10px 10px 10px 5px;font-size: 14px;\">\n"
+"                <p style=\"font-size: 20px; text-align: center;\"><strong>${object.event_id.name} date updated</strong></p>\n"
+"                <p>\n"
+"                    <strong>Dear ${object.common_name}</strong>,<br />\n"
+"                    The date of the meeting has been upated. The meeting  ${object.event_id.name} created by ${object.event_id.user_id.partner_id.name} is now scheduled for ${object.event_id.get_display_time_tz(tz=object.partner_id.tz)}.\n"
+"                </p>\n"
+"                <table style=\"margin-top: 20px;\"><tr>\n"
+"                    <td>\n"
+"                        <div style=\"border-top-left-radius:3px;border-top-right-radius:3px;font-size:12px;border-collapse:separate;text-align:center;font-weight:bold;color:#ffffff;width:130px;min-height: 18px;background:#875A7B;padding-top: 4px;\">\n"
+"                            ${object.event_id.get_interval('dayname', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
+"                        </div>\n"
+"                        <div style=\"font-size:48px;min-height:auto;font-weight:bold;text-align:center;color: #5F5F5F;background-color: #F8F8F8;width: 130px;border:1px solid #875A7B;\">\n"
+"                            ${object.event_id.get_interval('day', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
+"                        </div>\n"
+"                        <div style='font-size:12px;text-align:center;font-weight:bold;color:#ffffff;background-color:#875A7B'>${object.event_id.get_interval('month', tz=object.partner_id.tz if not object.event_id.allday else None)}</div>\n"
+"                        <div style=\"border-collapse:separate;color: #5F5F5F;text-align:center;width: 130px;font-size:12px;border-bottom-right-radius:3px;font-weight:bold;border:1px solid #875A7B;border-bottom-left-radius:3px;\">${not object.event_id.allday and object.event_id.get_interval('time', tz=object.partner_id.tz) or ''}</div>\n"
+"                    </td>\n"
+"                    <td width=\"20px;\"/>\n"
+"                    <td>\n"
+"                        <p>Details of the event</p>\n"
+"                        <ul>\n"
+"                        % if object.event_id.location:\n"
+"                            <li>Location: ${object.event_id.location}\n"
+"                            (<a target=\"_blank\" href=\"http://maps.google.com/maps?oi=map&q=${object.event_id.location}\">View Map</a>)\n"
+"                            </li>\n"
+"                        % endif\n"
+"                        % if object.event_id.description :\n"
+"                            <li>Description: ${object.event_id.description}</li>\n"
+"                        % endif\n"
+"                        % if not object.event_id.allday and object.event_id.duration\n"
+"                            <li>Duration: ${('%dH%02d' % (object.event_id.duration,(object.event_id.duration*60)%60))}</li>\n"
+"                        % endif\n"
+"                        <li>Attendees\n"
+"                        <ul>\n"
+"                        % for attendee in object.event_id.attendee_ids:\n"
+"                            <li>\n"
+"                                <div style=\"display:inline-block; border-radius: 50%; width:10px; height:10px;background:${colors[attendee.state] or 'white'};\"></div>\n"
+"                                % if attendee.common_name != object.common_name:\n"
+"                                <span style=\"margin-left:5px\">${attendee.common_name}</span>\n"
+"                                % else:\n"
+"                                <span style=\"margin-left:5px\">You</span>\n"
+"                                % endif\n"
+"                            </li>\n"
+"                        % endfor\n"
+"                        </ul></li>\n"
+"                        </ul>\n"
+"                    </td>\n"
+"                </tr></table>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"</div>"
+msgstr ""
+
+#. module: calendar
+#: model:mail.template,body_html:calendar.calendar_template_meeting_invitation
+msgid ""
+"\n"
+"<div summary=\"o_mail_template\" style=\"padding:0px;width:600px;margin:auto;background: #FFFFFF repeat top /100%;color:#777777\">\n"
+"% set colors = {'needsAction': 'grey', 'accepted': 'green', 'tentative': '#FFFF00',  'declined': 'red'}\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td valign=\"center\" width=\"200\" style=\"padding:10px 10px 10px 5px;font-size: 12px\">\n"
+"                <img src=\"/logo.png\" style=\"padding: 0px; margin: 0px; height: auto; width: 80px;\" alt=\"${user.company_id.name}\">\n"
+"            </td>\n"
+"            <td valign=\"center\" align=\"right\" width=\"340\" style=\"padding:10px 10px 10px 5px; font-size: 12px;\">\n"
+"                <p>\n"
+"                    <a href=\"/calendar/meeting/accept?db=${'dbname' in ctx and ctx['dbname'] or ''}&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">Accept</a>\n"
+"                    <a href=\"/calendar/meeting/decline?db=${'dbname' in ctx and ctx['dbname'] or '' }&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">Decline</a>\n"
+"                    <a href=\"/calendar/meeting/view?db=${'dbname' in ctx and ctx['dbname'] or ''}&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">View</a>\n"
+"                </p>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td valign=\"top\" style=\"width:600px; padding:10px 10px 10px 5px;\">\n"
+"                <div>\n"
+"                    <hr width=\"100%\" style=\"background-color:rgb(204,204,204);border:medium none;clear:both;display:block;font-size:0px;min-height:1px;line-height:0;margin:15px auto;padding:0\">\n"
+"                </div>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"</div>\n"
+"<div style=\"padding:0px;width:600px;margin:auto;background: #FFFFFF repeat top /100%;color:#777777\">\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td style=\"padding:10px 10px 10px 5px;font-size: 14px;\">\n"
+"                <p style=\"font-size: 20px; text-align: center;\">Invitation to <strong>${object.event_id.name}</strong></p>\n"
+"                <p>\n"
+"                    <strong>Dear ${object.common_name}</strong>,<br />\n"
+"                    ${object.event_id.user_id.partner_id.name} invited you for the ${object.event_id.name} meeting of ${object.event_id.user_id.company_id.name}.</p>\n"
+"                <table style=\"margin-top: 20px;\"><tr>\n"
+"                    <td>\n"
+"                        <div style=\"border-top-left-radius:3px;border-top-right-radius:3px;font-size:12px;border-collapse:separate;text-align:center;font-weight:bold;color:#ffffff;width:130px;min-height: 18px;background:#875A7B;padding-top: 4px;border:1px solid #875A7B;\">\n"
+"                            ${object.event_id.get_interval('dayname', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
+"                        </div>\n"
+"                        <div style=\"font-size:48px;min-height:auto;font-weight:bold;text-align:center;color: #5F5F5F;background-color: #F8F8F8;width: 130px;border:1px solid #875A7B;\">\n"
+"                            ${object.event_id.get_interval('day', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
+"                        </div>\n"
+"                        <div style='font-size:12px;text-align:center;font-weight:bold;color:#ffffff;background-color:#875A7B'>${object.event_id.get_interval('month', tz=object.partner_id.tz if not object.event_id.allday else None)}</div>\n"
+"                        <div style=\"border-collapse:separate;color: #5F5F5F;text-align:center;width: 130px;font-size:12px;border-bottom-right-radius:3px;font-weight:bold;border:1px solid #875A7B;border-bottom-left-radius:3px;\">${not object.event_id.allday and object.event_id.get_interval('time', tz=object.partner_id.tz) or ''}</div>\n"
+"                    </td>\n"
+"                    <td width=\"20px;\"/>\n"
+"                    <td>\n"
+"                        <p>Details of the event</p>\n"
+"                        <ul>\n"
+"                        % if object.event_id.location:\n"
+"                            <li>Location: ${object.event_id.location}\n"
+"                            (<a target=\"_blank\" href=\"http://maps.google.com/maps?oi=map&q=${object.event_id.location}\">View Map</a>)\n"
+"                            </li>\n"
+"                        % endif\n"
+"                        % if object.event_id.description :\n"
+"                            <li>Description: ${object.event_id.description}</li>\n"
+"                        % endif\n"
+"                        % if not object.event_id.allday and object.event_id.duration\n"
+"                            <li>Duration: ${('%dH%02d' % (object.event_id.duration,(object.event_id.duration*60)%60))}</li>\n"
+"                        % endif\n"
+"                        <li>Attendees\n"
+"                        <ul>\n"
+"                        % for attendee in object.event_id.attendee_ids:\n"
+"                            <li>\n"
+"                                <div style=\"display:inline-block; border-radius: 50%; width:10px; height:10px;background:${colors[attendee.state] or 'white'};\"></div>\n"
+"                                % if attendee.common_name != object.common_name:\n"
+"                                <span style=\"margin-left:5px\">${attendee.common_name}</span>\n"
+"                                % else:\n"
+"                                <span style=\"margin-left:5px\">You</span>\n"
+"                                % endif\n"
+"                            </li>\n"
+"                        % endfor\n"
+"                        </ul></li>\n"
+"                        </ul>\n"
+"                    </td>\n"
+"                </tr></table>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"</div>"
+msgstr ""
+
+#. module: calendar
+#: model:mail.template,body_html:calendar.calendar_template_meeting_reminder
+msgid ""
+"\n"
+"<div summary=\"o_mail_template\" style=\"padding:0px;width:600px;margin:auto;background: #FFFFFF repeat top /100%;color:#777777\">\n"
+"% set colors = {'needsAction': 'grey', 'accepted': 'green', 'tentative': '#FFFF00',  'declined': 'red'}\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td valign=\"center\" width=\"200\" style=\"padding:10px 10px 10px 5px;font-size: 12px\">\n"
+"                <img src=\"/logo.png\" style=\"padding: 0px; margin: 0px; height: auto; width: 80px;\" alt=\"${user.company_id.name}\">\n"
+"            </td>\n"
+"            <td valign=\"center\" align=\"right\" width=\"340\" style=\"padding:10px 10px 10px 5px; font-size: 12px;\">\n"
+"                <p>\n"
+"                    <a href=\"/calendar/meeting/accept?db=${'dbname' in ctx and ctx['dbname'] or ''}&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">Accept</a>\n"
+"                    <a href=\"/calendar/meeting/decline?db=${'dbname' in ctx and ctx['dbname'] or '' }&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">Decline</a>\n"
+"                    <a href=\"/calendar/meeting/view?db=${'dbname' in ctx and ctx['dbname'] or ''}&token=${object.access_token}&action=${'action_id' in ctx and ctx['action_id'] or ''}&id=${object.event_id.id}\" style=\"padding: 5px 10px; font-size: 12px; line-height: 18px; color: #FFFFFF; border-color:#875A7B; text-decoration: none; display: inline-block; margin-bottom: 0px; font-weight: 400; text-align: center; vertical-align: middle; cursor: pointer; white-space: nowrap; background-image: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius:3px\">View</a>\n"
+"                </p>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td valign=\"top\" style=\"width:600px; padding:10px 10px 10px 5px;\">\n"
+"                <div>\n"
+"                    <hr width=\"100%\" style=\"background-color:rgb(204,204,204);border:medium none;clear:both;display:block;font-size:0px;min-height:1px;line-height:0;margin:15px auto;padding:0\">\n"
+"                </div>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"</div>\n"
+"<div style=\"padding:0px;width:600px;margin:auto;background: #FFFFFF repeat top /100%;color:#777777\">\n"
+"    <table cellspacing=\"0\" cellpadding=\"0\" style=\"width:600px;border-collapse:collapse;background:inherit;color:inherit\">\n"
+"        <tbody><tr>\n"
+"            <td style=\"padding:10px 10px 10px 5px;font-size: 14px;\">\n"
+"                <p style=\"font-size: 20px; text-align: center;\">Reminder for <strong>${object.event_id.name}</strong></p>\n"
+"                <p>\n"
+"                    <strong>Dear ${object.common_name}</strong>,<br />\n"
+"                    This is a reminder for the below event :\n"
+"                </p>\n"
+"                <table style=\"margin-top: 20px;\"><tr>\n"
+"                    <td>\n"
+"                        <div style=\"border-top-left-radius:3px;border-top-right-radius:3px;font-size:12px;border-collapse:separate;text-align:center;font-weight:bold;color:#ffffff;width:130px;min-height: 18px;background:#875A7B;padding-top: 4px;\">\n"
+"                            ${object.event_id.get_interval('dayname', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
+"                        </div>\n"
+"                        <div style=\"font-size:48px;min-height:auto;font-weight:bold;text-align:center;color: #5F5F5F;background-color: #F8F8F8;width: 130px;border:1px solid #875A7B;\">\n"
+"                            ${object.event_id.get_interval('day', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
+"                        </div>\n"
+"                        <div style='font-size:12px;text-align:center;font-weight:bold;color:#ffffff;background-color:#875A7B'>${object.event_id.get_interval('month', tz=object.partner_id.tz if not object.event_id.allday else None)}</div>\n"
+"                        <div style=\"border-collapse:separate;color: #5F5F5F;text-align:center;width: 130px;font-size:12px;border-bottom-right-radius:3px;font-weight:bold;border:1px solid #875A7B;border-bottom-left-radius:3px;\">${not object.event_id.allday and object.event_id.get_interval('time', tz=object.partner_id.tz) or ''}</div>\n"
+"                    </td>\n"
+"                    <td width=\"20px;\"/>\n"
+"                    <td>\n"
+"                        <p>Details of the event</p>\n"
+"                        <ul>\n"
+"                        % if object.event_id.location:\n"
+"                            <li>Location: ${object.event_id.location}\n"
+"                            (<a target=\"_blank\" href=\"http://maps.google.com/maps?oi=map&q=${object.event_id.location}\">View Map</a>)\n"
+"                            </li>\n"
+"                        % endif\n"
+"                        % if object.event_id.description :\n"
+"                            <li>Description: ${object.event_id.description}</li>\n"
+"                        % endif\n"
+"                        % if not object.event_id.allday and object.event_id.duration\n"
+"                            <li>Duration: ${('%dH%02d' % (object.event_id.duration,(object.event_id.duration*60)%60))}</li>\n"
+"                        % endif\n"
+"                        <li>Attendees\n"
+"                        <ul>\n"
+"                        % for attendee in object.event_id.attendee_ids:\n"
+"                            <li>\n"
+"                                <div style=\"display:inline-block; border-radius: 50%; width:10px; height:10px;background:${colors[attendee.state] or 'white'};\"></div>\n"
+"                                % if attendee.common_name != object.common_name:\n"
+"                                <span style=\"margin-left:5px\">${attendee.common_name}</span>\n"
+"                                % else:\n"
+"                                <span style=\"margin-left:5px\">You</span>\n"
+"                                % endif\n"
+"                            </li>\n"
+"                        % endfor\n"
+"                        </ul></li>\n"
+"                        </ul>\n"
+"                    </td>\n"
+"                </tr></table>\n"
+"            </td>\n"
+"        </tr></tbody>\n"
+"    </table>\n"
+"</div>"
+msgstr ""
+
+#. module: calendar
 #: model:mail.template,subject:calendar.calendar_template_meeting_reminder
 msgid "${object.event_id.name} - Reminder"
 msgstr "${object.event_id.name} - Podsjetnik"
+
+#. module: calendar
+#: model:mail.template,subject:calendar.calendar_template_meeting_invitation
+msgid "${object.event_id.name} invitation"
+msgstr "${object.event_id.name} pozivnica"
 
 #. module: calendar
 #: model:mail.template,subject:calendar.calendar_template_meeting_changedate
@@ -36,7 +301,7 @@ msgid "${object.event_id.name}: Date updated"
 msgstr "${object.event_id.name}: Datum ažuriranja"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:741
 #, python-format
 msgid ""
 "%s at %s To\n"
@@ -46,258 +311,72 @@ msgstr ""
 " %s u %s (%s)"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:732
 #, python-format
 msgid "%s at (%s To %s) (%s)"
 msgstr "%s u (%s do %s) (%s)"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:227
 #, python-format
 msgid "%s has accepted invitation"
 msgstr "%s je prihavtio poziv"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:235
 #, python-format
 msgid "%s has declined invitation"
 msgstr "%s je odbio poziv"
 
 #. module: calendar
-#: model:mail.template,body_html:calendar.calendar_template_meeting_invitation
-msgid ""
-"<div>\n"
-"    % set colors = {'needsAction': 'grey', 'accepted': 'green', 'tentative': '#FFFF00',  'declined': 'red'}\n"
-"    <p>\n"
-"        Hello ${object.common_name},<br/><br/>\n"
-"        ${object.event_id.user_id.partner_id.name} invited you for the ${object.event_id.name} meeting of ${object.event_id.user_id.company_id.name}.\n"
-"    </p>\n"
-"    <div style=\"text-align: center; margin: 16px 0px 16px 0px;\">\n"
-"        <a href=\"/calendar/meeting/accept?db=${'dbname' in ctx and ctx['dbname'] or ''}&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            Accept</a>\n"
-"        <a href=\"/calendar/meeting/decline?db=${'dbname' in ctx and ctx['dbname'] or '' }&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            Decline</a>\n"
-"        <a href=\"/calendar/meeting/view?db=${'dbname' in ctx and ctx['dbname'] or ''}&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            View</a>\n"
-"    </div>\n"
-"    <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\"><tr>\n"
-"        <td width=\"130px;\">\n"
-"            <div style=\"border-top-left-radius: 3px; border-top-right-radius: 3px; font-size: 12px; border-collapse: separate; text-align: center; font-weight: bold; color: #ffffff; min-height: 18px; background-color: #875A7B; border: 1px solid #875A7B;\">\n"
-"                ${object.event_id.get_interval('dayname', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"font-size: 48px; min-height: auto; font-weight: bold; text-align: center; color: #5F5F5F; background-color: #F8F8F8; border: 1px solid #875A7B;\">\n"
-"                ${object.event_id.get_interval('day', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"font-size: 12px; text-align: center; font-weight: bold; color: #ffffff; background-color: #875A7B;\">\n"
-"                ${object.event_id.get_interval('month', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"border-collapse: separate; color: #5F5F5F; text-align: center; font-size: 12px; border-bottom-right-radius: 3px; font-weight: bold; border: 1px solid #875A7B; border-bottom-left-radius: 3px;\">\n"
-"                ${not object.event_id.allday and object.event_id.get_interval('time', tz=object.partner_id.tz) or ''}\n"
-"            </div>\n"
-"        </td>\n"
-"        <td width=\"20px;\"/>\n"
-"        <td style=\"padding-top: 5px;\">\n"
-"            <p><strong>Details of the event</strong></p>\n"
-"            <ul>\n"
-"                % if object.event_id.location:\n"
-"                    <li>Location: ${object.event_id.location}\n"
-"                        (<a target=\"_blank\" href=\"http://maps.google.com/maps?oi=map&amp;q=${object.event_id.location}\">View Map</a>)\n"
-"                    </li>\n"
-"                % endif\n"
-"                % if object.event_id.description :\n"
-"                    <li>Description: ${object.event_id.description}</li>\n"
-"                % endif\n"
-"                % if not object.event_id.allday and object.event_id.duration\n"
-"                    <li>Duration: ${('%dH%02d' % (object.event_id.duration,(object.event_id.duration*60)%60))}</li>\n"
-"                % endif\n"
-"                <li>Attendees\n"
-"                <ul>\n"
-"                % for attendee in object.event_id.attendee_ids:\n"
-"                    <li>\n"
-"                        <div style=\"display: inline-block; border-radius: 50%; width: 10px; height: 10px; background:${colors[attendee.state] or 'white'};\"> </div>\n"
-"                        % if attendee.common_name != object.common_name:\n"
-"                            <span style=\"margin-left:5px\">${attendee.common_name}</span>\n"
-"                        % else:\n"
-"                            <span style=\"margin-left:5px\">You</span>\n"
-"                        % endif\n"
-"                    </li>\n"
-"                % endfor\n"
-"                </ul></li>\n"
-"            </ul>\n"
-"        </td>\n"
-"    </tr></table>\n"
-"    <br/>\n"
-"    Thank you,\n"
-"    <br/>\n"
-"    % if object.event_id.user_id and object.event_id.user_id.signature:\n"
-"        ${object.event_id.user_id.signature | safe}\n"
-"    % endif\n"
-"</div>\n"
-"            "
+#: model:calendar.alarm,name:calendar.alarm_notif_5
+msgid "1 Day(s)"
 msgstr ""
 
 #. module: calendar
-#: model:mail.template,body_html:calendar.calendar_template_meeting_changedate
-msgid ""
-"<div>\n"
-"    % set colors = {'needsAction': 'grey', 'accepted': 'green', 'tentative': '#FFFF00',  'declined': 'red'}\n"
-"    <p>\n"
-"        Hello ${object.common_name},<br/><br/>\n"
-"        The date of the meeting has been updated. The meeting ${object.event_id.name} created by ${object.event_id.user_id.partner_id.name} is now scheduled for ${object.event_id.get_display_time_tz(tz=object.partner_id.tz)}.\n"
-"    </p>\n"
-"    <div style=\"text-align: center; margin: 16px 0px 16px 0px;\">\n"
-"        <a href=\"/calendar/meeting/accept?db=${'dbname' in ctx and ctx['dbname'] or ''}&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            Accept</a>\n"
-"        <a href=\"/calendar/meeting/decline?db=${'dbname' in ctx and ctx['dbname'] or '' }&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            Decline</a>\n"
-"        <a href=\"/calendar/meeting/view?db=${'dbname' in ctx and ctx['dbname'] or ''}&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            View</a>\n"
-"    </div>\n"
-"    <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\"><tr>\n"
-"        <td width=\"130px;\">\n"
-"            <div style=\"border-top-left-radius: 3px; border-top-right-radius: 3px; font-size: 12px; border-collapse: separate; text-align: center; font-weight: bold; color: #ffffff; min-height: 18px; background-color: #875A7B; border: 1px solid #875A7B;\">\n"
-"                ${object.event_id.get_interval('dayname', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"font-size: 48px; min-height: auto; font-weight: bold; text-align: center; color: #5F5F5F; background-color: #F8F8F8; border: 1px solid #875A7B;\">\n"
-"                ${object.event_id.get_interval('day', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"font-size: 12px; text-align: center; font-weight: bold; color: #ffffff; background-color: #875A7B;\">\n"
-"                ${object.event_id.get_interval('month', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"border-collapse: separate; color: #5F5F5F; text-align: center; font-size: 12px; border-bottom-right-radius: 3px; font-weight: bold; border: 1px solid #875A7B; border-bottom-left-radius: 3px;\">\n"
-"                ${not object.event_id.allday and object.event_id.get_interval('time', tz=object.partner_id.tz) or ''}\n"
-"            </div>\n"
-"        </td>\n"
-"        <td width=\"20px;\"/>\n"
-"        <td style=\"padding-top: 5px;\">\n"
-"            <p><strong>Details of the event</strong></p>\n"
-"            <ul>\n"
-"                % if object.event_id.location:\n"
-"                    <li>Location: ${object.event_id.location}\n"
-"                        (<a target=\"_blank\" href=\"http://maps.google.com/maps?oi=map&amp;q=${object.event_id.location}\">View Map</a>)\n"
-"                    </li>\n"
-"                % endif\n"
-"                % if object.event_id.description :\n"
-"                    <li>Description: ${object.event_id.description}</li>\n"
-"                % endif\n"
-"                % if not object.event_id.allday and object.event_id.duration\n"
-"                    <li>Duration: ${('%dH%02d' % (object.event_id.duration,(object.event_id.duration*60)%60))}</li>\n"
-"                % endif\n"
-"                <li>Attendees\n"
-"                <ul>\n"
-"                % for attendee in object.event_id.attendee_ids:\n"
-"                    <li>\n"
-"                        <div style=\"display: inline-block; border-radius: 50%; width: 10px; height: 10px; background: ${colors[attendee.state] or 'white'};\"> </div>\n"
-"                        % if attendee.common_name != object.common_name:\n"
-"                            <span style=\"margin-left:5px\">${attendee.common_name}</span>\n"
-"                        % else:\n"
-"                            <span style=\"margin-left:5px\">You</span>\n"
-"                        % endif\n"
-"                    </li>\n"
-"                % endfor\n"
-"                </ul></li>\n"
-"            </ul>\n"
-"        </td>\n"
-"    </tr></table>\n"
-"    <br/>\n"
-"    Thank you,\n"
-"    <br/>\n"
-"    % if object.event_id.user_id and object.event_id.user_id.signature:\n"
-"        ${object.event_id.user_id.signature | safe}\n"
-"    % endif\n"
-"</div>\n"
-"            "
+#: model:calendar.alarm,name:calendar.alarm_notif_3
+msgid "1 Hour(s)"
 msgstr ""
 
 #. module: calendar
-#: model:mail.template,body_html:calendar.calendar_template_meeting_reminder
-msgid ""
-"<div>\n"
-"    % set colors = {'needsAction': 'grey', 'accepted': 'green', 'tentative': '#FFFF00',  'declined': 'red'}\n"
-"    <p>\n"
-"        Hello ${object.common_name},<br/><br/>\n"
-"        This is a reminder for the below event :\n"
-"    </p>\n"
-"    <div style=\"text-align: center; margin: 16px 0px 16px 0px;\">\n"
-"        <a href=\"/calendar/meeting/accept?db=${'dbname' in ctx and ctx['dbname'] or ''}&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            Accept</a>\n"
-"        <a href=\"/calendar/meeting/decline?db=${'dbname' in ctx and ctx['dbname'] or '' }&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            Decline</a>\n"
-"        <a href=\"/calendar/meeting/view?db=${'dbname' in ctx and ctx['dbname'] or ''}&amp;token=${object.access_token}&amp;action=${'action_id' in ctx and ctx['action_id'] or ''}&amp;id=${object.event_id.id}\" style=\"padding: 5px 10px; color: #FFFFFF; text-decoration: none; background-color: #875A7B; border: 1px solid #875A7B; border-radius: 3px\">\n"
-"            View</a>\n"
-"    </div>\n"
-"    <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\"><tr>\n"
-"        <td width=\"130px;\">\n"
-"            <div style=\"border-top-left-radius: 3px; border-top-right-radius: 3px; font-size: 12px; border-collapse: separate; text-align: center; font-weight: bold; color: #ffffff; min-height: 18px; background-color: #875A7B; border: 1px solid #875A7B;\">\n"
-"                ${object.event_id.get_interval('dayname', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"font-size: 48px; min-height: auto; font-weight: bold; text-align: center; color: #5F5F5F; background-color: #F8F8F8; border: 1px solid #875A7B;\">\n"
-"                ${object.event_id.get_interval('day', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"font-size: 12px; text-align: center; font-weight: bold; color: #ffffff; background-color: #875A7B;\">\n"
-"                ${object.event_id.get_interval('month', tz=object.partner_id.tz if not object.event_id.allday else None)}\n"
-"            </div>\n"
-"            <div style=\"border-collapse: separate; color: #5F5F5F; text-align: center; font-size: 12px; border-bottom-right-radius: 3px; font-weight: bold; border: 1px solid #875A7B; border-bottom-left-radius: 3px;\">\n"
-"                ${not object.event_id.allday and object.event_id.get_interval('time', tz=object.partner_id.tz) or ''}\n"
-"            </div>\n"
-"        </td>\n"
-"        <td width=\"20px;\"/>\n"
-"        <td style=\"padding-top: 5px;\">\n"
-"            <p><strong>Details of the event</strong></p>\n"
-"            <ul>\n"
-"                % if object.event_id.location:\n"
-"                    <li>Location: ${object.event_id.location}\n"
-"                        (<a target=\"_blank\" href=\"http://maps.google.com/maps?oi=map&amp;q=${object.event_id.location}\">View Map</a>)\n"
-"                    </li>\n"
-"                % endif\n"
-"                % if object.event_id.description :\n"
-"                    <li>Description: ${object.event_id.description}</li>\n"
-"                % endif\n"
-"                % if not object.event_id.allday and object.event_id.duration\n"
-"                    <li>Duration: ${('%dH%02d' % (object.event_id.duration,(object.event_id.duration*60)%60))}</li>\n"
-"                % endif\n"
-"                <li>Attendees\n"
-"                <ul>\n"
-"                % for attendee in object.event_id.attendee_ids:\n"
-"                    <li>\n"
-"                        <div style=\"display: inline-block; border-radius: 50%; width: 10px; height: 10px; background:${colors[attendee.state] or 'white'};\"> </div>\n"
-"                        % if attendee.common_name != object.common_name:\n"
-"                            <span style=\"margin-left:5px\">${attendee.common_name}</span>\n"
-"                        % else:\n"
-"                            <span style=\"margin-left:5px\">You</span>\n"
-"                        % endif\n"
-"                    </li>\n"
-"                % endfor\n"
-"                </ul></li>\n"
-"            </ul>\n"
-"        </td>\n"
-"    </tr></table>\n"
-"    <br/>\n"
-"    Thank you,\n"
-"    <br/>\n"
-"    % if object.event_id.user_id and object.event_id.user_id.signature:\n"
-"        ${object.event_id.user_id.signature | safe}\n"
-"    % endif\n"
-"</div>\n"
-"            "
+#: model:calendar.alarm,name:calendar.alarm_notif_1
+msgid "15 Minute(s)"
+msgstr ""
+
+#. module: calendar
+#: model:calendar.alarm,name:calendar.alarm_notif_4
+msgid "2 Hour(s)"
+msgstr ""
+
+#. module: calendar
+#: model:calendar.alarm,name:calendar.alarm_mail_1
+msgid "3 Hour(s), by e-mail"
+msgstr ""
+
+#. module: calendar
+#: model:calendar.alarm,name:calendar.alarm_notif_2
+msgid "30 Minute(s)"
+msgstr ""
+
+#. module: calendar
+#: model:calendar.alarm,name:calendar.alarm_mail_2
+msgid "6 Hour(s), by e-mail"
 msgstr ""
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
+#: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form_popup
 msgid "<span> hours</span>"
 msgstr "<span> sati</span>"
 
 #. module: calendar
-#. openerp-web
-#: code:addons/calendar/static/src/xml/base_calendar.xml:0
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
-#, python-format
 msgid "Accept"
 msgstr "Prihvati"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_attendee__state__accepted
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__attendee_status__accepted
+#: selection:calendar.attendee,state:0
+#: selection:calendar.event,attendee_status:0
 msgid "Accepted"
 msgstr "Prihvaćeno"
 
@@ -305,18 +384,6 @@ msgstr "Prihvaćeno"
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__message_needaction
 msgid "Action Needed"
 msgstr "Potrebna dodatna radnja"
-
-#. module: calendar
-#: model:ir.model.fields,field_description:calendar.field_mail_activity_type__category
-msgid "Action to Perform"
-msgstr ""
-
-#. module: calendar
-#: model:ir.model.fields,help:calendar.field_mail_activity_type__category
-msgid ""
-"Actions may trigger specific behavior like opening calendar view or "
-"automatically mark as done when a document is uploaded"
-msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_contacts__active
@@ -341,37 +408,22 @@ msgstr "Vrsta aktivnosti"
 
 #. module: calendar
 #. openerp-web
-#: code:addons/calendar/static/src/xml/base_calendar.xml:0
+#: code:addons/calendar/static/src/xml/base_calendar.xml:36
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__allday
 #, python-format
 msgid "All Day"
 msgstr "Cijeli dan"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:728
 #, python-format
 msgid "AllDay , %s"
 msgstr "Cijeli dan, %s"
 
 #. module: calendar
-#: model:ir.model.constraint,message:calendar.constraint_calendar_contacts_user_id_partner_id_unique
+#: sql_constraint:calendar.contacts:0
 msgid "An user cannot have twice the same contact."
 msgstr ""
-
-#. module: calendar
-#: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_search
-msgid "Archived"
-msgstr "Arhivirano"
-
-#. module: calendar
-#: model:ir.model,name:calendar.model_ir_attachment
-msgid "Attachment"
-msgstr "Prilog"
-
-#. module: calendar
-#: model:ir.model.fields,field_description:calendar.field_calendar_event__message_attachment_count
-msgid "Attachment Count"
-msgstr "Broj priloga"
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__is_attendee
@@ -384,9 +436,15 @@ msgid "Attendee Status"
 msgstr "Status sudionika"
 
 #. module: calendar
+#: model:ir.model,name:calendar.model_calendar_attendee
+msgid "Attendee information"
+msgstr "Detalji sudionika"
+
+#. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__partner_ids
 #: model_terms:ir.ui.view,arch_db:calendar.invitation_page_anonymous
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
+#: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form_popup
 msgid "Attendees"
 msgstr "Sudionici"
 
@@ -396,9 +454,9 @@ msgid "Availability"
 msgstr "Raspoloživost"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_attendee__availability__busy
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__show_as__busy
+#: code:addons/calendar/models/calendar.py:1673
+#: selection:calendar.attendee,availability:0
+#: selection:calendar.event,show_as:0
 #, python-format
 msgid "Busy"
 msgstr "Zauzet"
@@ -423,21 +481,6 @@ msgid "Calendar Alarm"
 msgstr "Kalendar podsjetnik"
 
 #. module: calendar
-#: model:ir.model,name:calendar.model_calendar_attendee
-msgid "Calendar Attendee Information"
-msgstr ""
-
-#. module: calendar
-#: model:ir.model,name:calendar.model_calendar_contacts
-msgid "Calendar Contacts"
-msgstr ""
-
-#. module: calendar
-#: model:ir.model,name:calendar.model_calendar_event
-msgid "Calendar Event"
-msgstr ""
-
-#. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.invitation_page_anonymous
 msgid "Calendar Invitation"
 msgstr "Pozivnica kalendara"
@@ -455,6 +498,16 @@ msgid "Calendar: Event Reminder"
 msgstr ""
 
 #. module: calendar
+#: model:ir.model.fields,help:calendar.field_mail_activity_type__category
+msgid "Categories may trigger specific behavior like opening calendar view"
+msgstr ""
+
+#. module: calendar
+#: model:ir.model.fields,field_description:calendar.field_mail_activity_type__category
+msgid "Category"
+msgstr "Kategorija"
+
+#. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
 msgid "Click here to update only this instance and not all recurrences."
 msgstr ""
@@ -466,7 +519,7 @@ msgid "Common name"
 msgstr "Zajednički naziv"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__state__open
+#: selection:calendar.event,state:0
 msgid "Confirmed"
 msgstr "Potvrđeno"
 
@@ -492,7 +545,7 @@ msgstr "Kreirao"
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__create_date
 #: model:ir.model.fields,field_description:calendar.field_calendar_event_type__create_date
 msgid "Created on"
-msgstr "Kreirano"
+msgstr "Datum kreiranja"
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__display_start
@@ -501,8 +554,8 @@ msgid "Date"
 msgstr "Datum"
 
 #. module: calendar
+#: selection:calendar.event,month_by:0
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__day
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__month_by__date
 msgid "Date of month"
 msgstr "Dan u mjesecu"
 
@@ -512,27 +565,23 @@ msgid "Day of Month"
 msgstr "Dan u mjesecu"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__month_by__day
+#: selection:calendar.event,month_by:0
 msgid "Day of month"
 msgstr "Dan mjeseca"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_alarm__interval__days
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__rrule_type__daily
-msgid "Days"
-msgstr "Dani"
+#: selection:calendar.alarm,interval:0 selection:calendar.event,rrule_type:0
+msgid "Day(s)"
+msgstr "Dan(a)"
 
 #. module: calendar
-#. openerp-web
-#: code:addons/calendar/static/src/xml/base_calendar.xml:0
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
-#, python-format
 msgid "Decline"
 msgstr "Otkaži"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_attendee__state__declined
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__attendee_status__declined
+#: selection:calendar.attendee,state:0
+#: selection:calendar.event,attendee_status:0
 msgid "Declined"
 msgstr "Odbijeno"
 
@@ -543,7 +592,7 @@ msgstr "Opis"
 
 #. module: calendar
 #. openerp-web
-#: code:addons/calendar/static/src/xml/notification_calendar.xml:0
+#: code:addons/calendar/static/src/xml/base_calendar.xml:18
 #, python-format
 msgid "Details"
 msgstr "Detalji"
@@ -556,10 +605,11 @@ msgstr "Detalji"
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__display_name
 #: model:ir.model.fields,field_description:calendar.field_calendar_event_type__display_name
 msgid "Display Name"
-msgstr "Naziv"
+msgstr "Naziv za prikaz"
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
+#: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form_popup
 msgid "Document"
 msgstr "Dokument"
 
@@ -591,20 +641,10 @@ msgid "Duration in minutes"
 msgstr "Trajanje u minutama"
 
 #. module: calendar
+#: selection:calendar.alarm,type:0
 #: model:ir.model.fields,field_description:calendar.field_calendar_attendee__email
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_alarm__alarm_type__email
 msgid "Email"
 msgstr "E-pošta"
-
-#. module: calendar
-#: model:calendar.alarm,name:calendar.alarm_mail_1
-msgid "Email - 3 Hours"
-msgstr ""
-
-#. module: calendar
-#: model:calendar.alarm,name:calendar.alarm_mail_2
-msgid "Email - 6 Hours"
-msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,help:calendar.field_calendar_attendee__email
@@ -628,7 +668,7 @@ msgid "End Datetime"
 msgstr "Završni datum"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__end_type__end_date
+#: selection:calendar.event,end_type:0
 msgid "End date"
 msgstr "Završni datum"
 
@@ -638,19 +678,9 @@ msgid "Ending at"
 msgstr "Završio na"
 
 #. module: calendar
-#: model:ir.model,name:calendar.model_calendar_alarm
-msgid "Event Alarm"
-msgstr "Podsjetnik događaja"
-
-#. module: calendar
-#: model:ir.model,name:calendar.model_calendar_alarm_manager
-msgid "Event Alarm Manager"
-msgstr "Upravljanje podsjetnicima događaja"
-
-#. module: calendar
-#: model:ir.model,name:calendar.model_calendar_event_type
-msgid "Event Meeting Type"
-msgstr ""
+#: model:ir.model,name:calendar.model_calendar_event
+msgid "Event"
+msgstr "Događaj"
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__display_time
@@ -658,28 +688,39 @@ msgid "Event Time"
 msgstr "Vrijeme događaja"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__privacy__public
+#: model:ir.model,name:calendar.model_calendar_alarm
+msgid "Event alarm"
+msgstr "Alarm događaja"
+
+#. module: calendar
+#: code:addons/calendar/models/calendar.py:1225
+#, python-format
+msgid "Event recurrence interval cannot be negative."
+msgstr "Interval ponavljanja događaja ne može biti negativan."
+
+#. module: calendar
+#: selection:calendar.event,privacy:0
 msgid "Everyone"
 msgstr "Svatko"
 
 #. module: calendar
-#: code:addons/calendar/models/mail_activity.py:0
+#: code:addons/calendar/models/mail_activity.py:38
 #, python-format
 msgid "Feedback: "
 msgstr ""
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__byday__5
+#: selection:calendar.event,byday:0
 msgid "Fifth"
 msgstr "Peti"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__byday__1
+#: selection:calendar.event,byday:0
 msgid "First"
 msgstr "Prvi"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:990
 #, python-format
 msgid "First you have to specify the date of the invitation."
 msgstr "Navedite datum pozivnice"
@@ -700,13 +741,13 @@ msgid "Followers (Partners)"
 msgstr "Pratitelji (Partneri)"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__byday__4
+#: selection:calendar.event,byday:0
 msgid "Fourth"
 msgstr "Četvrti"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_attendee__availability__free
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__show_as__free
+#: selection:calendar.attendee,availability:0
+#: selection:calendar.event,show_as:0
 msgid "Free"
 msgstr "Slobodan"
 
@@ -721,7 +762,7 @@ msgid "Fri"
 msgstr "Pet"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__week_list__fr
+#: selection:calendar.event,week_list:0
 msgid "Friday"
 msgstr "Petak"
 
@@ -731,20 +772,20 @@ msgid "Group By"
 msgstr "Grupiraj po"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:1616
 #, python-format
 msgid "Group by date is not supported, use the calendar view instead."
 msgstr "Grupiranje po datumu nije podržano. Koristite kalendar."
 
 #. module: calendar
 #: model:ir.model,name:calendar.model_ir_http
-msgid "HTTP Routing"
-msgstr ""
+msgid "HTTP routing"
+msgstr "HTTP usmjeravanje"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_alarm__interval__hours
-msgid "Hours"
-msgstr "Sati"
+#: selection:calendar.alarm,interval:0
+msgid "Hour(s)"
+msgstr "Sat(i)"
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_alarm__id
@@ -801,11 +842,6 @@ msgid "Invitation for"
 msgstr "Pozivnica za"
 
 #. module: calendar
-#: model:mail.template,subject:calendar.calendar_template_meeting_invitation
-msgid "Invitation to ${object.event_id.name}"
-msgstr ""
-
-#. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
 msgid "Invitations"
 msgstr "Pozivnice"
@@ -826,7 +862,7 @@ msgid "Is the Event Highlighted"
 msgstr ""
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__byday__-1
+#: selection:calendar.event,byday:0
 msgid "Last"
 msgstr "Posljednji"
 
@@ -881,29 +917,19 @@ msgid "Location of Event"
 msgstr "Lokacija događaja"
 
 #. module: calendar
-#: model_terms:ir.ui.view,arch_db:calendar.invitation_page_anonymous
-msgid "Logo"
-msgstr "Logo"
-
-#. module: calendar
-#: model:ir.model.fields,field_description:calendar.field_calendar_event__message_main_attachment_id
-msgid "Main Attachment"
-msgstr "Glavni prilog"
-
-#. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_contacts__user_id
 msgid "Me"
 msgstr "Ja"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__mail_activity_type__category__meeting
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_search
+#: selection:mail.activity.type,category:0
 msgid "Meeting"
 msgstr "Sastanak"
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:936
+#: code:addons/calendar/models/calendar.py:941
 #, python-format
 msgid "Meeting '%s' starts '%s' and ends '%s'"
 msgstr ""
@@ -917,6 +943,11 @@ msgstr "Opis sastanka"
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__name
 msgid "Meeting Subject"
 msgstr "Tema sastanka"
+
+#. module: calendar
+#: model:ir.model,name:calendar.model_calendar_event_type
+msgid "Meeting Type"
+msgstr "Vrsta sastanka"
 
 #. module: calendar
 #: model:ir.actions.act_window,name:calendar.action_calendar_event_type
@@ -935,6 +966,7 @@ msgstr "Satanak povezan"
 #: model:ir.actions.act_window,name:calendar.action_calendar_event_notify
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
+#: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form_popup
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_tree
 msgid "Meetings"
 msgstr "Sastanci"
@@ -947,7 +979,7 @@ msgstr "Poruka"
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__message_has_error
 msgid "Message Delivery error"
-msgstr "Greška pri isporuci poruke"
+msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__message_ids
@@ -955,9 +987,9 @@ msgid "Messages"
 msgstr "Poruke"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_alarm__interval__minutes
-msgid "Minutes"
-msgstr "Minute"
+#: selection:calendar.alarm,interval:0
+msgid "Minute(s)"
+msgstr "Minuta"
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
@@ -970,14 +1002,19 @@ msgid "Mon"
 msgstr "Pon"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__week_list__mo
+#: selection:calendar.event,week_list:0
 msgid "Monday"
 msgstr "Ponedjeljak"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__rrule_type__monthly
-msgid "Months"
-msgstr "Mjeseci"
+#: selection:calendar.event,rrule_type:0
+msgid "Month(s)"
+msgstr "Mjesec(i)"
+
+#. module: calendar
+#: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_search
+msgid "My Events"
+msgstr "Moji događaji"
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_search
@@ -991,8 +1028,8 @@ msgid "Name"
 msgstr "Naziv"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_attendee__state__needsaction
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__attendee_status__needsaction
+#: selection:calendar.attendee,state:0
+#: selection:calendar.event,attendee_status:0
 msgid "Needs Action"
 msgstr "Potrebna akcija"
 
@@ -1002,34 +1039,9 @@ msgid "No I'm not going."
 msgstr "Ne, ne dolazim."
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_alarm__alarm_type__notification
+#: selection:calendar.alarm,type:0
 msgid "Notification"
 msgstr "Obavijest"
-
-#. module: calendar
-#: model:calendar.alarm,name:calendar.alarm_notif_5
-msgid "Notification - 1 Days"
-msgstr ""
-
-#. module: calendar
-#: model:calendar.alarm,name:calendar.alarm_notif_3
-msgid "Notification - 1 Hours"
-msgstr ""
-
-#. module: calendar
-#: model:calendar.alarm,name:calendar.alarm_notif_1
-msgid "Notification - 15 Minutes"
-msgstr ""
-
-#. module: calendar
-#: model:calendar.alarm,name:calendar.alarm_notif_4
-msgid "Notification - 2 Hours"
-msgstr ""
-
-#. module: calendar
-#: model:calendar.alarm,name:calendar.alarm_notif_2
-msgid "Notification - 30 Minutes"
-msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__message_needaction_counter
@@ -1039,7 +1051,7 @@ msgstr "Broj akcija"
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__message_has_error_counter
 msgid "Number of error"
-msgstr "Broj grešaka"
+msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,help:calendar.field_calendar_event__message_needaction_counter
@@ -1049,10 +1061,10 @@ msgstr "Broj poruka koje zahtijevaju aktivnost"
 #. module: calendar
 #: model:ir.model.fields,help:calendar.field_calendar_event__message_has_error_counter
 msgid "Number of messages with delivery error"
-msgstr "Broj poruka sa greškama pri isporuci"
+msgstr ""
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__end_type__count
+#: selection:calendar.event,end_type:0
 msgid "Number of repetitions"
 msgstr "Broj ponavljanja"
 
@@ -1063,25 +1075,25 @@ msgstr "Broj nepročitanih poruka"
 
 #. module: calendar
 #. openerp-web
-#: code:addons/calendar/static/src/xml/notification_calendar.xml:0
+#: code:addons/calendar/static/src/xml/base_calendar.xml:17
 #, python-format
 msgid "OK"
 msgstr "U redu"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__privacy__confidential
+#: selection:calendar.event,privacy:0
 msgid "Only internal users"
 msgstr "Samo interni korisnici"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__privacy__private
+#: selection:calendar.event,privacy:0
 msgid "Only me"
 msgstr "Samo ja"
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.mail_activity_view_form_popup
 msgid "Open Calendar"
-msgstr "Otvori kalendar"
+msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__month_by
@@ -1092,6 +1104,11 @@ msgstr "Opcija"
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
 msgid "Options"
 msgstr "Opcije"
+
+#. module: calendar
+#: selection:mail.activity.type,category:0
+msgid "Other"
+msgstr "Ostalo"
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__user_id
@@ -1110,7 +1127,7 @@ msgid "Partner-related data of the user"
 msgstr ""
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:1238
 #, python-format
 msgid "Please select a proper day of the month."
 msgstr "Odaberite odgovarajući dan u mjesecu."
@@ -1124,7 +1141,7 @@ msgstr "Privatnost"
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__rrule_type
 msgid "Recurrence"
-msgstr "Ponavljanje"
+msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__end_type
@@ -1159,7 +1176,12 @@ msgstr "Ponavljajuće pravilo"
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_alarm__duration
 msgid "Remind Before"
-msgstr "Podsjeti prije"
+msgstr ""
+
+#. module: calendar
+#: selection:mail.activity.type,category:0
+msgid "Reminder"
+msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__alarm_ids
@@ -1198,19 +1220,24 @@ msgid "Responsible"
 msgstr "Odgovoran"
 
 #. module: calendar
+#: selection:calendar.alarm,type:0
+msgid "SMS Text Message"
+msgstr ""
+
+#. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__sa
 msgid "Sat"
 msgstr "Sub"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__week_list__sa
+#: selection:calendar.event,week_list:0
 msgid "Saturday"
 msgstr "Subota"
 
 #. module: calendar
 #: model_terms:ir.actions.act_window,help:calendar.action_calendar_event
 msgid "Schedule a new meeting"
-msgstr "Zakaži novi sastanak"
+msgstr ""
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_search
@@ -1218,7 +1245,7 @@ msgid "Search Meetings"
 msgstr "Traži sastanke"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__byday__2
+#: selection:calendar.event,byday:0
 msgid "Second"
 msgstr "Drugi"
 
@@ -1239,7 +1266,7 @@ msgstr "Prikaži vrijeme kao"
 
 #. module: calendar
 #. openerp-web
-#: code:addons/calendar/static/src/xml/notification_calendar.xml:0
+#: code:addons/calendar/static/src/xml/base_calendar.xml:19
 #, python-format
 msgid "Snooze"
 msgstr "Odgodi"
@@ -1267,6 +1294,7 @@ msgstr "Početni datum događaja, bez vremena za cjelodnevne događaje"
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
+#: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form_popup
 msgid "Starting at"
 msgstr "Počinje"
 
@@ -1302,12 +1330,12 @@ msgid "Sun"
 msgstr "Ned"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__week_list__su
+#: selection:calendar.event,week_list:0
 msgid "Sunday"
 msgstr "Nedjelja"
 
 #. module: calendar
-#: model:ir.model.constraint,message:calendar.constraint_calendar_event_type_name_uniq
+#: sql_constraint:calendar.event.type:0
 msgid "Tag name already exists !"
 msgstr "Naziv oznake već postoji !"
 
@@ -1323,7 +1351,7 @@ msgstr "!"
 
 #. module: calendar
 #. openerp-web
-#: code:addons/calendar/static/src/js/mail_activity.js:0
+#: code:addons/calendar/static/src/js/mail_activity.js:42
 #, python-format
 msgid ""
 "The activity is linked to a meeting. Deleting it will remove the meeting as "
@@ -1339,32 +1367,20 @@ msgid ""
 msgstr ""
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:935
 #, python-format
 msgid ""
 "The ending date and time cannot be earlier than the starting date and time."
 msgstr ""
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:940
 #, python-format
 msgid "The ending date cannot be earlier than the starting date."
 msgstr ""
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
-#, python-format
-msgid "The interval cannot be negative."
-msgstr ""
-
-#. module: calendar
-#: code:addons/calendar/models/calendar.py:0
-#, python-format
-msgid "The number of repetitions  cannot be negative."
-msgstr ""
-
-#. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__byday__3
+#: selection:calendar.event,byday:0
 msgid "Third"
 msgstr "Treći"
 
@@ -1379,20 +1395,15 @@ msgid "Thu"
 msgstr "Čet"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__week_list__th
+#: selection:calendar.event,week_list:0
 msgid "Thursday"
 msgstr "Četvrtak"
 
 #. module: calendar
-#: model:ir.model.fields,field_description:calendar.field_calendar_event__event_tz
-msgid "Timezone"
-msgstr "Vremenska zona"
-
-#. module: calendar
-#: code:addons/calendar/models/res_users.py:0
+#: code:addons/calendar/models/res_users.py:41
 #, python-format
 msgid "Today's Meetings"
-msgstr "Današnji sastanci"
+msgstr ""
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__tu
@@ -1400,27 +1411,24 @@ msgid "Tue"
 msgstr "Uto"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__week_list__tu
+#: selection:calendar.event,week_list:0
 msgid "Tuesday"
 msgstr "Utorak"
 
 #. module: calendar
-#: model:ir.model.fields,field_description:calendar.field_calendar_alarm__alarm_type
+#: model:ir.model.fields,field_description:calendar.field_calendar_alarm__type
 msgid "Type"
 msgstr "Vrsta"
 
 #. module: calendar
-#. openerp-web
-#: code:addons/calendar/static/src/xml/base_calendar.xml:0
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_attendee__state__tentative
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__attendee_status__tentative
+#: selection:calendar.attendee,state:0
+#: selection:calendar.event,attendee_status:0
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
-#, python-format
 msgid "Uncertain"
 msgstr "Nesigurno"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__state__draft
+#: selection:calendar.event,state:0
 msgid "Unconfirmed"
 msgstr "Nepotvrđen"
 
@@ -1431,6 +1439,7 @@ msgstr "Jedinica"
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__message_unread
+#: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_search
 msgid "Unread Messages"
 msgstr "Nepročitane poruke"
 
@@ -1460,9 +1469,14 @@ msgid "Wed"
 msgstr "Sri"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__week_list__we
+#: selection:calendar.event,week_list:0
 msgid "Wednesday"
 msgstr "Srijeda"
+
+#. module: calendar
+#: selection:calendar.event,rrule_type:0
+msgid "Week(s)"
+msgstr "Tjedan(a)"
 
 #. module: calendar
 #: model:ir.model.fields,field_description:calendar.field_calendar_event__week_list
@@ -1470,14 +1484,9 @@ msgid "Weekday"
 msgstr "Dan u tjednu"
 
 #. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__rrule_type__weekly
-msgid "Weeks"
-msgstr "Tjedni"
-
-#. module: calendar
-#: model:ir.model.fields.selection,name:calendar.selection__calendar_event__rrule_type__yearly
-msgid "Years"
-msgstr ""
+#: selection:calendar.event,rrule_type:0
+msgid "Year(s)"
+msgstr "Godina(e)"
 
 #. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.invitation_page_anonymous
@@ -1485,12 +1494,33 @@ msgid "Yes I'm going."
 msgstr "Da, dolazim."
 
 #. module: calendar
-#: code:addons/calendar/models/calendar.py:0
+#: code:addons/calendar/models/calendar.py:157
 #, python-format
 msgid "You cannot duplicate a calendar attendee."
 msgstr "Ne možete duplicirati kalendar sudionika."
 
 #. module: calendar
+#: model:ir.model,name:calendar.model_calendar_alarm_manager
+msgid "calendar.alarm_manager"
+msgstr "calendar.alarm_manager"
+
+#. module: calendar
+#: model:ir.model,name:calendar.model_calendar_contacts
+msgid "calendar.contacts"
+msgstr "calendar.contacts"
+
+#. module: calendar
 #: model_terms:ir.ui.view,arch_db:calendar.view_calendar_event_form
 msgid "e.g. Business Lunch"
 msgstr "npr. Poslovni ručak"
+
+#. module: calendar
+#: code:addons/calendar/models/calendar.py:1223
+#, python-format
+msgid "interval cannot be negative."
+msgstr "interval ne može biti negativan"
+
+#. module: calendar
+#: model:ir.model,name:calendar.model_ir_attachment
+msgid "ir.attachment"
+msgstr "ir.attachment"

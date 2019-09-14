@@ -3,9 +3,7 @@ odoo.define('mail.ThreadWindow', function (require) {
 
 var AbstractThreadWindow = require('mail.AbstractThreadWindow');
 var BasicComposer = require('mail.composer.Basic');
-var ExtendedComposer = require('mail.composer.Extended');
 
-var config = require('web.config');
 var core = require('web.core');
 
 var QWeb = core.qweb;
@@ -67,27 +65,19 @@ var ThreadWindow = AbstractThreadWindow.extend({
         if (!this.hasThread()) {
             this._startWithoutThread();
         } else if (this.needsComposer()) {
-            var composer;
-            var composerParams = {
+            var basicComposer = new BasicComposer(this, {
                 mentionPartnersRestricted: this._thread.getType() !== 'document_thread',
+                isMini: true,
                 thread: this._thread,
-            };
-            if (
-                config.device.isMobile &&
-                this._thread.isMassMailing()
-            ) {
-                composer = new ExtendedComposer(this, composerParams);
-            } else {
-                composer = new BasicComposer(this, _.extend({ isMini: true }, composerParams));
-            }
-            composer.on('post_message', this, this._postMessage);
-            composer.once('input_focused', this, function () {
+            });
+            basicComposer.on('post_message', this, this._postMessage);
+            basicComposer.once('input_focused', this, function () {
                 var commands = this._thread.getCommands();
                 var partners = this._thread.getMentionPartnerSuggestions();
-                composer.mentionSetCommands(commands);
-                composer.mentionSetPrefetchedPartners(partners);
+                basicComposer.mentionSetCommands(commands);
+                basicComposer.mentionSetPrefetchedPartners(partners);
             });
-            composerDef = composer.replace(this.$('.o_thread_composer'));
+            composerDef = basicComposer.replace(this.$('.o_thread_composer'));
             composerDef.then(function () {
                 self.$input = self.$('.o_composer_text_field');
             });
@@ -138,6 +128,24 @@ var ThreadWindow = AbstractThreadWindow.extend({
      */
     isPassive: function () {
         return this._passive;
+    },
+    /**
+     * States whether the input of the thread window should be displayed or not.
+     * This is based on the type of the thread:
+     *
+     * Do not display the input in the following cases:
+     *
+     * - no thread related to this window
+     * - window of a mailbox (temp: let us have mailboxes in window mode)
+     * - window of a thread with mass mailing
+     *
+     * Any other threads show the input in the window.
+     *
+     * @override
+     * @returns {boolean}
+     */
+    needsComposer: function () {
+        return this._super() && !this._thread.isMassMailing();
     },
     /**
      * Turn the thread window in active mode, so that when the bottom of the

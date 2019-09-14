@@ -1,7 +1,6 @@
 odoo.define('website_sale_options.website_sale', function (require) {
 'use strict';
 
-var ajax = require('web.ajax');
 var core = require('web.core');
 var publicWidget = require('web.public.widget');
 var OptionalProductsModal = require('sale_product_configurator.OptionalProductsModal');
@@ -68,21 +67,26 @@ publicWidget.registry.WebsiteSale.include({
      * @private
      * @param {Boolean} goToShop Triggers a page refresh to the url "shop/cart"
      */
-    _onModalSubmit: function (goToShop) {
-        var productAndOptions = JSON.stringify(
+    _onModalSubmit: function (goToShop){
+        var customValues = JSON.stringify(
             this.optionalProductsModal.getSelectedProducts()
         );
 
-        ajax.post('/shop/cart/update_option', {
-            product_and_options: productAndOptions
-        }).then(function (quantity) {
-            if (goToShop) {
-                var path = "/shop/cart";
-                window.location.pathname = path;
+        this.$form.ajaxSubmit({
+            url:  '/shop/cart/update_option',
+            data: {
+                lang: this._getContext().lang,
+                custom_values: customValues
+            },
+            success: function (quantity) {
+                if (goToShop) {
+                    var path = "/shop/cart";
+                    window.location.pathname = path;
+                }
+                var $quantity = $(".my_cart_quantity");
+                $quantity.parent().parent().removeClass("d-none", !quantity);
+                $quantity.html(quantity).hide().fadeIn(600);
             }
-            var $quantity = $(".my_cart_quantity");
-            $quantity.parent().parent().removeClass("d-none", !quantity);
-            $quantity.html(quantity).hide().fadeIn(600);
         });
     },
 });

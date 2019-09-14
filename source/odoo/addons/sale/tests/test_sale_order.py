@@ -337,12 +337,12 @@ class TestSaleOrder(TestCommonSaleNoChart):
             'statement_id': statement.id
         })
         st_line2 = self.env['account.bank.statement.line'].create({
-            'name': 'Payment for SO/01/01',
+            'name': 'SO/01',
             'amount': 15,
             'statement_id': statement.id
         })
         st_line3 = self.env['account.bank.statement.line'].create({
-            'name': 'Payment for Petit suisse',
+            'name': 'suisse',
             'amount': 15,
             'statement_id': statement.id
         })

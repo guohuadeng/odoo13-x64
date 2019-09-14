@@ -2,11 +2,11 @@ odoo.define('rating.portal.composer', function (require) {
 'use strict';
 
 var core = require('web.core');
-var portalComposer = require('portal.composer');
+var portalChatter = require('portal.chatter');
 
 var _t = core._t;
 
-var PortalComposer = portalComposer.PortalComposer;
+var PortalComposer = portalChatter.PortalComposer;
 
 var STAR_RATING_RATIO = 2;  // conversion factor from the star (1-5) to the db rating range (1-10)
 
@@ -17,7 +17,7 @@ var STAR_RATING_RATIO = 2;  // conversion factor from the star (1-5) to the db r
  */
 PortalComposer.include({
     events: _.extend({}, PortalComposer.prototype.events, {
-        'click .stars i': '_onClickStar',
+        'click .stars': '_onClickStarBlock',
         'mouseleave .stars': '_onMouseleaveStarBlock',
         'mousemove .stars i': '_onMoveStar',
         'mouseleave .stars i': '_onMoveLeaveStar',
@@ -93,9 +93,7 @@ PortalComposer.include({
     /**
      * @private
      */
-    _onClickStar: function (ev) {
-        var index = this.$('.stars i').index(ev.currentTarget);
-        this.set("star_value", index + 1);
+    _onClickStarBlock: function () {
         this.user_click = true;
         this.$input.val(this.get("star_value") * STAR_RATING_RATIO);
     },

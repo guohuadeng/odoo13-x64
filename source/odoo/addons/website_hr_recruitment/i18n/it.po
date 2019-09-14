@@ -1,23 +1,24 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* website_hr_recruitment
+# * website_hr_recruitment
 # 
 # Translators:
-# Sergio Zanchetta <primes2h@gmail.com>, 2019
-# Martin Trigaux, 2019
-# Davide Corio <enlightx@gmail.com>, 2019
-# Paolo Valier, 2019
-# Pietro Della Notte <pdellanotte@gmail.com>, 2019
-# Léonie Bouchat <lbo@odoo.com>, 2019
-# mymage <stefano.consolaro@mymage.it>, 2019
+# Martin Trigaux, 2018
+# Luigi Di Naro <gigidn@gmail.com>, 2018
+# Simone Bernini <simone@aperturelabs.it>, 2018
+# ginfriz <ginfriz84@hotmail.it>, 2018
+# Riccardo Di Maio <riccardodimaio11@gmail.com>, 2018
+# Paolo Valier, 2018
+# Pietro Della Notte <pdellanotte@gmail.com>, 2018
+# Léonie Bouchat <lbo@odoo.com>, 2018
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:17+0000\n"
-"PO-Revision-Date: 2019-08-26 09:15+0000\n"
-"Last-Translator: mymage <stefano.consolaro@mymage.it>, 2019\n"
+"POT-Creation-Date: 2018-09-18 09:50+0000\n"
+"PO-Revision-Date: 2018-08-24 09:34+0000\n"
+"Last-Translator: Léonie Bouchat <lbo@odoo.com>, 2018\n"
 "Language-Team: Italian (https://www.transifex.com/odoo/teams/41243/it/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -46,32 +47,6 @@ msgid "50% YoY"
 msgstr "50% su base annuale"
 
 #. module: website_hr_recruitment
-#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.thankyou_ir_ui_view
-#: model_terms:website.page,arch_db:website_hr_recruitment.thankyou
-msgid "<br/><i class=\"fa fa-phone\" role=\"img\" aria-label=\"Phone\" title=\"Phone\"/>"
-msgstr "<br/><i class=\"fa fa-phone\" role=\"img\" aria-label=\"Phone\" title=\"Phone\"/>"
-
-#. module: website_hr_recruitment
-#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.index
-msgid ""
-"<i class=\"fa fa-clock-o\" title=\"Publication date\" role=\"img\" aria-"
-"label=\"Publication date\"/>"
-msgstr ""
-"<i class=\"fa fa-clock-o\" title=\"Publication date\" role=\"img\" aria-"
-"label=\"Publication date\"/>"
-
-#. module: website_hr_recruitment
-#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.thankyou_ir_ui_view
-#: model_terms:website.page,arch_db:website_hr_recruitment.thankyou
-msgid "<i class=\"fa fa-envelope\" role=\"img\" aria-label=\"Email\" title=\"Email\"/>"
-msgstr "<i class=\"fa fa-envelope\" role=\"img\" aria-label=\"Email\" title=\"E-mail\"/>"
-
-#. module: website_hr_recruitment
-#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.hr_job_website_inherit
-msgid "<span class=\"bg-success\">Published</span>"
-msgstr ""
-
-#. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid ""
 "<span class=\"fa fa-2x fa-calendar\"/>\n"
@@ -94,7 +69,7 @@ msgid ""
 "                    Discount Programs"
 msgstr ""
 "<span class=\"fa fa-2x fa-check-circle\"/>\n"
-"                    Programmi di sconto"
+"                    Discount Programs"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -147,14 +122,14 @@ msgid ""
 "                                        </span>"
 msgstr ""
 "<span>\n"
-"                                            Di solito rispondiamo tra uno e tre giorni.<br/>\n"
+"                                            Di solito rispondiamo entro uno a tre giorni.<br/>\n"
 "                                            Non esitare a contattarlo/la per ulteriori domande.\n"
 "                                        </span>"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "<strong>Challenges</strong>"
-msgstr "<strong>Sfide</strong>"
+msgstr "<strong>Challenge</strong>"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -179,12 +154,12 @@ msgstr "Raggiungere gli obiettivi mensili"
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.job_countries
 msgid "All Countries"
-msgstr "Tutte le nazioni"
+msgstr "Tutte le Nazioni"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.job_departments
 msgid "All Departments"
-msgstr "Tutti i reparti"
+msgstr "Tutti i Reparti"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.job_offices
@@ -195,13 +170,6 @@ msgstr "Tutti gli uffici"
 #: model:ir.model,name:website_hr_recruitment.model_hr_applicant
 msgid "Applicant"
 msgstr "Candidato"
-
-#. module: website_hr_recruitment
-#. openerp-web
-#: code:addons/website_hr_recruitment/static/src/js/website_hr_recruitment_editor.js:0
-#, python-format
-msgid "Applied Job"
-msgstr "Lavoro Richiesto"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
@@ -252,7 +220,7 @@ msgstr "Contattaci"
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.thankyou_ir_ui_view
 #: model_terms:website.page,arch_db:website_hr_recruitment.thankyou
 msgid "Continue To Our Website"
-msgstr "Continua al nostro sito web"
+msgstr "Continua al nostro Sito Web"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.index
@@ -263,26 +231,18 @@ msgstr ""
 "alto a destra."
 
 #. module: website_hr_recruitment
-#. openerp-web
-#: code:addons/website_hr_recruitment/static/src/js/website_hr_recruitment_editor.js:0
-#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
-#, python-format
-msgid "Department"
-msgstr "Ufficio"
-
-#. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid ""
 "Direct coordination with functional consultants for qualification and follow"
 " ups"
 msgstr ""
-"Coordinamento diretto con consulenti funzionali per la qualificazione e i il"
-" controllo"
+"Coordinamento diretto con consulenti funzionali per la qualificazione e i "
+"follow-up"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Full sales cycle"
-msgstr "Ciclo vendite completo"
+msgstr "Ciclo completo di vendite"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -290,13 +250,11 @@ msgid ""
 "Healthcare, dental, vision, life insurance, Flexible Spending Account (FSA),"
 " Health Savings Account (HSA)"
 msgstr ""
-"Assistenza sanitaria, odontoiatria, oculistica, assicurazione vita, conto "
-"spesa flessibile (FSA), conto risparmio sanitario (HSA)"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "High commissions for good performers"
-msgstr "Commissioni elevate per buoni risultati"
+msgstr ""
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.thankyou_ir_ui_view
@@ -305,24 +263,19 @@ msgid "In the meantime,"
 msgstr "Nel frattempo,"
 
 #. module: website_hr_recruitment
-#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
-msgid "Job"
-msgstr "Lavoro"
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__is_published
+msgid "Is published"
+msgstr "È pubblicato"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
 msgid "Job Application Form"
-msgstr "Modulo domande lavoro"
+msgstr "Modulo per applicazioni lavorative"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Job Complexity:"
 msgstr "Complessità del lavoro:"
-
-#. module: website_hr_recruitment
-#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.hr_job_website_inherit
-msgid "Job Description"
-msgstr "Descrizione lavoro"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.detail
@@ -340,7 +293,7 @@ msgid "Job Security:"
 msgstr "Sicurezza del lavoro:"
 
 #. module: website_hr_recruitment
-#: code:addons/website_hr_recruitment/controllers/main.py:0
+#: code:addons/website_hr_recruitment/controllers/main.py:77
 #, python-format
 msgid "Job Title"
 msgstr "Qualifica"
@@ -349,7 +302,7 @@ msgstr "Qualifica"
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.detail
 #: model:website.menu,name:website_hr_recruitment.menu_jobs
 msgid "Jobs"
-msgstr "Posizioni lavorative"
+msgstr "Lavori"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.index
@@ -372,14 +325,14 @@ msgstr ""
 msgid ""
 "Large apps scope: CRM, MRP, Accounting, Inventory, HR, Project Mgt, etc."
 msgstr ""
-"Grande portata delle applicazioni: CRM, MRP, contabilità, Inventario, "
-"risorse umane, gestione progetti, ecc."
+"Grande portata delle applicazioni: CRM, MRP, contabilità, Inventario, HR, "
+"gestione progetti, exx."
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.thankyou_ir_ui_view
 #: model_terms:website.page,arch_db:website_hr_recruitment.thankyou
 msgid "Look around on our website:"
-msgstr "Visita il nostro sito web:"
+msgstr "Visita il nostro sito Web:"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -387,11 +340,16 @@ msgid "Need More Info?"
 msgstr "Hai bisogno di ulteriori informazioni?"
 
 #. module: website_hr_recruitment
+#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.content_new_job_offer
+msgid "New Job Offer"
+msgstr "Nuova offerta di lavoro"
+
+#. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "No outbound calls, you get leads and focus on providing value to them"
 msgstr ""
-"Nessuna chiamata in uscita, ottieni dei contatti e concentrati sul "
-"valorizzarli"
+"Nessuna chiamata in uscita, hai dei lead e devi solo offrigli un valore "
+"aggiunto"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -400,7 +358,7 @@ msgid ""
 "Bay Bridge."
 msgstr ""
 "A pochi passi da BART, Caltrain, dall'autostrada 101, da un'area di "
-"carpooling e dal ponte di San Francisco."
+"carpooling, e dal ponte di San Francisco."
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.index
@@ -416,56 +374,51 @@ msgstr "Possibilità di avere risultati eccellenti:"
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Peet's and Philz coffee provided all day to order and pantry snacks"
 msgstr ""
-"Caffè Peet's e Philz disponibile tutto il giorno per ordinare e conservare "
-"gli spuntini"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Personal Evolution:"
-msgstr "Evoluzione personalizzata:"
-
-#. module: website_hr_recruitment
-#. openerp-web
-#: code:addons/website_hr_recruitment/static/src/xml/website_hr_recruitment.xml:0
-#, python-format
-msgid "Phone Number"
-msgstr "Numero di telefono"
+msgstr "Evoluzione personalizzata"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Play any sport with colleagues and the bill is covered"
-msgstr "Pratica uno sport con i tuoi colleghi e il conto sarà pagato"
+msgstr "Pratica uno sport con i tuoi colleghi e la fattura sarà coperta"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Pre-tax commuter benefitsbr <br/>(parking and transit)"
-msgstr "Benefici di mobilità <br/> (parcheggio e transito)"
+msgstr "Benefici di mobilità <br/> (parcheggio e traffico)"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Profitable"
-msgstr "Redditizio"
+msgstr "Vantaggioso"
 
 #. module: website_hr_recruitment
-#. openerp-web
-#: code:addons/website_hr_recruitment/static/src/xml/website_hr_recruitment.xml:0
+#: model:ir.model.fields,help:website_hr_recruitment.field_hr_job__website_id
+msgid "Restrict publishing to this website."
+msgstr "Limitare la pubblicazione su questo sito Web."
+
+#. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
-#, python-format
 msgid "Resume"
-msgstr "Curriculum"
+msgstr "Riavvia"
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__is_seo_optimized
+msgid "SEO optimized"
+msgstr "SEO ottimizzato"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Sales Cycle:"
-msgstr "Ciclo vendite:"
+msgstr "Ciclo delle vendite"
 
 #. module: website_hr_recruitment
-#. openerp-web
-#: code:addons/website_hr_recruitment/static/src/xml/website_hr_recruitment.xml:0
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
-#, python-format
 msgid "Short Introduction"
-msgstr "Breve introduzione"
+msgstr "Descrizione breve"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -476,7 +429,7 @@ msgid ""
 "                qualification to the negotiation, going through astonishing\n"
 "                product demos."
 msgstr ""
-"Breve riassunto del lavoro: un lavoro di vendita per persone intelligenti che possono\n"
+"Breve riassunto del lavoro: Un lavoro di vendita per persone intelligenti che possono\n"
 "                imparare rapidamente le pratiche di gestione di nuovi settori. Sarai\n"
 "                responsabile dell'intero ciclo di vendita, dalla\n"
 "                qualificazione dell'opportunità alla negoziazione, alle dimostrazioni\n"
@@ -490,12 +443,12 @@ msgstr "Origine dei candidati"
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
 msgid "Submit"
-msgstr "Invia"
+msgstr "Sottoscrivi"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Team / Company Size:"
-msgstr "Dimensioni team / azienda:"
+msgstr "Dimensioni del team / dell'azienda:"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -506,6 +459,11 @@ msgstr "La cultura"
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "The founder’s story"
 msgstr "La storia del fondatore "
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,help:website_hr_recruitment.field_hr_job__website_url
+msgid "The full URL to access the document through the website."
+msgstr "URL per accedere al documento attraverso il Sito Web "
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -521,27 +479,67 @@ msgstr "Stati Uniti + Canada"
 #. module: website_hr_recruitment
 #: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_recruitment_source__url
 msgid "Url Parameters"
-msgstr "Parametri URL"
+msgstr "Impostazioni dell'URL"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Vacation, Sick, and paid leaves"
-msgstr "Ferie, malattia e congedi pagati"
+msgstr "Ferie, malattia, ferie pagate"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
 msgid "Variability of the Job:"
-msgstr "Variabilità del lavoro:"
+msgstr "Variabilità del lavoro"
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__website_published
+msgid "Visible on current website"
+msgstr "Visibile sul sito Web attuale"
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__website_id
+msgid "Website"
+msgstr "Sito Web"
+
+#. module: website_hr_recruitment
+#: model_terms:ir.ui.view,arch_db:website_hr_recruitment.hr_job_website_inherit
+msgid "Website Editor"
+msgstr "Editor del sito Web"
 
 #. module: website_hr_recruitment
 #: model:ir.actions.act_url,name:website_hr_recruitment.action_open_website
 msgid "Website Recruitment Form"
-msgstr "Modulo di reclutamento sul sito web"
+msgstr "Form di reclutamento sul sito web"
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__website_url
+msgid "Website URL"
+msgstr "URL sito web"
 
 #. module: website_hr_recruitment
 #: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__website_description
 msgid "Website description"
 msgstr "Descrizione sito web"
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__website_meta_description
+msgid "Website meta description"
+msgstr "Descrizioni meta del sito"
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__website_meta_keywords
+msgid "Website meta keywords"
+msgstr "Meta parole chiave del sito"
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__website_meta_title
+msgid "Website meta title"
+msgstr "Meta titolo Sito web"
+
+#. module: website_hr_recruitment
+#: model:ir.model.fields,field_description:website_hr_recruitment.field_hr_job__website_meta_og_img
+msgid "Website opengraph image"
+msgstr "Immagine OpenGraph"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.default_website_description
@@ -558,20 +556,14 @@ msgstr ""
 "interessanti "
 
 #. module: website_hr_recruitment
-#. openerp-web
-#: code:addons/website_hr_recruitment/static/src/xml/website_hr_recruitment.xml:0
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
-#, python-format
 msgid "Your Email"
-msgstr "E-mail"
+msgstr "La tua email"
 
 #. module: website_hr_recruitment
-#. openerp-web
-#: code:addons/website_hr_recruitment/static/src/xml/website_hr_recruitment.xml:0
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
-#, python-format
 msgid "Your Name"
-msgstr "Nome"
+msgstr "Il tuo nome"
 
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.apply
@@ -603,4 +595,4 @@ msgstr "posizioni aperte"
 #. module: website_hr_recruitment
 #: model_terms:ir.ui.view,arch_db:website_hr_recruitment.index
 msgid "unpublished"
-msgstr "Non pubblicato"
+msgstr "non pubblicate"

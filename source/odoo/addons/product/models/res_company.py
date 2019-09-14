@@ -13,18 +13,18 @@ class ResCompany(models.Model):
         ProductPricelist = self.env['product.pricelist']
         pricelist = ProductPricelist.search([('currency_id', '=', new_company.currency_id.id), ('company_id', '=', False)], limit=1)
         if not pricelist:
-            params = {'currency': new_company.currency_id.name}
             pricelist = ProductPricelist.create({
-                'name': _("Default %(currency)s pricelist") %  params,
+                'name': new_company.name,
                 'currency_id': new_company.currency_id.id,
             })
         field = self.env['ir.model.fields']._get('res.partner', 'property_product_pricelist')
-        self.env['ir.property'].sudo().create({
+        product_property = self.env['ir.property'].create({
             'name': 'property_product_pricelist',
             'value_reference': 'product.pricelist,%s' % pricelist.id,
-            'fields_id': field.id,
-            'company_id': new_company.id,
+            'fields_id': field.id
         })
+        # multi-company security rules prevents access
+        product_property.sudo().write({'company_id': new_company.id})
         return new_company
 
     def write(self, values):
@@ -50,13 +50,17 @@ class ResCompany(models.Model):
                 if currency_match and company_match:
                     main_pricelist.write({'currency_id': currency_id})
                 else:
-                    params = {'currency': self.env['res.currency'].browse(currency_id).name}
+                    params = {
+                        'currency': self.env['res.currency'].browse(currency_id).name,
+                        'company': company.name
+                    }
                     pricelist = ProductPricelist.create({
-                        'name': _("Default %(currency)s pricelist") %  params,
+                        'name': _("Default %(currency)s pricelist for %(company)s") %  params,
                         'currency_id': currency_id,
+                        'company_id': company.id,
                     })
                     field = self.env['ir.model.fields'].search([('model', '=', 'res.partner'), ('name', '=', 'property_product_pricelist')])
-                    self.env['ir.property'].sudo().create({
+                    self.env['ir.property'].create({
                         'name': 'property_product_pricelist',
                         'company_id': company.id,
                         'value_reference': 'product.pricelist,%s' % pricelist.id,

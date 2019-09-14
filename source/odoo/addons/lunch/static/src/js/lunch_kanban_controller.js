@@ -6,7 +6,6 @@ odoo.define('lunch.LunchKanbanController', function (require) {
  * override of the KanbanController.
  */
 
-var session = require('web.session');
 var core = require('web.core');
 var KanbanController = require('web.KanbanController');
 var LunchKanbanWidget = require('lunch.LunchKanbanWidget');
@@ -33,7 +32,6 @@ var LunchKanbanController = KanbanController.extend({
         this.editMode = false;
         this.updated = false;
         this.widgetData = null;
-        this.context = session.user_context;
         return this._super.apply(this, arguments);
     },
     /**
@@ -57,9 +55,6 @@ var LunchKanbanController = KanbanController.extend({
     _fetchPaymentInfo: function () {
         return this._rpc({
             route: '/lunch/payment_message',
-            params: {
-                context: this.context,
-            },
         });
     },
     _fetchWidgetData: function () {
@@ -69,7 +64,6 @@ var LunchKanbanController = KanbanController.extend({
             route: '/lunch/infos',
             params: {
                 user_id: this.userId,
-                context: this.context,
             },
         }).then(function (data) {
             self.widgetData = data;
@@ -154,7 +148,6 @@ var LunchKanbanController = KanbanController.extend({
             params: {
                 user_id: this.userId,
                 location_id: ev.data.locationId,
-                context: this.context,
             },
         }).then(function () {
             self.model._updateLocation(ev.data.locationId).then(function () {
@@ -191,7 +184,6 @@ var LunchKanbanController = KanbanController.extend({
             route: '/lunch/pay',
             params: {
                 user_id: this.userId,
-                context: this.context,
             },
         }).then(function (isPaid) {
             if (isPaid) {
@@ -233,7 +225,6 @@ var LunchKanbanController = KanbanController.extend({
             route: '/lunch/trash',
             params: {
                 user_id: this.userId,
-                context: this.context,
             },
         }).then(function () {
             self.reload();

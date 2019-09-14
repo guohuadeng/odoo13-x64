@@ -84,24 +84,14 @@ class MockRequest(object):
         app.get_db_router = app.bind = app.match = app
         if not kw.get('routing', True):
             app.match = werkzeugRaiseNotFound
-
-        lang = kw.get('lang')
-        if not lang:
-            lang_code = kw.get('context', {}).get('lang', env.context.get('lang', 'en_US'))
-            lang = env['res.lang']._lang_get(lang_code)
-
-        context = kw.get('context', {})
-        context.setdefault('lang', lang_code)
-
         self.request = DotDict({
-            'context': context,
+            'context': kw.get('context', {}),
             'db': None,
             'env': env,
             'httprequest': {
                 'path': '/hello/',
                 'app': app,
             },
-            'lang': lang,
             'redirect': werkzeug.utils.redirect,
             'session': {
                 'geoip': {

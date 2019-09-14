@@ -34,9 +34,7 @@
         <field name="view_id" ref="link_tracker.link_tracker_view_tree"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                Create a link tracker
-            </p><p>
-                Trackers are used to collect count stat about click on links and generate short URLs.
+                Create a new link tracker
             </p>
         </field>
         <field name="context">{'search_default_mass_mailing_id': active_id}</field>
@@ -49,9 +47,7 @@
         <field name="view_id" ref="link_tracker.link_tracker_view_tree"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                Create a link tracker
-            </p><p>
-                Trackers are used to collect count stat about click on links and generate short URLs.
+                Create a new link tracker
             </p>
         </field>
         <field name="context">{'id="link_tracker_action_mass_mailing"': active_id}</field>

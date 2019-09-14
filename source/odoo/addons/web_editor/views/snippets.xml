@@ -1,17 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 <template id="snippets">
-    <div id="snippets_menu">
-        <button type="button" class="o_we_add_snippet_btn active">
-            Blocks
-        </button>
-        <t t-set="customize_title">Click in the page to customize</t>
-        <button type="button" class="o_we_customize_snippet_btn"
-                t-att-data-title="customize_title"
-                disabled="disabled">
-            Options
-        </button>
-    </div>
+    <h2 id="snippets_menu">Add blocks</h2>
 
     <div id="o_scroll">
         <div id="snippet_structure" class="o_panel">
@@ -36,8 +26,11 @@
          data-selector="[data-oe-many2one-model]:not([data-oe-readonly])"
          data-no-check="true"/>
 
-    <div data-selector=".s_hr"
-         data-drop-near="p, h1, h2, h3, blockquote, .s_hr"/>
+    <div data-js="content"
+        data-selector=".s_hr"
+        data-drop-near="p, h1, h2, h3, blockquote, .s_hr">
+    </div>
+
 </template>
 
 <!-- default block -->

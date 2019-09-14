@@ -76,7 +76,6 @@
                             <field name="summary"/>
                             <field name="responsible"/>
                             <field name="responsible_id" attrs="{'invisible': [('responsible', '!=', 'other')]}"/>
-                            <field name="note"/>
                         </group>
                     </sheet>
                 </form>

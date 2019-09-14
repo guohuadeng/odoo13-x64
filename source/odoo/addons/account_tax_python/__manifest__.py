@@ -3,7 +3,8 @@
 
 {
     'name': "Define Taxes as Python Code",
-    'summary': "Use python code to define taxes",
+    'summary': """
+        Allows to use python code to define taxes""",
     'description': """
         A tax defined as python code consists in two snippets of python code which are executed in a local environment containing data such as the unit price, product or partner.
 

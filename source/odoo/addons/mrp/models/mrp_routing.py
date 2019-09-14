@@ -21,7 +21,8 @@ class MrpRouting(models.Model):
         'mrp.routing.workcenter', 'routing_id', 'Operations',
         copy=True)
     company_id = fields.Many2one(
-        'res.company', 'Company', default=lambda self: self.env.company)
+        'res.company', 'Company',
+        default=lambda self: self.env.company)
 
     @api.model
     def create(self, vals):
@@ -34,10 +35,9 @@ class MrpRoutingWorkcenter(models.Model):
     _name = 'mrp.routing.workcenter'
     _description = 'Work Center Usage'
     _order = 'sequence, id'
-    _check_company_auto = True
 
     name = fields.Char('Operation', required=True)
-    workcenter_id = fields.Many2one('mrp.workcenter', 'Work Center', required=True, check_company=True)
+    workcenter_id = fields.Many2one('mrp.workcenter', 'Work Center', required=True)
     sequence = fields.Integer(
         'Sequence', default=100,
         help="Gives the sequence order when displaying a list of routing Work Centers.")

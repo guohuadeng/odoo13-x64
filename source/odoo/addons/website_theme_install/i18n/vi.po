@@ -3,20 +3,17 @@
 # * website_theme_install
 # 
 # Translators:
-# fanha99 <fanha99@hotmail.com>, 2019
-# Nancy Momoland <thanhnguyen.icsc@gmail.com>, 2019
-# Duy BQ <duybq86@gmail.com>, 2019
-# Chinh Chinh <trinhttp@trobz.com>, 2019
-# Dung Nguyen Thi <dungnt@trobz.com>, 2019
-# Dao Nguyen <trucdao.uel@gmail.com>, 2019
-# 
+# thanh nguyen <thanhnguyen.icsc@gmail.com>, 2018
+# fanha99 <fanha99@hotmail.com>, 2018
+# Duy BQ <duybq86@gmail.com>, 2018
+# Minh Nguyen <ndminh210994@gmail.com>, 2018
 msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2018-09-21 13:18+0000\n"
-"PO-Revision-Date: 2019-08-26 09:16+0000\n"
-"Last-Translator: Dao Nguyen <trucdao.uel@gmail.com>, 2019\n"
+"PO-Revision-Date: 2018-09-21 13:18+0000\n"
+"Last-Translator: Minh Nguyen <ndminh210994@gmail.com>, 2018\n"
 "Language-Team: Vietnamese (https://www.transifex.com/odoo/teams/41243/vi/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -57,7 +54,7 @@ msgstr "Tác giả"
 #. module: website_theme_install
 #: selection:theme.ir.ui.view,mode:0
 msgid "Base view"
-msgstr "Giao diện cơ sở"
+msgstr "Dạng xem cơ bản"
 
 #. module: website_theme_install
 #: model_terms:ir.ui.view,arch_db:website_theme_install.view_website_form_view_themes_modal
@@ -67,7 +64,7 @@ msgstr "Hủy"
 #. module: website_theme_install
 #: model_terms:ir.ui.view,arch_db:website_theme_install.theme_view_search
 msgid "Category"
-msgstr "Chuyên mục"
+msgstr "Danh mục"
 
 #. module: website_theme_install
 #: model_terms:ir.ui.view,arch_db:website_theme_install.res_config_settings_view_form
@@ -88,7 +85,7 @@ msgstr "Công ty"
 #. module: website_theme_install
 #: model:ir.model,name:website_theme_install.model_res_config_settings
 msgid "Config Settings"
-msgstr "Cấu hình"
+msgstr "Cấu hình thiết lập"
 
 #. module: website_theme_install
 #: model:ir.actions.server,name:website_theme_install.theme_install_todo_action
@@ -123,7 +120,7 @@ msgstr "Tên hiển thị"
 #. module: website_theme_install
 #: selection:theme.ir.ui.view,mode:0
 msgid "Extension View"
-msgstr "Giao diện Mở rộng"
+msgstr "Dạng xem mở rộng"
 
 #. module: website_theme_install
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_ir_attachment__id
@@ -163,7 +160,7 @@ msgstr "Khóa"
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_menu____last_update
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_page____last_update
 msgid "Last Modified on"
-msgstr "Sửa lần cuối"
+msgstr "Sửa lần cuối vào"
 
 #. module: website_theme_install
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_ir_attachment__write_uid
@@ -171,7 +168,7 @@ msgstr "Sửa lần cuối"
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_menu__write_uid
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_page__write_uid
 msgid "Last Updated by"
-msgstr "Cập nhật gần đây bởi"
+msgstr "Cập nhật lần cuối bởi"
 
 #. module: website_theme_install
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_ir_attachment__write_date
@@ -179,12 +176,12 @@ msgstr "Cập nhật gần đây bởi"
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_menu__write_date
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_page__write_date
 msgid "Last Updated on"
-msgstr "Cập nhật gần đây vào"
+msgstr "Cập nhật lần cuối vào"
 
 #. module: website_theme_install
 #: model_terms:ir.ui.view,arch_db:website_theme_install.onboarding_website_theme_step
 msgid "Let's start!"
-msgstr "Bắt đầu!"
+msgstr ""
 
 #. module: website_theme_install
 #: model_terms:ir.ui.view,arch_db:website_theme_install.theme_view_kanban
@@ -232,12 +229,12 @@ msgstr "Trang"
 #. module: website_theme_install
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_page__website_indexed
 msgid "Page Indexed"
-msgstr "Trang được lập chỉ mục"
+msgstr ""
 
 #. module: website_theme_install
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_menu__parent_id
 msgid "Parent"
-msgstr "Cha"
+msgstr "Dự án cha"
 
 #. module: website_theme_install
 #: model_terms:ir.ui.view,arch_db:website_theme_install.customize_modal
@@ -247,7 +244,7 @@ msgstr ""
 #. module: website_theme_install
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_ir_ui_view__priority
 msgid "Priority"
-msgstr "Mức độ ưu tiên"
+msgstr "Độ ưu tiên"
 
 #. module: website_theme_install
 #: model_terms:ir.ui.view,arch_db:website_theme_install.theme_view_kanban
@@ -275,8 +272,6 @@ msgid ""
 "Technical field used to resolve multiple attachments in a multi-website "
 "environment."
 msgstr ""
-"Lĩnh vực kỹ thuật được sử dụng để giải quyết nhiều tệp đính kèm trong môi "
-"trường nhiều trang web."
 
 #. module: website_theme_install
 #: model_terms:ir.ui.view,arch_db:website_theme_install.theme_view_search
@@ -343,7 +338,7 @@ msgstr ""
 #: model:ir.model,name:website_theme_install.model_ir_ui_view
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_website_page__view_id
 msgid "View"
-msgstr "View"
+msgstr "Xem"
 
 #. module: website_theme_install
 #: model:ir.model.fields,field_description:website_theme_install.field_theme_ir_ui_view__copy_ids
@@ -353,7 +348,7 @@ msgstr ""
 #. module: website_theme_install
 #: model:ir.model,name:website_theme_install.model_website
 msgid "Website"
-msgstr "Website"
+msgstr "Trang web"
 
 #. module: website_theme_install
 #: model:ir.model,name:website_theme_install.model_website_menu

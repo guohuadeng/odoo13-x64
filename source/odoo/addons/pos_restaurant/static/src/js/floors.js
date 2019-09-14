@@ -926,14 +926,8 @@ models.PosModel = models.PosModel.extend({
                             self.set_table(table);
                         }
                     });
-            } else {
-                if (ids_to_remove.length) {
-                    self.remove_from_server_and_set_sync_state(ids_to_remove);
-                }
-                if (self.order_to_transfer_to_different_table && table) {
-                    self.order_to_transfer_to_different_table = null;
-                    self.set_table(table);
-                }
+            } else if (ids_to_remove.length) {
+                self.remove_from_server_and_set_sync_state(ids_to_remove);
             }
             this.set_order(null); // unset curent selected order
 

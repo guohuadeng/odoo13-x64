@@ -8,4 +8,3 @@ from . import test_qweb_float
 from . import test_ui
 from . import test_domain
 from . import test_schema
-from . import test_company_checks

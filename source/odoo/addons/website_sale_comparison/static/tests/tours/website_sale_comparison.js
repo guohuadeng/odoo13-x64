@@ -239,7 +239,7 @@ odoo.define('website_sale_comparison.tour_comparison', function (require) {
     },
     {
         content: "check there is the correct attribute",
-        trigger: '.o_ws_category_0:contains("color"):contains("red")',
+        trigger: '.Uncategorized:contains("color"):contains("red")',
         run: function () {},
     },
     ]);

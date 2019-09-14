@@ -402,52 +402,6 @@ var FieldMany2One = AbstractField.extend({
         };
     },
     /**
-     * @private
-     * @param {Object} values
-     * @param {string} search_val
-     * @param {Object} domain
-     * @param {Object} context
-     * @returns {Object}
-     */
-    _manageSearchMore: function (values, search_val, domain, context) {
-        var self = this;
-        values = values.slice(0, this.limit);
-        values.push({
-            label: _t("Search More..."),
-            action: function () {
-                var prom;
-                if (search_val !== '') {
-                    prom = self._rpc({
-                        model: self.field.relation,
-                        method: 'name_search',
-                        kwargs: {
-                            name: search_val,
-                            args: domain,
-                            operator: "ilike",
-                            limit: self.SEARCH_MORE_LIMIT,
-                            context: context,
-                        },
-                    });
-                }
-                Promise.resolve(prom).then(function (results) {
-                    var dynamicFilters;
-                    if (results) {
-                        var ids = _.map(results, function (x) {
-                            return x[0];
-                        });
-                        dynamicFilters = [{
-                            description: _.str.sprintf(_t('Quick search: %s'), search_val),
-                            domain: [['id', 'in', ids]],
-                        }];
-                    }
-                    self._searchCreatePopup("search", false, {}, dynamicFilters);
-                });
-            },
-            classname: 'o_m2o_dropdown_option',
-        });
-        return values;
-    },
-    /**
      * Listens to events 'field_changed' to keep track of the last event that
      * has been trigerred. This allows to detect that all changes have been
      * acknowledged by the environment.
@@ -598,7 +552,40 @@ var FieldMany2One = AbstractField.extend({
 
                 // search more... if more results than limit
                 if (values.length > self.limit) {
-                    values = self._manageSearchMore(values, search_val, domain, context);
+                    values = values.slice(0, self.limit);
+                    values.push({
+                        label: _t("Search More..."),
+                        action: function () {
+                            var prom;
+                            if (search_val !== '') {
+                                prom = self._rpc({
+                                    model: self.field.relation,
+                                    method: 'name_search',
+                                    kwargs: {
+                                        name: search_val,
+                                        args: domain,
+                                        operator: "ilike",
+                                        limit: self.SEARCH_MORE_LIMIT,
+                                        context: context,
+                                    },
+                                });
+                            }
+                            Promise.resolve(prom).then(function (results) {
+                                var dynamicFilters;
+                                if (results) {
+                                    var ids = _.map(results, function (x) {
+                                        return x[0];
+                                    });
+                                    dynamicFilters = [{
+                                        description: _.str.sprintf(_t('Quick search: %s'), search_val),
+                                        domain: [['id', 'in', ids]],
+                                    }];
+                                }
+                                self._searchCreatePopup("search", false, {}, dynamicFilters);
+                            });
+                        },
+                        classname: 'o_m2o_dropdown_option',
+                    });
                 }
                 var create_enabled = self.can_create && !self.nodeOptions.no_create;
                 // quick create
@@ -1781,13 +1768,21 @@ var FieldMany2Many = FieldX2Many.extend({
     supportedFieldTypes: ['many2many'],
 
     //--------------------------------------------------------------------------
-    // Public
+    // Handlers
     //--------------------------------------------------------------------------
+
     /**
-     * Opens a SelectCreateDialog
+     * Opens a SelectCreateDialog.
+     *
+     * @override
+     * @private
+     * @param {OdooEvent|MouseEvent} ev this event comes either from the 'Add
+     *   record' link in the list editable renderer, or from the 'Create' button
+     *   in the kanban view
      */
-    onAddRecordOpenDialog: function () {
+    _onAddRecord: function (ev) {
         var self = this;
+        ev.stopPropagation();
         var domain = this.record.getDomain({fieldName: this.name});
 
         new dialogs.SelectCreateDialog(this, {
@@ -1813,25 +1808,6 @@ var FieldMany2Many = FieldX2Many.extend({
             }
         }).open();
     },
-
-    //--------------------------------------------------------------------------
-    // Handlers
-    //--------------------------------------------------------------------------
-
-    /**
-     * Opens a SelectCreateDialog.
-     *
-     * @override
-     * @private
-     * @param {OdooEvent|MouseEvent} ev this event comes either from the 'Add
-     *   record' link in the list editable renderer, or from the 'Create' button
-     *   in the kanban view
-     */
-    _onAddRecord: function (ev) {
-        ev.stopPropagation();
-        this.onAddRecordOpenDialog();
-    },
-
     /**
      * Intercepts the 'open_record' event to edit its data and lets it bubble up
      * to the form view.
@@ -2576,7 +2552,7 @@ var FieldSelection = AbstractField.extend({
     description: _lt("Selection"),
     template: 'FieldSelection',
     specialData: "_fetchSpecialRelation",
-    supportedFieldTypes: ['selection'],
+    supportedFieldTypes: ['selection', 'many2one'],
     events: _.extend({}, AbstractField.prototype.events, {
         'change': '_onChange',
     }),
@@ -2629,14 +2605,10 @@ var FieldSelection = AbstractField.extend({
      */
     _renderEdit: function () {
         this.$el.empty();
-        var required = this.attrs.modifiersValue && this.attrs.modifiersValue.required;
         for (var i = 0 ; i < this.values.length ; i++) {
-            var disabled = required && this.values[i][0] === false;
-
             this.$el.append($('<option/>', {
                 value: JSON.stringify(this.values[i][0]),
-                text: this.values[i][1],
-                style: disabled ? "display: none" : "",
+                text: this.values[i][1]
             }));
         }
         var value = this.value;
@@ -2675,7 +2647,9 @@ var FieldSelection = AbstractField.extend({
                 return v[0] === false && v[1] === '';
             });
         }
-        this.values = [[false, this.attrs.placeholder || '']].concat(this.values);
+        if (!this.attrs.modifiersValue || !this.attrs.modifiersValue.required) {
+            this.values = [[false, this.attrs.placeholder || '']].concat(this.values);
+        }
     },
 
     //--------------------------------------------------------------------------

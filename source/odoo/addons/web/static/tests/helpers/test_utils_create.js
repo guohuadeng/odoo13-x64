@@ -140,7 +140,6 @@ async function createView(params) {
         _updateMVCParams: function () {
             this._super.apply(this, arguments);
             this.loadParams.groupedBy = params.groupBy || viewOptions.groupBy || [];
-            testUtilsMock.unpatch(View);
         },
     });
     if ('hasSelectors' in params) {
@@ -179,6 +178,8 @@ async function createView(params) {
             delete view.destroy;
             widget.destroy();
             $webClient.remove();
+
+            testUtilsMock.unpatch(View);
         };
 
         // render the view in a fragment as they must be able to render correctly

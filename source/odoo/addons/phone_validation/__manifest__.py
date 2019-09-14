@@ -31,5 +31,4 @@ It adds two mixins :
         'base',
         'mail',
     ],
-    'auto_install': True,
 }

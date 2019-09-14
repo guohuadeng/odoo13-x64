@@ -47,7 +47,7 @@ class TestReconciliationMatchingRules(AccountingTestCase):
         current_assets_account = self.env['account.account'].search(
             [('user_type_id', '=', self.env.ref('account.data_account_type_current_assets').id)], limit=1)
 
-        self.rule_0 = self.env['account.reconcile.model'].search([('company_id', '=', self.env.company.id), ('rule_type', '=', 'invoice_matching')])
+        self.rule_0 = self.env['account.reconcile.model'].search([('company_id', '=', self.env.company.id)])
         self.rule_1 = self.rule_0.copy()
         self.rule_1.account_id = current_assets_account
         self.rule_1.match_partner = True
@@ -109,7 +109,6 @@ class TestReconciliationMatchingRules(AccountingTestCase):
             self.bank_line_2.id: {'aml_ids': [
                 self.invoice_line_2.id,
                 self.invoice_line_3.id,
-                self.invoice_line_1.id,
             ], 'model': self.rule_1},
             self.cash_line_1.id: {'aml_ids': [self.invoice_line_4.id], 'model': self.rule_1},
         })
@@ -130,7 +129,6 @@ class TestReconciliationMatchingRules(AccountingTestCase):
             self.bank_line_2.id: {'aml_ids': [
                 self.invoice_line_2.id,
                 self.invoice_line_3.id,
-                self.invoice_line_1.id,
             ], 'model': self.rule_1},
             self.cash_line_1.id: {'aml_ids': []},
         })
@@ -211,7 +209,6 @@ class TestReconciliationMatchingRules(AccountingTestCase):
             self.bank_line_2.id: {'aml_ids': [
                 self.invoice_line_2.id,
                 self.invoice_line_3.id,
-                self.invoice_line_1.id,
             ], 'model': self.rule_1},
             self.cash_line_1.id: {'aml_ids': [self.invoice_line_4.id], 'model': self.rule_1},
         })
@@ -226,7 +223,6 @@ class TestReconciliationMatchingRules(AccountingTestCase):
             self.bank_line_2.id: {'aml_ids': [
                 self.invoice_line_2.id,
                 self.invoice_line_3.id,
-                self.invoice_line_1.id,
             ], 'model': self.rule_1},
             self.cash_line_1.id: {'aml_ids': [self.invoice_line_4.id], 'model': self.rule_1},
         })
@@ -256,7 +252,6 @@ class TestReconciliationMatchingRules(AccountingTestCase):
             self.bank_line_2.id: {'aml_ids': [
                 self.invoice_line_2.id,
                 self.invoice_line_3.id,
-                self.invoice_line_1.id,
             ], 'model': self.rule_1},
             self.cash_line_1.id: {'aml_ids': [self.invoice_line_4.id], 'model': self.rule_1},
         })

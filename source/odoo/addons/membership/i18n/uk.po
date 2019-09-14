@@ -1,18 +1,18 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* membership
+# * membership
 # 
 # Translators:
-# Martin Trigaux, 2019
-# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019
+# Martin Trigaux, 2018
+# Alina Lisnenko <alinasemeniuk1@gmail.com>, 2018
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:11+0000\n"
-"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2019\n"
+"POT-Creation-Date: 2018-09-21 13:17+0000\n"
+"PO-Revision-Date: 2018-08-24 09:21+0000\n"
+"Last-Translator: Alina Lisnenko <alinasemeniuk1@gmail.com>, 2018\n"
 "Language-Team: Ukrainian (https://www.transifex.com/odoo/teams/41243/uk/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -46,11 +46,6 @@ msgstr ""
 
 #. module: membership
 #: model_terms:ir.ui.view,arch_db:membership.membership_products_kanban
-msgid "<i class=\"fa fa-money\" role=\"img\" aria-label=\"Price\" title=\"Price\"/>"
-msgstr "<i class=\"fa fa-money\" role=\"img\" aria-label=\"Price\" title=\"Price\"/>"
-
-#. module: membership
-#: model_terms:ir.ui.view,arch_db:membership.membership_products_kanban
 msgid "<strong> To:</strong>"
 msgstr "<strong> До:</strong>"
 
@@ -78,6 +73,16 @@ msgstr "Додати опис..."
 #: model_terms:ir.actions.act_window,help:membership.action_membership_members
 msgid "Add a new member"
 msgstr "Додати нового члена"
+
+#. module: membership
+#: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
+msgid "All Members"
+msgstr "Усі учасники"
+
+#. module: membership
+#: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
+msgid "All non Members"
+msgstr "Усі не учасники"
 
 #. module: membership
 #: model:ir.model.fields,help:membership.field_membership_membership_line__member_price
@@ -119,9 +124,9 @@ msgid "Cancel date"
 msgstr "Дата відміни"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__canceled
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__canceled
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__canceled
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Cancelled Member"
 msgstr "Відхилений учасник"
 
@@ -142,11 +147,6 @@ msgstr "Перевірте, чи товар підходить для членс
 #: model_terms:ir.ui.view,arch_db:membership.view_report_membership_search
 msgid "Company"
 msgstr "Компанія"
-
-#. module: membership
-#: model:ir.model.fields,help:membership.field_membership_membership_line__company_id
-msgid "Company related to this journal"
-msgstr "Компанія-власник цього журналу"
 
 #. module: membership
 #: model:ir.ui.menu,name:membership.menu_marketing_config_association
@@ -173,7 +173,7 @@ msgstr "Створив"
 #: model:ir.model.fields,field_description:membership.field_membership_invoice__create_date
 #: model:ir.model.fields,field_description:membership.field_membership_membership_line__create_date
 msgid "Created on"
-msgstr "Створено на"
+msgstr "Створено"
 
 #. module: membership
 #: model:ir.model.fields,field_description:membership.field_report_membership__membership_state
@@ -253,7 +253,7 @@ msgid "Ending Date Of Membership"
 msgstr "Кінцева дата членства"
 
 #. module: membership
-#: model:ir.model.constraint,message:membership.constraint_product_template_membership_date_greater
+#: sql_constraint:product.template:0
 msgid "Error ! Ending Date cannot be set before Beginning Date."
 msgstr ""
 "Помилка! Дата завершення не може бути призначеною перед датою початку."
@@ -266,9 +266,9 @@ msgstr "Прогноз"
 #. module: membership
 #: model:ir.model.fields,field_description:membership.field_res_partner__free_member
 #: model:ir.model.fields,field_description:membership.field_res_users__free_member
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__free
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__free
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__free
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Free Member"
 msgstr "Безкоштовний учасник"
 
@@ -301,19 +301,26 @@ msgid "Inactive"
 msgstr "Неактивний"
 
 #. module: membership
+#: model:ir.model,name:membership.model_account_invoice
 #: model:ir.model.fields,field_description:membership.field_membership_membership_line__account_invoice_id
 msgid "Invoice"
 msgstr "Рахунок"
 
 #. module: membership
+#: model:ir.model,name:membership.model_account_invoice_line
+msgid "Invoice Line"
+msgstr "Рядок рахунку"
+
+#. module: membership
+#: model:ir.actions.act_window,name:membership.action_membership_invoice_view
 #: model_terms:ir.ui.view,arch_db:membership.view_membership_invoice_view
 msgid "Invoice Membership"
 msgstr "Рахунок членства"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__invoiced
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__invoiced
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__invoiced
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Invoiced Member"
 msgstr "Член з рахунком-фактурою"
 
@@ -367,26 +374,11 @@ msgid "Join Date"
 msgstr "Дата приєднання"
 
 #. module: membership
-#: model:ir.actions.act_window,name:membership.action_membership_invoice_view
-msgid "Join Membership"
-msgstr ""
-
-#. module: membership
-#: model:ir.model,name:membership.model_account_move
-msgid "Journal Entries"
-msgstr "Записи в журналі"
-
-#. module: membership
-#: model:ir.model,name:membership.model_account_move_line
-msgid "Journal Item"
-msgstr "Елемент журналу"
-
-#. module: membership
 #: model:ir.model.fields,field_description:membership.field_membership_invoice____last_update
 #: model:ir.model.fields,field_description:membership.field_membership_membership_line____last_update
 #: model:ir.model.fields,field_description:membership.field_report_membership____last_update
 msgid "Last Modified on"
-msgstr "Останні зміни на"
+msgstr "Остання модифікація"
 
 #. module: membership
 #: model:ir.model.fields,field_description:membership.field_membership_invoice__write_uid
@@ -415,7 +407,6 @@ msgstr "Ціна учасника"
 #: model:ir.ui.menu,name:membership.menu_association
 #: model:ir.ui.menu,name:membership.menu_membership
 #: model_terms:ir.ui.view,arch_db:membership.membership_members_tree
-#: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
 msgid "Members"
 msgstr "Учасники"
 
@@ -467,7 +458,7 @@ msgstr "Кінцева дата членства"
 #: model_terms:ir.ui.view,arch_db:membership.membership_products_form
 #: model_terms:ir.ui.view,arch_db:membership.membership_products_tree
 msgid "Membership Fee"
-msgstr "Членський внесок"
+msgstr "Оплата членства"
 
 #. module: membership
 #: model:ir.model,name:membership.model_membership_invoice
@@ -540,11 +531,16 @@ msgid "Month"
 msgstr "Місяць"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__none
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__none
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__none
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Non Member"
 msgstr "Не учасник"
+
+#. module: membership
+#: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
+msgid "None/Canceled/Old/Waiting"
+msgstr "Немає/Скасований/Старий/Очікує"
 
 #. module: membership
 #: model_terms:ir.actions.act_window,help:membership.action_membership_members
@@ -556,16 +552,16 @@ msgstr ""
 "                  Поточний статус членства, дискусії та історія членства тощо."
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__old
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__old
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__old
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Old Member"
 msgstr "Старий учасник"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__paid
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__paid
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__paid
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Paid Member"
 msgstr "Платний учасник"
 
@@ -575,13 +571,13 @@ msgid "Partner"
 msgstr "Партнер"
 
 #. module: membership
-#: code:addons/membership/models/partner.py:0
+#: code:addons/membership/models/partner.py:186
 #, python-format
 msgid "Partner doesn't have an address to make the invoice."
 msgstr "У партнера немає адреси, щоби виставити рахунок."
 
 #. module: membership
-#: code:addons/membership/models/partner.py:0
+#: code:addons/membership/models/partner.py:184
 #, python-format
 msgid "Partner is a free Member."
 msgstr "Партнер - безкоштовний учасник."
@@ -642,11 +638,6 @@ msgid "Taxes"
 msgstr "Податки"
 
 #. module: membership
-#: model:ir.model.fields,help:membership.field_membership_membership_line__account_invoice_id
-msgid "The move of this entry line."
-msgstr "Переміщення цього запису"
-
-#. module: membership
 #: model:ir.model.fields,help:membership.field_res_partner__membership_amount
 #: model:ir.model.fields,help:membership.field_res_users__membership_amount
 msgid "The price negotiated by the partner"
@@ -671,7 +662,7 @@ msgstr ""
 #. module: membership
 #: model:ir.model.fields,field_description:membership.field_membership_membership_line__date_to
 msgid "To"
-msgstr "До"
+msgstr "По"
 
 #. module: membership
 #: model_terms:ir.ui.view,arch_db:membership.view_res_partner_member_filter
@@ -679,14 +670,14 @@ msgid "Vendors"
 msgstr "Постачальники"
 
 #. module: membership
-#: model:ir.model.fields.selection,name:membership.selection__membership_membership_line__state__waiting
-#: model:ir.model.fields.selection,name:membership.selection__report_membership__membership_state__waiting
-#: model:ir.model.fields.selection,name:membership.selection__res_partner__membership_state__waiting
+#: selection:membership.membership_line,state:0
+#: selection:report.membership,membership_state:0
+#: selection:res.partner,membership_state:0
 msgid "Waiting Member"
 msgstr "Учасник в учікування"
 
 #. module: membership
-#: code:addons/membership/models/partner.py:0
+#: code:addons/membership/models/partner.py:162
 #, python-format
 msgid "You cannot create recursive associated members."
 msgstr "Ви не можете створювати рекурсивних асоційованих учасників."

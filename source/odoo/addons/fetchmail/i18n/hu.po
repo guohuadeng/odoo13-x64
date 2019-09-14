@@ -1,21 +1,19 @@
 # Translation of Odoo Server.
 # This file contains the translation of the following modules:
-# 	* fetchmail
+# * fetchmail
 # 
 # Translators:
-# Martin Trigaux, 2019
-# krnkris, 2019
-# gezza <geza.nagy@oregional.hu>, 2019
-# Ákos Nagy <akos.nagy@oregional.hu>, 2019
-# Daniel Gerstenbrand <daniel.gerstenbrand@gmail.com>, 2019
+# Martin Trigaux, 2018
+# krnkris, 2018
+# Ákos Nagy <akos.nagy@oregional.hu>, 2018
 # 
 msgid ""
 msgstr ""
-"Project-Id-Version: Odoo Server saas~12.5\n"
+"Project-Id-Version: Odoo Server saas~11.5\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-26 08:16+0000\n"
-"PO-Revision-Date: 2019-08-26 09:10+0000\n"
-"Last-Translator: Daniel Gerstenbrand <daniel.gerstenbrand@gmail.com>, 2019\n"
+"POT-Creation-Date: 2018-09-18 09:49+0000\n"
+"PO-Revision-Date: 2018-08-24 09:17+0000\n"
+"Last-Translator: Ákos Nagy <akos.nagy@oregional.hu>, 2018\n"
 "Language-Team: Hungarian (https://www.transifex.com/odoo/teams/41243/hu/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -44,23 +42,18 @@ msgid "Advanced Options"
 msgstr "Haladó beállítások"
 
 #. module: fetchmail
-#: model_terms:ir.ui.view,arch_db:fetchmail.view_email_server_search
-msgid "Archived"
-msgstr "Archivált"
-
-#. module: fetchmail
 #: model:ir.model.fields,field_description:fetchmail.field_fetchmail_server__configuration
 #: model_terms:ir.ui.view,arch_db:fetchmail.view_email_server_form
 msgid "Configuration"
 msgstr "Konfiguráció"
 
 #. module: fetchmail
-#: model:ir.model.fields.selection,name:fetchmail.selection__fetchmail_server__state__done
+#: selection:fetchmail.server,state:0
 msgid "Confirmed"
 msgstr "Megerősített"
 
 #. module: fetchmail
-#: code:addons/fetchmail/models/fetchmail.py:0
+#: code:addons/fetchmail/models/fetchmail.py:136
 #, python-format
 msgid "Connection test failed: %s"
 msgstr "Csatlakozás teszt nem sikerült: %s"
@@ -103,7 +96,7 @@ msgstr "Megjelenített név"
 #. module: fetchmail
 #: model_terms:ir.ui.view,arch_db:fetchmail.view_email_server_tree
 msgid "Email Count"
-msgstr "Email szám"
+msgstr ""
 
 #. module: fetchmail
 #: model_terms:ir.ui.view,arch_db:fetchmail.view_email_server_form
@@ -126,7 +119,7 @@ msgid "IMAP"
 msgstr "IMAP"
 
 #. module: fetchmail
-#: model:ir.model.fields.selection,name:fetchmail.selection__fetchmail_server__server_type__imap
+#: selection:fetchmail.server,type:0
 msgid "IMAP Server"
 msgstr "IMAP Szerver"
 
@@ -143,10 +136,9 @@ msgstr "Beérkező e-mail szerver"
 #. module: fetchmail
 #: model_terms:ir.ui.view,arch_db:fetchmail.res_config_settings_view_form
 msgid "Incoming Email Servers"
-msgstr "Beérkező email szerver"
+msgstr ""
 
 #. module: fetchmail
-#: model:ir.model,name:fetchmail.model_fetchmail_server
 #: model_terms:ir.ui.view,arch_db:fetchmail.view_email_server_form
 #: model_terms:ir.ui.view,arch_db:fetchmail.view_email_server_search
 msgid "Incoming Mail Server"
@@ -181,15 +173,15 @@ msgstr "Legutóbb frissítve"
 #. module: fetchmail
 #: model:ir.model.fields,field_description:fetchmail.field_fetchmail_server__write_uid
 msgid "Last Updated by"
-msgstr "Frissítette"
+msgstr "Legutóbb frissítette"
 
 #. module: fetchmail
 #: model:ir.model.fields,field_description:fetchmail.field_fetchmail_server__write_date
 msgid "Last Updated on"
-msgstr "Frissítve "
+msgstr "Legutóbb frissítve "
 
 #. module: fetchmail
-#: model:ir.model.fields.selection,name:fetchmail.selection__fetchmail_server__server_type__local
+#: selection:fetchmail.server,type:0
 msgid "Local Server"
 msgstr "Lokális szerver"
 
@@ -203,7 +195,7 @@ msgstr "Bejelentkezési információk"
 #: model:ir.cron,cron_name:fetchmail.ir_cron_mail_gateway_action
 #: model:ir.cron,name:fetchmail.ir_cron_mail_gateway_action
 msgid "Mail: Fetchmail Service"
-msgstr "Levél: Fetchmail szolgáltatás"
+msgstr ""
 
 #. module: fetchmail
 #: model:ir.actions.act_window,name:fetchmail.act_server_history
@@ -217,14 +209,14 @@ msgid "Name"
 msgstr "Név"
 
 #. module: fetchmail
-#: model:ir.model.fields.selection,name:fetchmail.selection__fetchmail_server__state__draft
+#: selection:fetchmail.server,state:0
 msgid "Not Confirmed"
 msgstr "Nincs megerősítve"
 
 #. module: fetchmail
 #: model_terms:ir.ui.view,arch_db:fetchmail.res_config_settings_view_form
 msgid "Outgoing Email Servers"
-msgstr "Kimenő levél szerver"
+msgstr ""
 
 #. module: fetchmail
 #: model:ir.model,name:fetchmail.model_mail_mail
@@ -237,9 +229,14 @@ msgid "POP"
 msgstr "POP"
 
 #. module: fetchmail
-#: model:ir.model.fields.selection,name:fetchmail.selection__fetchmail_server__server_type__pop
+#: selection:fetchmail.server,type:0
 msgid "POP Server"
 msgstr "POP Szerver"
+
+#. module: fetchmail
+#: model:ir.model,name:fetchmail.model_fetchmail_server
+msgid "POP/IMAP Server"
+msgstr "POP/IMAP Szerver"
 
 #. module: fetchmail
 #: model_terms:ir.ui.view,arch_db:fetchmail.view_email_server_tree
@@ -314,7 +311,7 @@ msgid "Server Priority"
 msgstr "Szerver prioritás"
 
 #. module: fetchmail
-#: model:ir.model.fields,field_description:fetchmail.field_fetchmail_server__server_type
+#: model:ir.model.fields,field_description:fetchmail.field_fetchmail_server__type
 msgid "Server Type"
 msgstr "Szervertípus"
 

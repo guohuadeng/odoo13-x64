@@ -46,11 +46,14 @@ var TranslatePageMenu = websiteNavbarData.WebsiteNavbarActionWidget.extend({
      * @returns {Promise}
      */
     _goToMasterPage: function () {
+        var lang = '/' + utils.get_cookie('frontend_lang');
+
         var current = document.createElement('a');
         current.href = window.location.toString();
         current.search += (current.search ? '&' : '?') + 'enable_editor=1';
-        // we are in translate mode, the pathname starts with '/<url_code/'
-        current.pathname = current.pathname.substr(current.pathname.indexOf('/', 1));
+        if (current.pathname.indexOf(lang) === 0) {
+            current.pathname = current.pathname.replace(lang, '');
+        }
 
         var link = document.createElement('a');
         link.href = '/website/lang/default';

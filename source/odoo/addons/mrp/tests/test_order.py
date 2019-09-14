@@ -329,12 +329,10 @@ class TestMrpOrder(TestMrpCommon):
         lot_p1_1 = self.env['stock.production.lot'].create({
             'name': 'lot1',
             'product_id': p1.id,
-            'company_id': self.env.company.id,
         })
         lot_p1_2 = self.env['stock.production.lot'].create({
             'name': 'lot2',
             'product_id': p1.id,
-            'company_id': self.env.company.id,
         })
 
         self.env['stock.quant']._update_available_quantity(p1, self.stock_location, 1, lot_id=lot_p1_1)
@@ -388,18 +386,15 @@ class TestMrpOrder(TestMrpCommon):
         first_lot_for_p1 = self.env['stock.production.lot'].create({
             'name': 'lot1',
             'product_id': p1.id,
-            'company_id': self.env.company.id,
         })
         second_lot_for_p1 = self.env['stock.production.lot'].create({
             'name': 'lot2',
             'product_id': p1.id,
-            'company_id': self.env.company.id,
         })
 
         final_product_lot = self.env['stock.production.lot'].create({
             'name': 'lot1',
             'product_id': p_final.id,
-            'company_id': self.env.company.id,
         })
 
         self.env['stock.quant']._update_available_quantity(p1, self.stock_shelf_1, 3, lot_id=first_lot_for_p1)
@@ -494,12 +489,10 @@ class TestMrpOrder(TestMrpCommon):
         lot_1 = self.env['stock.production.lot'].create({
             'name': 'lot1',
             'product_id': p1.id,
-            'company_id': self.env.company.id,
         })
         lot_2 = self.env['stock.production.lot'].create({
             'name': 'lot2',
             'product_id': p1.id,
-            'company_id': self.env.company.id,
         })
 
         self.env['stock.quant']._update_available_quantity(p1, self.stock_location, 10, lot_id=lot_1)
@@ -800,13 +793,11 @@ class TestMrpOrder(TestMrpCommon):
         })
         self.serial_1 = self.env['stock.production.lot'].create({
             'product_id': self.byproduct1.id,
-            'name': 'serial 1',
-            'company_id': self.env.company.id,
+            'name': 'serial 1'
         })
         self.serial_2 = self.env['stock.production.lot'].create({
             'product_id': self.byproduct1.id,
-            'name': 'serial 2',
-            'company_id': self.env.company.id,
+            'name': 'serial 2'
         })
 
         self.byproduct2 = self.env['product.product'].create({
@@ -816,13 +807,11 @@ class TestMrpOrder(TestMrpCommon):
         })
         self.lot_1 = self.env['stock.production.lot'].create({
             'product_id': self.byproduct2.id,
-            'name': 'Lot 1',
-            'company_id': self.env.company.id,
+            'name': 'Lot 1'
         })
         self.lot_2 = self.env['stock.production.lot'].create({
             'product_id': self.byproduct2.id,
-            'name': 'Lot 2',
-            'company_id': self.env.company.id,
+            'name': 'Lot 2'
         })
 
         self.byproduct3 = self.env['product.product'].create({
@@ -960,7 +949,6 @@ class TestMrpOrder(TestMrpCommon):
         final_product_lot = self.env['stock.production.lot'].create({
             'name': 'lot1',
             'product_id': plastic_laminate.id,
-            'company_id': self.env.company.id,
         })
 
         mo.action_confirm()

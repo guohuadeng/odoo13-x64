@@ -132,8 +132,7 @@ class TestPoSCommon(TransactionCase):
         self.other_receivable_account = self.env['account.account'].create({
             'name': 'Other Receivable',
             'code': 'RCV00' ,
-            'user_type_id': self.env['account.account.type'].create({'name': 'RCV type', 'type': 'receivable', 'internal_group': 'asset'}).id,
-            'internal_group': 'asset',
+            'user_type_id': self.env['account.account.type'].create({'name': 'RCV type', 'type': 'receivable'}).id,
             'reconcile': True,
         })
 

@@ -5,7 +5,10 @@
 
 <record id="acc_type_reconciled" model="account.account.type">
     <field name="name">Reconciled</field>
-    <field name="internal_group">off_balance</field>
+</record>
+
+<record id="acc_type_other" model="account.account.type">
+    <field name="name">Other</field>
 </record>
 
 <!-- CHART OF Template -->

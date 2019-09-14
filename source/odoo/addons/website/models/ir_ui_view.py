@@ -302,7 +302,7 @@ class View(models.Model):
         if request and getattr(request, 'is_frontend', False):
 
             editable = request.website.is_publisher()
-            translatable = editable and self._context.get('lang') != request.website.default_lang_id.code
+            translatable = editable and self._context.get('lang') != request.website.default_lang_code
             editable = not translatable and editable
 
             # in edit mode ir.ui.view will tag nodes
@@ -336,19 +336,18 @@ class View(models.Model):
                 qcontext['main_object'] = self
 
             cur = Website.get_current_website()
-            if self.env.user.has_group('website.group_website_publisher') and self.env.user.has_group('website.group_multi_website'):
-                qcontext['multi_website_websites_current'] = {'website_id': cur.id, 'name': cur.name, 'domain': cur.domain}
-                qcontext['multi_website_websites'] = [
-                    {'website_id': website.id, 'name': website.name, 'domain': website.domain}
-                    for website in Website.search([]) if website != cur
-                ]
+            qcontext['multi_website_websites_current'] = {'website_id': cur.id, 'name': cur.name, 'domain': cur.domain}
+            qcontext['multi_website_websites'] = [
+                {'website_id': website.id, 'name': website.name, 'domain': website.domain}
+                for website in Website.search([]) if website != cur
+            ]
 
-                cur_company = self.env.company
-                qcontext['multi_website_companies_current'] = {'company_id': cur_company.id, 'name': cur_company.name}
-                qcontext['multi_website_companies'] = [
-                    {'company_id': comp.id, 'name': comp.name}
-                    for comp in self.env.user.company_ids if comp != cur_company
-                ]
+            cur_company = self.env.company
+            qcontext['multi_website_companies_current'] = {'company_id': cur_company.id, 'name': cur_company.name}
+            qcontext['multi_website_companies'] = [
+                {'company_id': comp.id, 'name': comp.name}
+                for comp in self.env.user.company_ids if comp != cur_company
+            ]
 
             qcontext.update(dict(
                 self._context.copy(),
@@ -356,7 +355,7 @@ class View(models.Model):
                 url_for=url_for,
                 res_company=request.website.company_id.sudo(),
                 default_lang_code=request.env['ir.http']._get_default_lang().code,
-                languages=request.env['res.lang'].get_available(),
+                languages=request.env['ir.http']._get_language_codes(),
                 translatable=translatable,
                 editable=editable,
                 menu_data=self.env['ir.ui.menu'].load_menus_root() if request.website.is_user() else None,
@@ -368,7 +367,7 @@ class View(models.Model):
     def get_default_lang_code(self):
         website_id = self.env.context.get('website_id')
         if website_id:
-            lang_code = self.env['website'].browse(website_id).default_lang_id.code
+            lang_code = self.env['website'].browse(website_id).default_lang_code
             return lang_code
         else:
             return super(View, self).get_default_lang_code()

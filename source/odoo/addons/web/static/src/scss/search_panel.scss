@@ -1,5 +1,4 @@
 // ------- View with SearchPanel -------
-$o-searchpanel-active-bg: rgba(108, 193, 237, 0.3);
 $o-searchpanel-p: $o-horizontal-padding;
 $o-searchpanel-p-small: $o-horizontal-padding*0.5;
 $o-searchpanel-p-tiny: $o-searchpanel-p-small*0.5;
@@ -32,12 +31,10 @@ $o-searchpanel-filter-default-color: #D59244;
         }
 
         .o_search_panel_label {
-            display: flex;
             cursor: pointer;
             user-select: none;
 
             .o_toggle_fold {
-                margin-left: auto;
                 padding: 3px;
             }
         }
@@ -56,22 +53,16 @@ $o-searchpanel-filter-default-color: #D59244;
             }
             span.o_search_panel_label_title {
                 color: $headings-color;
-                @include o-text-overflow;
+                @include o-text-overflow(inline-block, calc(100% - 22px));
             }
             header.active {
-                background-color: $o-searchpanel-active-bg;
+                background-color: $list-group-action-active-bg;
             }
         }
         .o_search_panel_category_value {
-            cursor: pointer;
             header {
-                margin-top: -4px;
-                margin-bottom: -4px;
-                padding: 4px 7px;
-
-                .o_toggle_fold {
-                    padding-left: 11px;
-                }
+                margin-left: -$o-searchpanel-p-tiny;
+                padding-left: $o-searchpanel-p-tiny;
             }
             .o_search_panel_category_value {
                 position: relative;

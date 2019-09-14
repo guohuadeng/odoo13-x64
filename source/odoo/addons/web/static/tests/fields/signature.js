@@ -1,8 +1,6 @@
 odoo.define('web.signature_field_tests', function (require) {
 "use strict";
 
-var ajax = require('web.ajax');
-var core = require('web.core');
 var FormView = require('web.FormView');
 var testUtils = require('web.test_utils');
 
@@ -39,11 +37,7 @@ QUnit.module('signature', {
     }
 }, function () {
 
-    QUnit.module('Signature Field', {
-        before: function () {
-            return ajax.loadXML('/web/static/src/xml/name_and_signature.xml', core.qweb);
-        },
-    });
+    QUnit.module('Signature Field');
 
     QUnit.test('Set simple field in "full_name" node option', async function (assert) {
         assert.expect(3);
@@ -71,6 +65,8 @@ QUnit.module('signature', {
             "should have a valid signature widget");
         // Click on the widget to open signature modal
         await testUtils.dom.click(form.$('div[name=sign] div.o_signature'));
+        await testUtils.nextTick(); // dialog xmlDependencies load
+-       await testUtils.nextTick(); // name_and_signature xmlDependencies load
         assert.strictEqual($('.modal .modal-body a.o_web_sign_auto_button').length, 1,
             'should open a modal with "Auto" button');
         assert.strictEqual($('.modal .modal-body .o_web_sign_name_input').val(), "Pop's Chock'lit",
@@ -105,6 +101,8 @@ QUnit.module('signature', {
             "should have a valid signature widget");
         // Click on the widget to open signature modal
         await testUtils.dom.click(form.$('div[name=sign] div.o_signature'));
+        await testUtils.nextTick(); // dialog xmlDependencies load
+-       await testUtils.nextTick(); // name_and_signature xmlDependencies load
         assert.strictEqual($('.modal .modal-body a.o_web_sign_auto_button').length, 1,
             'should open a modal with "Auto" button');
         assert.strictEqual($('.modal .modal-body .o_web_sign_name_input').val(), "Veggie Burger",

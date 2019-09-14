@@ -110,7 +110,6 @@ class StockWarehouse(models.Model):
                 'use_create_components_lots': True,
                 'sequence': next_sequence + 2,
                 'sequence_code': 'SBC',
-                'company_id': self.company_id.id,
             },
         })
         return data, max_sequence + 4
@@ -118,7 +117,7 @@ class StockWarehouse(models.Model):
     def _get_sequence_values(self):
         values = super(StockWarehouse, self)._get_sequence_values()
         values.update({
-            'subcontracting_type_id': {'name': self.name + ' ' + _('Sequence subcontracting'), 'prefix': self.code + '/SBC/', 'padding': 5, 'company_id': self.company_id.id},
+            'subcontracting_type_id': {'name': self.name + ' ' + _('Sequence subcontracting'), 'prefix': self.code + '/SBC/', 'padding': 5},
         })
         return values
 

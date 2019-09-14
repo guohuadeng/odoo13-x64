@@ -52,7 +52,6 @@ class Image(models.AbstractModel):
             filename = options['filename']
         else:
             filename = record.display_name
-        filename = filename.replace('/', '-').replace('\\', '-')
 
         src = '/web/image/%s/%s/%s%s/%s?unique=%s' % (record._name, record.id, options.get('preview_image', field_name), max_size, url_quote(filename), sha)
 
