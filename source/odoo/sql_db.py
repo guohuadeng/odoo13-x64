@@ -59,6 +59,21 @@ from datetime import timedelta
 import threading
 from inspect import currentframe
 
+
+def flush_env(cr):
+    """ Retrieve and flush an environment corresponding to the given cursor """
+    for env in list(Environment.envs):
+        if env.cr is cr:
+            env['base'].flush()
+            break
+
+def clear_env(cr):
+    """ Retrieve and clear an environment corresponding to the given cursor """
+    for env in list(Environment.envs):
+        if env.cr is cr:
+            env.clear()
+            break
+
 import re
 re_from = re.compile('.* from "?([a-zA-Z_0-9]+)"? .*$')
 re_into = re.compile('.* into "?([a-zA-Z_0-9]+)"? .*$')
@@ -369,10 +384,7 @@ class Cursor(object):
     def commit(self):
         """ Perform an SQL `COMMIT`
         """
-        for env in Environment.envs:
-            if env.cr is self:
-                env['base'].flush()
-                break
+        flush_env(self)
         result = self._cnx.commit()
         for func in self._pop_event_handlers()['commit']:
             func()
@@ -382,10 +394,7 @@ class Cursor(object):
     def rollback(self):
         """ Perform an SQL `ROLLBACK`
         """
-        for env in Environment.envs:
-            if env.cr is self:
-                env.clear()
-                break
+        clear_env(self)
         result = self._cnx.rollback()
         for func in self._pop_event_handlers()['rollback']:
             func()
@@ -410,13 +419,19 @@ class Cursor(object):
 
     @contextmanager
     @check
-    def savepoint(self):
+    def savepoint(self, flush=True):
         """context manager entering in a new savepoint"""
         name = uuid.uuid1().hex
+        if flush:
+            flush_env(self)
         self.execute('SAVEPOINT "%s"' % name)
         try:
             yield
+            if flush:
+                flush_env(self)
         except Exception:
+            if flush:
+                clear_env(self)
             self.execute('ROLLBACK TO SAVEPOINT "%s"' % name)
             raise
         else:
@@ -473,17 +488,11 @@ class TestCursor(object):
         _logger.debug("TestCursor.autocommit(%r) does nothing", on)
 
     def commit(self):
-        for env in Environment.envs:
-            if env.cr is self:
-                env['base'].flush()
-                break
+        flush_env(self)
         self._cursor.execute('SAVEPOINT "%s"' % self._savepoint)
 
     def rollback(self):
-        for env in Environment.envs:
-            if env.cr is self:
-                env.clear()
-                break
+        clear_env(self)
         self._cursor.execute('ROLLBACK TO SAVEPOINT "%s"' % self._savepoint)
 
     def __enter__(self):

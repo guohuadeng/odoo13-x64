@@ -7,12 +7,14 @@ Green Odoo 13 x64， https://www.Sunpop.cn
 在windows上搭建了一个完整的高性能 Odoo 环境。
 因速度原因，不再支持一键更新至最新版，请手工高速下载后解压覆盖 /source 目录文件。
 http://nightly.odoocdn.com/master/nightly/src/odoo_13.0alpha1.latest.zip
+master版本有问题时，请下载
+https://github.com/odoo/odoo/tree/saas-12.5
 
 ## 版本信息
 1. python 3.5.2, 64位
 2. postgresql 9.6.4 ,64位
 3. Nginx 1.15.5， 64位
-4. Odoo 13社区版，20190913版本
+4. Odoo 13社区版，20190925版本
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度

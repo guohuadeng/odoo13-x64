@@ -21,7 +21,7 @@ from odoo.exceptions import AccessDenied, AccessError, UserError, ValidationErro
 from odoo.http import request
 from odoo.osv import expression
 from odoo.service.db import check_super
-from odoo.tools import partition, collections
+from odoo.tools import partition, collections, lazy_property
 
 _logger = logging.getLogger(__name__)
 
@@ -205,7 +205,7 @@ class Users(models.Model):
     # User can write on a few of his own fields (but not his groups for example)
     SELF_WRITEABLE_FIELDS = ['signature', 'action_id', 'company_id', 'email', 'name', 'image_1920', 'lang', 'tz']
     # User can read a few of his own fields
-    SELF_READABLE_FIELDS = ['signature', 'company_id', 'login', 'email', 'name', 'image_1920', 'image_1024', 'image_512', 'image_256', 'image_128', 'image_64', 'lang', 'tz', 'tz_offset', 'groups_id', 'partner_id', '__last_update', 'action_id']
+    SELF_READABLE_FIELDS = ['signature', 'company_id', 'login', 'email', 'name', 'image_1920', 'image_1024', 'image_512', 'image_256', 'image_128', 'lang', 'tz', 'tz_offset', 'groups_id', 'partner_id', '__last_update', 'action_id']
 
     def _default_groups(self):
         default_user = self.env.ref('base.default_user', raise_if_not_found=False)
@@ -400,9 +400,41 @@ class Users(models.Model):
 
     @api.constrains('groups_id')
     def _check_one_user_type(self):
-        for user in self:
-            if len(user.groups_id.filtered(lambda x: x.category_id.xml_id == 'base.module_category_user_type')) > 1:
+        """We check that no users are both portal and users (same with public).
+           This could typically happen because of implied groups.
+        """
+        user_types_category = self.env.ref('base.module_category_user_type', raise_if_not_found=False)
+        user_types_groups = self.env['res.groups'].search(
+            [('category_id', '=', user_types_category.id)]) if user_types_category else False
+        if user_types_groups:  # needed at install
+            if self._has_multiple_groups(user_types_groups.ids):
                 raise ValidationError(_('The user cannot have more than one user types.'))
+
+    def _has_multiple_groups(self, group_ids):
+        """The method is not fast if the list of ids is very long;
+           so we rather check all users than limit to the size of the group
+        :param group_ids: list of group ids
+        :return: boolean: is there at least a user in at least 2 of the provided groups
+        """
+        if group_ids:
+            args = [tuple(group_ids)]
+            if len(self.ids) == 1:
+                where_clause = "AND r.uid = %s"
+                args.append(self.id)
+            else:
+                where_clause = ""  # default; we check ALL users (actually pretty efficient)
+            query = """
+                    SELECT 1 FROM res_groups_users_rel WHERE EXISTS(
+                        SELECT r.uid
+                        FROM res_groups_users_rel r
+                        WHERE r.gid IN %s""" + where_clause + """
+                        GROUP BY r.uid HAVING COUNT(r.gid) > 1
+                    )
+            """
+            self.env.cr.execute(query, args)
+            return bool(self.env.cr.fetchall())
+        else:
+            return False
 
     def toggle_active(self):
         for user in self:
@@ -474,6 +506,15 @@ class Users(models.Model):
             # clear default ir values when company changes
             self.env['ir.default'].clear_caches()
 
+        if 'company_id' in values or 'company_ids' in values:
+            # Reset lazy properties `company` & `companies` on all envs
+            # This is unlikely in a business code to change the company of a user and then do business stuff
+            # but in case it happens this is handled.
+            # e.g. `account_test_savepoint.py` `setup_company_data`, triggered by `test_account_invoice_report.py`
+            for env in list(self.env.envs):
+                if env.user in self:
+                    lazy_property.reset_all(env)
+
         # clear caches linked to the users
         if self.ids and 'groups_id' in values:
             # DLE P139: Calling invalidate_cache on a new, well you lost everything as you wont be able to take it back from the cache
@@ -511,7 +552,7 @@ class Users(models.Model):
         user_ids = self._search(expression.AND([domain, args]), limit=limit, access_rights_uid=name_get_uid)
         if not user_ids:
             user_ids = self._search(expression.AND([[('name', operator, name)], args]), limit=limit, access_rights_uid=name_get_uid)
-        return self.browse(user_ids).name_get()
+        return models.lazy_name_get(self.browse(user_ids).with_user(name_get_uid))
 
     def copy(self, default=None):
         self.ensure_one()
@@ -930,6 +971,7 @@ class GroupsImplied(models.Model):
                            JOIN group_imply i ON (r.gid = i.hid)
                           WHERE i.gid = %(gid)s
                 """, dict(gid=group.id))
+            self._check_one_user_type()
         return res
 
 class UsersImplied(models.Model):
@@ -942,22 +984,19 @@ class UsersImplied(models.Model):
                 # complete 'groups_id' with implied groups
                 user = self.new(values)
                 gs = user.groups_id._origin
-                group_public = self.env.ref('base.group_public', raise_if_not_found=False)
-                group_portal = self.env.ref('base.group_portal', raise_if_not_found=False)
-                if group_public and group_public in gs:
-                    gs = group_public
-                elif group_portal and group_portal in gs:
-                    gs = group_portal
                 gs = gs | gs.trans_implied_ids
                 values['groups_id'] = type(self).groups_id.convert_to_write(gs, user)
         return super(UsersImplied, self).create(vals_list)
 
     def write(self, values):
+        users_before = self.filtered(lambda u: u.has_group('base.group_user'))
         res = super(UsersImplied, self).write(values)
         if values.get('groups_id'):
             # add implied groups for all users
             for user in self:
-                if not user.has_group('base.group_user'):
+                if not user.has_group('base.group_user') and user in users_before:
+                    # if we demoted a user, we strip him of all its previous privileges
+                    # (but we should not do it if we are simply adding a technical group to a portal user)
                     vals = {'groups_id': [(5, 0, 0)] + values['groups_id']}
                     super(UsersImplied, user).write(vals)
                 gs = set(concat(g.trans_implied_ids for g in user.groups_id))

@@ -172,11 +172,12 @@ class IrModel(models.Model):
     # overridden to allow searching both on model name (field 'model') and model
     # description (field 'name')
     @api.model
-    def _name_search(self, name='', args=None, operator='ilike', limit=100):
+    def _name_search(self, name='', args=None, operator='ilike', limit=100, name_get_uid=None):
         if args is None:
             args = []
         domain = args + ['|', ('model', operator, name), ('name', operator, name)]
-        return super(IrModel, self).search(domain, limit=limit).name_get()
+        model_ids = self._search(domain, limit=limit, access_rights_uid=name_get_uid)
+        return models.lazy_name_get(self.browse(model_ids).with_user(name_get_uid))
 
     def _drop_table(self):
         for model in self:
@@ -377,6 +378,8 @@ class IrModelFields(models.Model):
         for rec in self:
             if rec.state == 'manual' and rec.relation_field:
                 rec.relation_field_id = self._get(rec.relation, rec.relation_field)
+            else:
+                rec.relation_field_id = False
 
     @api.depends('related')
     def _compute_related_field_id(self):
@@ -384,6 +387,8 @@ class IrModelFields(models.Model):
             if rec.state == 'manual' and rec.related:
                 field = rec._related_field()
                 rec.related_field_id = self._get(field.model_name, field.name)
+            else:
+                rec.related_field_id = False
 
     @api.depends('selection_ids')
     def _compute_selection(self):
@@ -1481,7 +1486,7 @@ class IrModelAccess(models.Model):
                 msg_params['groups_list'] = groups
             else:
                 msg_tail = _("No group currently allows this operation.")
-            msg_tail += ' - ({} {}, {} {})'.format(_('Operation:'), mode, _('User:'), self._uid)
+            msg_tail += u' - ({} {}, {} {})'.format(_('Operation:'), mode, _('User:'), self._uid)
             _logger.info('Access Denied by ACLs for operation: %s, uid: %s, model: %s', mode, self._uid, model)
             msg = '%s %s' % (msg_heads[mode], msg_tail)
             raise AccessError(msg % msg_params)

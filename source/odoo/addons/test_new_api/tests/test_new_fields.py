@@ -2,6 +2,7 @@
 # test cases for new-style fields
 #
 import base64
+from collections import OrderedDict
 from datetime import date, datetime, time
 import io
 from PIL import Image
@@ -82,6 +83,13 @@ class TestFields(common.TransactionCase):
         })
         field = self.env['test_new_api.message']._fields['x_bool_false_computed']
         self.assertFalse(field.depends)
+
+    def test_10_display_name(self):
+        """ test definition of automatic field 'display_name' """
+        field = type(self.env['test_new_api.discussion']).display_name
+        self.assertTrue(field.automatic)
+        self.assertTrue(field.compute)
+        self.assertEqual(field.depends, ('name',))
 
     def test_10_non_stored(self):
         """ test non-stored fields """
@@ -1702,6 +1710,43 @@ class TestMagicFields(common.TransactionCase):
         self.assertEqual(record.create_uid, self.env.user)
         self.assertEqual(record.write_uid, self.env.user)
 
+    def test_mro_mixin(self):
+        #                               Mixin
+        #                                |
+        #                                |
+        #                                |
+        #   ExtendedDisplay    'test_new_api.mixin'    Display    'base'
+        #         |                      |                |         |
+        #         +----------------------+-+--------------+---------+
+        #                                  |
+        #                       'test_new_api.display'
+        #
+        # The field 'display_name' is defined as store=True on the class Display
+        # above.  The field 'display_name' on the model 'test_new_api.mixin' is
+        # expected to be automatic and non-stored.  But the field 'display_name'
+        # on the model 'test_new_api.display' should not be automatic: it must
+        # correspond to the definition given in class Display, even if the MRO
+        # of the model shows the automatic field on the mixin model before the
+        # actual definition.
+        registry = self.env.registry
+        models = registry.models
+
+        # check setup of models in alphanumeric order
+        self.patch(registry, 'models', OrderedDict(sorted(models.items())))
+        registry.model_cache.clear()
+        registry.setup_models(self.cr)
+        field = registry['test_new_api.display'].display_name
+        self.assertFalse(field.automatic)
+        self.assertTrue(field.store)
+
+        # check setup of models in reverse alphanumeric order
+        self.patch(registry, 'models', OrderedDict(sorted(models.items(), reverse=True)))
+        registry.model_cache.clear()
+        registry.setup_models(self.cr)
+        field = registry['test_new_api.display'].display_name
+        self.assertFalse(field.automatic)
+        self.assertTrue(field.store)
+
 
 class TestParentStore(common.TransactionCase):
 
@@ -1876,6 +1921,28 @@ class TestRequiredMany2one(common.TransactionCase):
 
     def test_explicit_set_null(self):
         Model = self.env['test_new_api.req_m2o']
+        field = Model._fields['foo']
+
+        # invalidate registry to redo the setup afterwards
+        self.registry.registry_invalidated = True
+        self.patch(field, 'ondelete', 'set null')
+
+        with self.assertRaises(ValueError):
+            field._setup_regular_base(Model)
+
+
+class TestRequiredMany2oneTransient(common.TransactionCase):
+
+    def test_explicit_ondelete(self):
+        field = self.env['test_new_api.req_m2o_transient']._fields['foo']
+        self.assertEqual(field.ondelete, 'restrict')
+
+    def test_implicit_ondelete(self):
+        field = self.env['test_new_api.req_m2o_transient']._fields['bar']
+        self.assertEqual(field.ondelete, 'cascade')
+
+    def test_explicit_set_null(self):
+        Model = self.env['test_new_api.req_m2o_transient']
         field = Model._fields['foo']
 
         # invalidate registry to redo the setup afterwards
