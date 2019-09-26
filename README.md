@@ -14,7 +14,7 @@ https://github.com/odoo/odoo/tree/saas-12.5
 1. python 3.5.2, 64位
 2. postgresql 9.6.4 ,64位
 3. Nginx 1.15.5， 64位
-4. Odoo 13社区版，20190925版本
+4. Odoo 13社区版，20190926版本 saas-12.5
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度

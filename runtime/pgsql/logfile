@@ -8666,3 +8666,79 @@ LOG:  database system is shut down
 Ëá¥ÂëΩÈîôËØØ:  Áî±‰∫éÁÆ°ÁêÜÂëòÂëΩ‰ª§‰∏≠Êñ≠ËÅîÊé•
 »’÷æ:  ’˝‘⁄πÿ±’
 »’÷æ:   ˝æ›ø‚œµÕ≥“—πÿ±’
+FATAL:  could not open directory "pg_tblspc": No such file or directory
+LOG:  database system is shut down
+FATAL:  could not open directory "pg_tblspc": No such file or directory
+LOG:  database system is shut down
+FATAL:  could not open directory "pg_tblspc": No such file or directory
+LOG:  database system is shut down
+FATAL:  could not open directory "pg_tblspc": No such file or directory
+LOG:  database system is shut down
+FATAL:  could not open directory "pg_tblspc": No such file or directory
+LOG:  database system is shut down
+FATAL:  could not open directory "pg_tblspc": No such file or directory
+LOG:  database system is shut down
+FATAL:  could not open directory "pg_tblspc": No such file or directory
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 19:40:26 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open temporary statistics file "pg_stat_tmp/global.tmp": No such file or directory
+LOG:  could not open file "postmaster.pid": No such file or directory
+LOG:  performing immediate shutdown because data directory lock file is invalid
+LOG:  received immediate shutdown request
+WARNING:  terminating connection because of crash of another server process
+DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+LOG:  could not open temporary statistics file "pg_stat/global.tmp": No such file or directory
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 19:46:16 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 19:47:19 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 19:48:02 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 19:50:08 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started

@@ -550,3 +550,26 @@
 日志:  正在关闭
 致命错误:  数据库系统停止中
 日志:  数据库系统已关闭
+LOG:  database system was shut down at 2019-09-26 19:40:18 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 19:41:39 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+FATAL:  ShmemIndex entry size is wrong for data structure "XLOG Ctl": expected 273312, actual 4209312
+LOG:  database system was shut down at 2019-09-26 19:45:59 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
