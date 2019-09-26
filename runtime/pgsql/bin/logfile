@@ -573,3 +573,16 @@ LOG:  aborting any active transactions
 LOG:  autovacuum launcher shutting down
 LOG:  shutting down
 LOG:  database system is shut down
+LOG:  could not bind IPv6 socket: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+	
+HINT:  Is another postmaster already running on port 5432? If not, wait a few seconds and retry.
+LOG:  could not bind IPv4 socket: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+	
+HINT:  Is another postmaster already running on port 5432? If not, wait a few seconds and retry.
+WARNING:  could not create listen socket for "localhost"
+FATAL:  could not create any TCP/IP sockets
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 19:56:21 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started

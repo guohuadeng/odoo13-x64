@@ -8742,3 +8742,19 @@ LOG:  database system was shut down at 2019-09-26 19:50:08 HKT
 LOG:  MultiXact member wraparound protections are now enabled
 LOG:  database system is ready to accept connections
 LOG:  autovacuum launcher started
+ERROR:  role "odoo" already exists
+STATEMENT:  CREATE ROLE odoo PASSWORD 'md5039b285724b3f3f29799d6d39a22fb2d' NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was interrupted; last known up at 2019-09-26 19:56:23 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  redo starts at 0/14EBCC0
+LOG:  invalid record length at 0/14EC040: wanted 24, got 0
+LOG:  redo done at 0/14EC018
+LOG:  last completed transaction was at log time 2019-09-26 19:56:33.160678+08
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
