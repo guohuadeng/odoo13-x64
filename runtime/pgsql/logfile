@@ -8758,3 +8758,163 @@ LOG:  last completed transaction was at log time 2019-09-26 19:56:33.160678+08
 LOG:  MultiXact member wraparound protections are now enabled
 LOG:  database system is ready to accept connections
 LOG:  autovacuum launcher started
+LOG:  database system was interrupted; last known up at 2019-09-26 20:00:06 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  invalid record length at 0/14EC0B0: wanted 24, got 0
+LOG:  redo is not required
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+LOG:  database system was shut down at 2019-09-26 19:55:24 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+FATAL:  terminating connection due to unexpected postmaster exit
+FATAL:  terminating connection due to unexpected postmaster exit
+LOG:  database system was interrupted; last known up at 2019-09-26 20:04:35 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  redo starts at 0/14ECAF0
+LOG:  invalid record length at 0/1560768: wanted 24, got 0
+LOG:  redo done at 0/1560740
+LOG:  last completed transaction was at log time 2019-09-26 20:04:36.104919+08
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+FATAL:  database "oo" does not exist
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  database system was interrupted; last known up at 2019-09-26 20:07:42 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  invalid record length at 0/15607D8: wanted 24, got 0
+LOG:  redo is not required
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  database system was interrupted; last known up at 2019-09-26 20:10:30 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  invalid record length at 0/1560848: wanted 24, got 0
+LOG:  redo is not required
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+FATAL:  terminating connection due to administrator command
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 20:12:21 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+ERROR:  role "odoo" already exists
+STATEMENT:  CREATE ROLE odoo PASSWORD 'md5039b285724b3f3f29799d6d39a22fb2d' NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;
+ERROR:  role "odoo" already exists
+STATEMENT:  CREATE ROLE odoo PASSWORD 'md5039b285724b3f3f29799d6d39a22fb2d' NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+FATAL:  terminating connection due to unexpected postmaster exit
+LOG:  database system was shut down at 2019-09-26 20:15:29 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 20:16:21 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  database system was interrupted; last known up at 2019-09-26 20:16:35 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  redo starts at 0/14ECAF0
+LOG:  invalid record length at 0/212F108: wanted 24, got 0
+LOG:  redo done at 0/212F0C8
+LOG:  last completed transaction was at log time 2019-09-26 20:16:54.51872+08
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  database system was interrupted; last known up at 2019-09-26 20:17:22 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  invalid record length at 0/212F178: wanted 24, got 0
+LOG:  redo is not required
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  database system was interrupted; last known up at 2019-09-26 20:17:44 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  invalid record length at 0/212F1E8: wanted 24, got 0
+LOG:  redo is not required
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 20:22:22 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  unexpected EOF on client connection with an open transaction
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  unexpected EOF on client connection with an open transaction
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  unexpected EOF on client connection with an open transaction
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  statistics collector process (PID 8564) was terminated by exception 0xC000013A
+HINT:  See C include file "ntstatus.h" for a description of the hexadecimal value.
+LOG:  autovacuum launcher process (PID 8756) was terminated by exception 0xC000013A
+HINT:  See C include file "ntstatus.h" for a description of the hexadecimal value.
+LOG:  terminating any other active server processes
+^CLOG:  database system was interrupted; last known up at 2019-09-26 20:39:10 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  invalid record length at 0/550CBB8: wanted 24, got 0
+LOG:  redo is not required
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+ERROR:  role "odoo" already exists
+STATEMENT:  CREATE ROLE odoo PASSWORD 'md5039b285724b3f3f29799d6d39a22fb2d' NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;

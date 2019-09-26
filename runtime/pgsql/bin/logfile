@@ -586,3 +586,54 @@ LOG:  database system was shut down at 2019-09-26 19:56:21 HKT
 LOG:  MultiXact member wraparound protections are now enabled
 LOG:  database system is ready to accept connections
 LOG:  autovacuum launcher started
+FATAL:  lock file "postmaster.pid" already exists
+HINT:  Is another postmaster (PID 13488) running in data directory "D:/odoo13-x64/runtime/pgsql/bin/../../../zdata/pg"?
+FATAL:  lock file "postmaster.pid" already exists
+HINT:  Is another postmaster (PID 13488) running in data directory "D:/odoo13-x64/runtime/pgsql/bin/../../../zdata/pg"?
+LOG:  database system was interrupted; last known up at 2019-09-26 20:12:25 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  invalid record length at 0/1560928: wanted 24, got 0
+LOG:  redo is not required
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+ERROR:  role "odoo" already exists
+STATEMENT:  CREATE ROLE odoo PASSWORD 'md5039b285724b3f3f29799d6d39a22fb2d' NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;
+LOG:  database system was interrupted; last known up at 2019-09-26 20:13:40 HKT
+LOG:  database system was not properly shut down; automatic recovery in progress
+LOG:  invalid record length at 0/1560998: wanted 24, got 0
+LOG:  redo is not required
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+ERROR:  role "odoo" already exists
+STATEMENT:  CREATE ROLE odoo PASSWORD 'md5039b285724b3f3f29799d6d39a22fb2d' NOSUPERUSER CREATEDB NOCREATEROLE INHERIT LOGIN;
+ERROR:  relation "ir_module_module" does not exist at character 28
+STATEMENT:  SELECT latest_version FROM ir_module_module WHERE name='base'
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+FATAL:  terminating connection due to administrator command
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  database system was shut down at 2019-09-26 20:15:11 HKT
+LOG:  MultiXact member wraparound protections are now enabled
+LOG:  database system is ready to accept connections
+LOG:  autovacuum launcher started
+FATAL:  database "demo" does not exist
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+LOG:  could not bind IPv6 socket: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+	
+HINT:  Is another postmaster already running on port 5432? If not, wait a few seconds and retry.
+LOG:  could not bind IPv4 socket: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+	
+HINT:  Is another postmaster already running on port 5432? If not, wait a few seconds and retry.
+WARNING:  could not create listen socket for "localhost"
+FATAL:  could not create any TCP/IP sockets
+LOG:  database system is shut down
