@@ -18,8 +18,8 @@ https://github.com/odoo/odoo/tree/saas-12.5
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度
-Odoo 12 Features, enhance and boost from 11。 新特性，功能更多，性能更好 - 广州尚鹏 | odoo专业实施开发
-http://www.sunpop.cn/odoo-12-features-enhance-boost-from-11/
+Odoo 13 各种新特性及功能介绍 - 广州尚鹏 | odoo专业实施开发
+https://www.sunpop.cn/?s=odoo13
 
 ## 开发
 使用pycharm搭建odoo 12, 11,10 开发调试环境
@@ -59,8 +59,10 @@ ment.bat    将无法在windows处理的企业版模块移出
 r.bat   最常用，odoo服务启动（如果当前有进程则先关闭再启动）
 s.bat 停止
 u.bat 删除当前source目录中的odoo源码，从git上下载最新版本
-
 extra 依赖文件目录，如果要自行安装涉及到的库，其它如果提示dll错误请安装 vcredist_x64.exe
+
+# 个人自定义文件 z开头的
+这些是我们自行使用的内容
 
 ## 问题处理
 如果遇到问题，请首先尝试处理Postgresql,进入bin目录执行环境初始化，相关指令如下

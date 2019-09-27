@@ -11,6 +11,7 @@
 /source_git
 /source_pack
 odoo_ent.conf
+odoo_app.conf
 .idea
 .git
 .tx
