@@ -280,10 +280,9 @@ class MailThread(models.AbstractModel):
 
         # automatic logging unless asked not to (mainly for various testing purpose)
         if not self._context.get('mail_create_nolog'):
-            doc_name = self.env['ir.model']._get(self._name).name
-            body = _('%s created') % doc_name
             threads_no_subtype = self.env[self._name]
             for thread in threads:
+                body = thread._get_creation_message()
                 subtype = thread._creation_subtype()
                 if subtype:  # if we have a subtype, post message to notify users from _message_auto_subscribe
                     thread.sudo().message_post(body=body, subtype_id=subtype.id, author_id=self.env.user.partner_id.id)
@@ -561,6 +560,14 @@ class MailThread(models.AbstractModel):
         :returns: a subtype browse record (empty if no subtype is triggered)
         """
         return self.env['mail.message.subtype']
+
+    def _get_creation_message(self):
+        """ Get the creation message to log into the chatter at the record's creation.
+        :returns: The message's body to log.
+        """
+        self.ensure_one()
+        doc_name = self.env['ir.model']._get(self._name).name
+        return _('%s created') % doc_name
 
     def _track_subtype(self, init_values):
         """ Give the subtypes triggered by the changes on the record according
@@ -1384,7 +1391,7 @@ class MailThread(models.AbstractModel):
         msg_dict['cc'] = ','.join(email_cc_list) if email_cc_list else email_cc
         # Delivered-To is a safe bet in most modern MTAs, but we have to fallback on To + Cc values
         # for all the odd MTAs out there, as there is no standard header for the envelope's `rcpt_to` value.
-        msg_dict['recipients'] = ','.join(formatted_email
+        msg_dict['recipients'] = ','.join(set(formatted_email
             for address in [
                 tools.decode_message_header(message, 'Delivered-To'),
                 tools.decode_message_header(message, 'To'),
@@ -1392,14 +1399,15 @@ class MailThread(models.AbstractModel):
                 tools.decode_message_header(message, 'Resent-To'),
                 tools.decode_message_header(message, 'Resent-Cc')
             ] if address
-            for formatted_email in tools.email_split_and_format(address)
+            for formatted_email in tools.email_split_and_format(address))
         )
-        msg_dict['to'] = ','.join(formatted_email
+        msg_dict['to'] = ','.join(set(formatted_email
             for address in [
                 tools.decode_message_header(message, 'Delivered-To'),
                 tools.decode_message_header(message, 'To')
             ] if address
             for formatted_email in tools.email_split_and_format(address))
+        )
         partner_ids = [x.id for x in self._mail_find_partner_from_emails(tools.email_split(msg_dict['recipients']), records=self) if x]
         msg_dict['partner_ids'] = partner_ids
         # compute references to find if email_message is a reply to an existing thread
@@ -2080,6 +2088,9 @@ class MailThread(models.AbstractModel):
             create_values['partner_ids'] = [(4, pid) for pid in create_values.get('partner_ids', [])]
             create_values['channel_ids'] = [(4, cid) for cid in create_values.get('channel_ids', [])]
             create_values_list.append(create_values)
+        if 'default_child_ids' in self._context:
+            ctx = {key: val for key, val in self._context.items() if key != 'default_child_ids'}
+            self = self.with_context(ctx)
         return self.env['mail.message'].create(create_values_list)
 
     # ------------------------------------------------------

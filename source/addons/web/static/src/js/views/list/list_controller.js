@@ -11,6 +11,7 @@ var core = require('web.core');
 var BasicController = require('web.BasicController');
 var DataExport = require('web.DataExport');
 var Dialog = require('web.Dialog');
+var ListConfirmDialog = require('web.ListConfirmDialog');
 var Sidebar = require('web.Sidebar');
 
 var _t = core._t;
@@ -54,19 +55,10 @@ var ListController = BasicController.extend({
         this.selectedRecords = params.selectedRecords || [];
         this.multipleRecordsSavingPromise = null;
         this.fieldChangedPrevented = false;
-        this._onMouseupWindowDiscard = null;
-    },
-
-    /**
-     * Overriden to properly unbind any mouseup listeners still bound to the window
-     *
-     * @override
-     */
-    destroy: function () {
-        if (this._onMouseupWindowDiscard) {
-            window.removeEventListener('mouseup', this._onMouseupWindowDiscard, true);
-        }
-        return this._super.apply(this, arguments);
+        Object.defineProperty(this, 'mode', {
+            get: () => this.renderer.isEditable() ? 'edit' : 'readonly',
+            set: () => {},
+        });
     },
 
     //--------------------------------------------------------------------------
@@ -396,62 +388,54 @@ var ListController = BasicController.extend({
      * @returns {Promise}
      */
     _saveMultipleRecords: function (recordId, node, changes) {
-        var self = this;
         var fieldName = Object.keys(changes)[0];
         var value = Object.values(changes)[0];
         var recordIds = _.union([recordId], this.selectedRecords);
-        var validRecordIds = recordIds.reduce(function (result, nextRecordId) {
-            var record = self.model.get(nextRecordId);
-            var modifiers = self.renderer._registerModifiers(node, record);
+        var validRecordIds = recordIds.reduce((result, nextRecordId) => {
+            var record = this.model.get(nextRecordId);
+            var modifiers = this.renderer._registerModifiers(node, record);
             if (!modifiers.readonly && (!modifiers.required || value)) {
                 result.push(nextRecordId);
             }
             return result;
         }, []);
-        const nbInvalid = recordIds.length - validRecordIds.length;
-
         return new Promise((resolve, reject) => {
-            const rejectAndDiscard = () => {
+            const discardAndReject = () => {
                 this.model.discardChanges(recordId);
-                return this._confirmSave(recordId).then(reject);
+                this._confirmSave(recordId).then(() => {
+                    this.renderer.focusCell(recordId, node);
+                    reject();
+                });
             };
-            let dialog;
             if (validRecordIds.length > 0) {
-                let message;
-                if (nbInvalid === 0) {
-                    message = _.str.sprintf(
-                        _t("Do you want to set the value on the %d selected records?"),
-                        validRecordIds.length);
-                } else {
-                    message = _.str.sprintf(
-                        _t("Do you want to set the value on the %d valid selected records? (%d invalid)"),
-                        validRecordIds.length, nbInvalid);
-                }
-                dialog = Dialog.confirm(this, message, {
+                const dialogOptions = {
                     confirm_callback: () => {
-                        return this.model.saveRecords(recordId, validRecordIds, fieldName)
+                        this.model.saveRecords(recordId, validRecordIds, fieldName)
                             .then(async () => {
                                 this._updateButtons('readonly');
                                 const state = this.model.get(this.handle);
-                                await this.renderer.updateState(state, {keepWidths: true});
+                                await this.renderer.updateState(state, { keepWidths: true });
+                                await this.renderer.focusCell(recordId, node);
                                 resolve(Object.keys(changes));
                             })
-                            .guardedCatch(rejectAndDiscard);
+                            .guardedCatch(discardAndReject);
                     },
-                    cancel_callback: rejectAndDiscard,
-                });
+                    cancel_callback: discardAndReject,
+                };
+                const record = this.model.get(recordId);
+                const dialogChanges = {
+                    fieldLabel: node.attrs.string || record.fields[fieldName].string,
+                    fieldName: node.attrs.name,
+                    nbRecords: recordIds.length,
+                    nbValidRecords: validRecordIds.length,
+                };
+                new ListConfirmDialog(this, record, dialogChanges, dialogOptions)
+                    .open({ shouldFocusButtons: true });
             } else {
-                dialog = Dialog.alert(this, _t("No valid record to save"), {
-                    confirm_callback: rejectAndDiscard,
+                Dialog.alert(this, _t("No valid record to save"), {
+                    confirm_callback: discardAndReject,
                 });
             }
-            dialog.on('closed', this, async () => {
-                // we need to wait for the dialog to be actually closed, but
-                // the 'closed' event is triggered just before, and it prevents
-                // from focussing the cell
-                await Promise.resolve();
-                this.renderer.focusCell(recordId, node);
-            });
         });
     },
     /**
@@ -462,7 +446,7 @@ var ListController = BasicController.extend({
      */
     _saveRecord: function (recordId) {
         var record = this.model.get(recordId, { raw: true });
-        if (record.isDirty() && this.renderer.inMultipleRecordEdition(recordId)) {
+        if (record.isDirty() && this.renderer.isInMultipleRecordEdition(recordId)) {
             // do not save the record (see _saveMultipleRecords)
             const prom = this.multipleRecordsSavingPromise || Promise.reject();
             this.multipleRecordsSavingPromise = null;
@@ -505,7 +489,7 @@ var ListController = BasicController.extend({
     _toggleCreateButton: function () {
         if (this.$buttons) {
             var state = this.model.get(this.handle);
-            var createHidden = this.editable && state.groupedBy.length && state.data.length;
+            var createHidden = this.renderer.isEditable() && state.groupedBy.length && state.data.length;
             this.$buttons.find('.o_list_button_add').toggleClass('o_hidden', !!createHidden);
         }
     },
@@ -523,8 +507,6 @@ var ListController = BasicController.extend({
      * @returns {Promise}
      */
     _update: function () {
-        let visilibityFunction = this.renderer.state.count ? 'show' : 'hide'
-        this.$('.o_list_export_xlsx')[visilibityFunction]()
         return this._super.apply(this, arguments)
             .then(this._toggleSidebar.bind(this))
             .then(this._toggleCreateButton.bind(this))
@@ -539,6 +521,12 @@ var ListController = BasicController.extend({
     _updateButtons: function (mode) {
         if (this.$buttons) {
             this.$buttons.toggleClass('o-editing', mode === 'edit');
+            const state = this.model.get(this.handle, {raw: true});
+            if (state.count) {
+                this.$('.o_list_export_xlsx').show();
+            } else {
+                this.$('.o_list_export_xlsx').hide();
+            }
         }
     },
 
@@ -555,7 +543,7 @@ var ListController = BasicController.extend({
      */
     _onActivateNextWidget: function (ev) {
         ev.stopPropagation();
-        this.renderer.editFirstRecord();
+        this.renderer.editFirstRecord(ev);
     },
     /**
      * Add a record to the list
@@ -708,12 +696,14 @@ var ListController = BasicController.extend({
 
         if (this.fieldChangedPrevented) {
             this.fieldChangedPrevented = ev;
-        } else if (this.renderer.inMultipleRecordEdition(recordId)) {
-            // deal with edition of multiple lines
-            ev.data.onSuccess = () => {
+        } else if (this.renderer.isInMultipleRecordEdition(recordId)) {
+            const saveMulti = () => {
                 this.multipleRecordsSavingPromise =
                     this._saveMultipleRecords(ev.data.dataPointID, ev.target.__node, ev.data.changes);
             };
+            // deal with edition of multiple lines
+            ev.data.onSuccess = saveMulti; // will ask confirmation, and save
+            ev.data.onFailure = saveMulti; // will show the appropriate dialog
             // disable onchanges as we'll save directly
             ev.data.notifyChange = false;
         }
@@ -750,14 +740,14 @@ var ListController = BasicController.extend({
      * @param {OdooEvent} ev
      */
     _onSetDirty: function (ev) {
-        var self = this;
         var recordId = ev.data.dataPointID;
-        if (this.renderer.inMultipleRecordEdition(recordId)) {
+        if (this.renderer.isInMultipleRecordEdition(recordId)) {
             ev.stopPropagation();
             Dialog.alert(this, _t("No valid record to save"), {
-                confirm_callback: function () {
-                    self.model.discardChanges(recordId);
-                    self._confirmSave(recordId);
+                confirm_callback: async () => {
+                    this.model.discardChanges(recordId);
+                    await this._confirmSave(recordId);
+                    this.renderer.focusCell(recordId, ev.target.__node);
                 },
             });
         } else {
