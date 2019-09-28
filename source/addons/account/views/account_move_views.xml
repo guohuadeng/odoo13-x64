@@ -69,7 +69,7 @@
                                     </group>
                                     <group string="Analytic" groups="analytic.group_analytic_accounting,analytic.group_analytic_tags">
                                         <field name="analytic_account_id" groups="analytic.group_analytic_accounting"
-                                            domain="['|', ('company_id', '=', company_id), ('company_id', '=', False)]" 
+                                            domain="['|', ('company_id', '=', company_id), ('company_id', '=', False)]"
                                             attrs="{'readonly':[('parent_state','=','posted')]}"/>
                                         <field name="analytic_tag_ids" groups="analytic.group_analytic_tags"
                                             widget="many2many_tags"/>
@@ -175,7 +175,7 @@
                     <field name="move_id" optional="show" readonly="1"/>
                     <field name="account_id" options="{'no_open': True, 'no_create': True}" domain="[('company_id', '=', company_id)]" groups="account.group_account_user" optional="show"/>
                     <field name="statement_id" invisible="1"/>
-                    <field name="partner_id" optional="show"/>
+                    <field name="partner_id" optional="show" readonly="1"/>
                     <field name="ref" optional="hide"/>
                     <field name="name"/>
                     <field name="reconciled" invisible="1"/>
@@ -610,10 +610,7 @@
                                             'res_partner_search_mode': (context.get('default_type', 'entry') in ('out_invoice', 'out_refund', 'out_receipt') and 'customer') or (context.get('default_type', 'entry') in ('in_invoice', 'in_refund', 'in_receipt') and 'supplier') or False,
                                             'show_address': 1, 'default_is_company': True, 'show_vat': True}"
                                        options='{"always_reload": True, "no_quick_create": True}'
-                                       attrs="{
-                                           'invisible': [('type', 'not in', ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt'))],
-                                           'required': [('type', 'in', ('out_invoice', 'out_refund', 'in_invoice', 'in_refund'))]
-                                       }"/>
+                                       attrs="{'invisible': [('type', 'not in', ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt'))]}"/>
 
                                 <field name="ref"
                                        attrs="{'invisible': [('type', '=', 'out_invoice')]}"/>
@@ -1055,7 +1052,7 @@
             view_id="account.view_move_line_tax_audit_tree"/>
 
         <record id="action_account_moves_all_a" model="ir.actions.act_window">
-            <field name="context">{'journal_type':'general', 'search_default_group_by_move': 1, 'search_default_posted':1, 'search_default_sales':1, 'name_groupby':1}</field>
+            <field name="context">{'journal_type':'general', 'search_default_group_by_move': 1, 'search_default_posted':1, 'name_groupby':1}</field>
             <field name="name">Journal Items</field>
             <field name="res_model">account.move.line</field>
             <field name="domain">[('display_type', 'not in', ('line_section', 'line_note'))]</field>

@@ -14,7 +14,6 @@ odoo_ent.conf
 odoo_app.conf
 .idea
 .git
-.tx
 ~*.*
 .pyc
 .DS_Store

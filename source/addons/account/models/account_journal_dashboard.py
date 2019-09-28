@@ -55,7 +55,7 @@ class account_journal(models.Model):
                     'res_id': activity.get('res_id'),
                     'res_model': activity.get('res_model'),
                     'status': activity.get('status'),
-                    'name': (activity.get('summary') or activity.get('act_type_name')) + '(' + format_date(activity.get('date'), 'MMM', locale=self._context.get('lang') or 'en_US') + ')',
+                    'name': (activity.get('summary') or activity.get('act_type_name')),
                     'activity_category': activity.get('activity_category'),
                     'date': odoo_format_date(self.env, activity.get('date_deadline'))
                 })
@@ -281,6 +281,11 @@ class account_journal(models.Model):
             if read:
                 number_to_check = read[0]['__count']
                 to_check_balance = read[0]['amount_total']
+        elif self.type == 'general':
+            read = self.env['account.move'].read_group([('journal_id', '=', self.id), ('to_check', '=', True)], ['amount_total'], 'journal_id', lazy=False)
+            if read:
+                number_to_check = read[0]['__count']
+                to_check_balance = read[0]['amount_total']
 
         difference = currency.round(last_balance-account_sum) + 0.0
 
@@ -489,10 +494,12 @@ class account_journal(models.Model):
             'search_default_journal_id': self.id,
         })
 
+        domain_type_field = action['res_model'] == 'account.move.line' and 'move_id.type' or 'type' # The model can be either account.move or account.move.line
+
         if self.type == 'sale':
-            action['domain'] = [('type', 'in', ('out_invoice', 'out_refund', 'out_receipt'))]
+            action['domain'] = [(domain_type_field, 'in', ('out_invoice', 'out_refund', 'out_receipt'))]
         elif self.type == 'purchase':
-            action['domain'] = [('type', 'in', ('in_invoice', 'in_refund', 'in_receipt'))]
+            action['domain'] = [(domain_type_field, 'in', ('in_invoice', 'in_refund', 'in_receipt'))]
 
         return action
 
