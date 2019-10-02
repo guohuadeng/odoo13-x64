@@ -3,16 +3,17 @@
 #ifndef PGTYPES_DATETIME
 #define PGTYPES_DATETIME
 
+#include <pgtypes.h>
 #include <pgtypes_timestamp.h>
 
 typedef long date;
 
 #ifdef __cplusplus
-extern		"C"
+extern "C"
 {
 #endif
 
-extern date *PGTYPESdate_new(void);
+extern date * PGTYPESdate_new(void);
 extern void PGTYPESdate_free(date *);
 extern date PGTYPESdate_from_asc(char *, char **);
 extern char *PGTYPESdate_to_asc(date);
@@ -28,4 +29,4 @@ extern int	PGTYPESdate_fmt_asc(date, const char *, char *);
 }
 #endif
 
-#endif   /* PGTYPES_DATETIME */
+#endif							/* PGTYPES_DATETIME */

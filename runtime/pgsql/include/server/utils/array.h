@@ -51,7 +51,7 @@
  * arrays holding the elements.
  *
  *
- * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/array.h
@@ -153,7 +153,10 @@ typedef struct ExpandedArrayHeader
 
 /*
  * Functions that can handle either a "flat" varlena array or an expanded
- * array use this union to work with their input.
+ * array use this union to work with their input.  Don't refer to "flt";
+ * instead, cast to ArrayType.  This struct nominally requires 8-byte
+ * alignment on 64-bit, but it's often used for an ArrayType having 4-byte
+ * alignment.  UBSan complains about referencing "flt" in such cases.
  */
 typedef union AnyArrayType
 {
@@ -307,17 +310,21 @@ typedef struct ArrayIteratorData *ArrayIterator;
  * Macros for working with AnyArrayType inputs.  Beware multiple references!
  */
 #define AARR_NDIM(a) \
-	(VARATT_IS_EXPANDED_HEADER(a) ? (a)->xpn.ndims : ARR_NDIM(&(a)->flt))
+	(VARATT_IS_EXPANDED_HEADER(a) ? \
+	 (a)->xpn.ndims : ARR_NDIM((ArrayType *) (a)))
 #define AARR_HASNULL(a) \
 	(VARATT_IS_EXPANDED_HEADER(a) ? \
 	 ((a)->xpn.dvalues != NULL ? (a)->xpn.dnulls != NULL : ARR_HASNULL((a)->xpn.fvalue)) : \
-	 ARR_HASNULL(&(a)->flt))
+	 ARR_HASNULL((ArrayType *) (a)))
 #define AARR_ELEMTYPE(a) \
-	(VARATT_IS_EXPANDED_HEADER(a) ? (a)->xpn.element_type : ARR_ELEMTYPE(&(a)->flt))
+	(VARATT_IS_EXPANDED_HEADER(a) ? \
+	 (a)->xpn.element_type : ARR_ELEMTYPE((ArrayType *) (a)))
 #define AARR_DIMS(a) \
-	(VARATT_IS_EXPANDED_HEADER(a) ? (a)->xpn.dims : ARR_DIMS(&(a)->flt))
+	(VARATT_IS_EXPANDED_HEADER(a) ? \
+	 (a)->xpn.dims : ARR_DIMS((ArrayType *) (a)))
 #define AARR_LBOUND(a) \
-	(VARATT_IS_EXPANDED_HEADER(a) ? (a)->xpn.lbound : ARR_LBOUND(&(a)->flt))
+	(VARATT_IS_EXPANDED_HEADER(a) ? \
+	 (a)->xpn.lbound : ARR_LBOUND((ArrayType *) (a)))
 
 
 /*
@@ -328,38 +335,6 @@ extern bool Array_nulls;
 /*
  * prototypes for functions defined in arrayfuncs.c
  */
-extern Datum array_in(PG_FUNCTION_ARGS);
-extern Datum array_out(PG_FUNCTION_ARGS);
-extern Datum array_recv(PG_FUNCTION_ARGS);
-extern Datum array_send(PG_FUNCTION_ARGS);
-extern Datum array_eq(PG_FUNCTION_ARGS);
-extern Datum array_ne(PG_FUNCTION_ARGS);
-extern Datum array_lt(PG_FUNCTION_ARGS);
-extern Datum array_gt(PG_FUNCTION_ARGS);
-extern Datum array_le(PG_FUNCTION_ARGS);
-extern Datum array_ge(PG_FUNCTION_ARGS);
-extern Datum btarraycmp(PG_FUNCTION_ARGS);
-extern Datum hash_array(PG_FUNCTION_ARGS);
-extern Datum arrayoverlap(PG_FUNCTION_ARGS);
-extern Datum arraycontains(PG_FUNCTION_ARGS);
-extern Datum arraycontained(PG_FUNCTION_ARGS);
-extern Datum array_ndims(PG_FUNCTION_ARGS);
-extern Datum array_dims(PG_FUNCTION_ARGS);
-extern Datum array_lower(PG_FUNCTION_ARGS);
-extern Datum array_upper(PG_FUNCTION_ARGS);
-extern Datum array_length(PG_FUNCTION_ARGS);
-extern Datum array_cardinality(PG_FUNCTION_ARGS);
-extern Datum array_larger(PG_FUNCTION_ARGS);
-extern Datum array_smaller(PG_FUNCTION_ARGS);
-extern Datum generate_subscripts(PG_FUNCTION_ARGS);
-extern Datum generate_subscripts_nodir(PG_FUNCTION_ARGS);
-extern Datum array_fill(PG_FUNCTION_ARGS);
-extern Datum array_fill_with_lower_bounds(PG_FUNCTION_ARGS);
-extern Datum array_unnest(PG_FUNCTION_ARGS);
-extern Datum array_remove(PG_FUNCTION_ARGS);
-extern Datum array_replace(PG_FUNCTION_ARGS);
-extern Datum width_bucket_array(PG_FUNCTION_ARGS);
-
 extern void CopyArrayEls(ArrayType *array,
 			 Datum *values,
 			 bool *nulls,
@@ -475,31 +450,4 @@ extern ExpandedArrayHeader *DatumGetExpandedArrayX(Datum d,
 extern AnyArrayType *DatumGetAnyArray(Datum d);
 extern void deconstruct_expanded_array(ExpandedArrayHeader *eah);
 
-/*
- * prototypes for functions defined in array_userfuncs.c
- */
-extern Datum array_append(PG_FUNCTION_ARGS);
-extern Datum array_prepend(PG_FUNCTION_ARGS);
-extern Datum array_cat(PG_FUNCTION_ARGS);
-
-extern ArrayType *create_singleton_array(FunctionCallInfo fcinfo,
-					   Oid element_type,
-					   Datum element,
-					   bool isNull,
-					   int ndims);
-
-extern Datum array_agg_transfn(PG_FUNCTION_ARGS);
-extern Datum array_agg_finalfn(PG_FUNCTION_ARGS);
-extern Datum array_agg_array_transfn(PG_FUNCTION_ARGS);
-extern Datum array_agg_array_finalfn(PG_FUNCTION_ARGS);
-
-extern Datum array_position(PG_FUNCTION_ARGS);
-extern Datum array_position_start(PG_FUNCTION_ARGS);
-extern Datum array_positions(PG_FUNCTION_ARGS);
-
-/*
- * prototypes for functions defined in array_typanalyze.c
- */
-extern Datum array_typanalyze(PG_FUNCTION_ARGS);
-
-#endif   /* ARRAY_H */
+#endif							/* ARRAY_H */

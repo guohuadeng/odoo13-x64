@@ -12,7 +12,7 @@ https://github.com/odoo/odoo/tree/saas-12.5
 
 ## 版本信息
 1. python 3.5.2, 64位
-2. postgresql 9.6.4 ,64位
+2. postgresql 10.10 ,64位
 3. Nginx 1.15.5， 64位
 4. Odoo 13社区版，20191002版本 saas-12.5
 5. 增加 sphinx 及 tx_client，用于文档及翻译
@@ -30,6 +30,9 @@ http://demo.odooapp.cn
 
 ## odoo13 在线演示学习，请注册
 http://demo.erpapp.cn
+
+## 多数的系统，请先安装 win 支持，用于PG及后续增加 python 依赖
+.\extra\vcredist_x64.2013.exe
 
 ## 操作说明
 - 启动odoo：执行 r.bat后，访问 http://localhost:8013  或者  http://localhost
@@ -82,8 +85,6 @@ createuser --createdb --no-createrole --no-superuser --pwprompt odoo
 ```
 https://www.python.org/downloads/windows/
 ```
-## 安装 win 支持，便于后续增加 python 依赖，也可以不装
-.\extra\vc_redist.x64.exe
 
 ## 安装pip
 ```

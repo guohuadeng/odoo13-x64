@@ -3,7 +3,7 @@
  * spi_priv.h
  *				Server Programming Interface private declarations
  *
- * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/spi_priv.h
@@ -14,6 +14,7 @@
 #define SPI_PRIV_H
 
 #include "executor/spi.h"
+#include "utils/queryenvironment.h"
 
 
 #define _SPI_PLAN_MAGIC		569278163
@@ -30,7 +31,17 @@ typedef struct
 	MemoryContext procCxt;		/* procedure context */
 	MemoryContext execCxt;		/* executor context */
 	MemoryContext savedcxt;		/* context of SPI_connect's caller */
-	SubTransactionId connectSubid;		/* ID of connecting subtransaction */
+	SubTransactionId connectSubid;	/* ID of connecting subtransaction */
+	QueryEnvironment *queryEnv; /* query environment setup for SPI level */
+
+	/* subtransaction in which current Executor call was started */
+	SubTransactionId execSubid;
+
+	/* saved values of API global variables for previous nesting level */
+	uint64		outer_processed;
+	Oid			outer_lastoid;
+	SPITupleTable *outer_tuptable;
+	int			outer_result;
 } _SPI_connection;
 
 /*
@@ -86,4 +97,4 @@ typedef struct _SPI_plan
 	void	   *parserSetupArg;
 } _SPI_plan;
 
-#endif   /* SPI_PRIV_H */
+#endif							/* SPI_PRIV_H */

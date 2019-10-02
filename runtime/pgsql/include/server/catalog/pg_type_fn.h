@@ -4,7 +4,7 @@
  *	 prototypes for functions in catalog/pg_type.c
  *
  *
- * Portions Copyright (c) 1996-2016, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2017, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_type_fn.h
@@ -54,23 +54,13 @@ extern ObjectAddress TypeCreate(Oid newTypeOid,
 		   bool typeNotNull,
 		   Oid typeCollation);
 
-extern void GenerateTypeDependencies(Oid typeNamespace,
-						 Oid typeObjectId,
-						 Oid relationOid,
-						 char relationKind,
-						 Oid owner,
-						 Oid inputProcedure,
-						 Oid outputProcedure,
-						 Oid receiveProcedure,
-						 Oid sendProcedure,
-						 Oid typmodinProcedure,
-						 Oid typmodoutProcedure,
-						 Oid analyzeProcedure,
-						 Oid elementType,
-						 bool isImplicitArray,
-						 Oid baseType,
-						 Oid typeCollation,
+extern void GenerateTypeDependencies(Oid typeObjectId,
+						 Form_pg_type typeForm,
 						 Node *defaultExpr,
+						 void *typacl,
+						 char relationKind, /* only for relation rowtypes */
+						 bool isImplicitArray,
+						 bool isDependentType,
 						 bool rebuild);
 
 extern void RenameTypeInternal(Oid typeOid, const char *newTypeName,
@@ -81,4 +71,4 @@ extern char *makeArrayTypeName(const char *typeName, Oid typeNamespace);
 extern bool moveArrayTypeName(Oid typeOid, const char *typeName,
 				  Oid typeNamespace);
 
-#endif   /* PG_TYPE_FN_H */
+#endif							/* PG_TYPE_FN_H */

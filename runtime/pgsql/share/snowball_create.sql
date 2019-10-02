@@ -1,7 +1,7 @@
 /*
  * Create underlying C functions for Snowball stemmers
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball_func.sql.in
  *
@@ -35,7 +35,7 @@ COMMENT ON TEXT SEARCH TEMPLATE snowball IS 'snowball stemmer';
 /*
  * text search configuration for danish language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -77,7 +77,7 @@ ALTER TEXT SEARCH CONFIGURATION danish ADD MAPPING
 /*
  * text search configuration for dutch language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -119,7 +119,7 @@ ALTER TEXT SEARCH CONFIGURATION dutch ADD MAPPING
 /*
  * text search configuration for english language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -161,7 +161,7 @@ ALTER TEXT SEARCH CONFIGURATION english ADD MAPPING
 /*
  * text search configuration for finnish language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -203,7 +203,7 @@ ALTER TEXT SEARCH CONFIGURATION finnish ADD MAPPING
 /*
  * text search configuration for french language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -245,7 +245,7 @@ ALTER TEXT SEARCH CONFIGURATION french ADD MAPPING
 /*
  * text search configuration for german language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -287,7 +287,7 @@ ALTER TEXT SEARCH CONFIGURATION german ADD MAPPING
 /*
  * text search configuration for hungarian language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -329,7 +329,7 @@ ALTER TEXT SEARCH CONFIGURATION hungarian ADD MAPPING
 /*
  * text search configuration for italian language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -371,7 +371,7 @@ ALTER TEXT SEARCH CONFIGURATION italian ADD MAPPING
 /*
  * text search configuration for norwegian language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -413,7 +413,7 @@ ALTER TEXT SEARCH CONFIGURATION norwegian ADD MAPPING
 /*
  * text search configuration for portuguese language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -455,7 +455,7 @@ ALTER TEXT SEARCH CONFIGURATION portuguese ADD MAPPING
 /*
  * text search configuration for romanian language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -497,7 +497,7 @@ ALTER TEXT SEARCH CONFIGURATION romanian ADD MAPPING
 /*
  * text search configuration for russian language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -539,7 +539,7 @@ ALTER TEXT SEARCH CONFIGURATION russian ADD MAPPING
 /*
  * text search configuration for spanish language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -581,7 +581,7 @@ ALTER TEXT SEARCH CONFIGURATION spanish ADD MAPPING
 /*
  * text search configuration for swedish language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
@@ -623,7 +623,7 @@ ALTER TEXT SEARCH CONFIGURATION swedish ADD MAPPING
 /*
  * text search configuration for turkish language
  *
- * Copyright (c) 2007-2016, PostgreSQL Global Development Group
+ * Copyright (c) 2007-2017, PostgreSQL Global Development Group
  *
  * src/backend/snowball/snowball.sql.in
  *
