@@ -78,7 +78,7 @@ class ProductTemplate(models.Model):
         digits='Product Price')
     # list_price: catalog price, user defined
     list_price = fields.Float(
-        'Sale Price', default=1.0,
+        'Sales Price', default=1.0,
         digits='Product Price',
         help="Price at which the product is sold to customers.")
     # lst_price: catalog price for template, but including extra for variants
@@ -176,6 +176,7 @@ class ProductTemplate(models.Model):
         for p in self:
             p.product_variant_id = p.product_variant_ids[:1].id
 
+    @api.depends('company_id')
     def _compute_currency_id(self):
         main_company = self.env['res.company']._get_main_company()
         for template in self:

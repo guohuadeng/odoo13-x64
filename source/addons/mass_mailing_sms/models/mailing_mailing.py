@@ -12,6 +12,13 @@ _logger = logging.getLogger(__name__)
 class Mailing(models.Model):
     _inherit = 'mailing.mailing'
 
+    @api.model
+    def default_get(self, fields):
+        res = super(Mailing, self).default_get(fields)
+        if fields is not None and 'keep_archives' in fields and res.get('mailing_type') == 'sms':
+            res['keep_archives'] = True
+        return res
+
     # mailing options
     mailing_type = fields.Selection(selection_add=[('sms', 'SMS')])
     # sms options
@@ -23,7 +30,7 @@ class Mailing(models.Model):
     sms_force_send = fields.Boolean(
         'Send Directly', help='Use at your own risks.')
     # opt_out_link
-    sms_allow_unsubscribe = fields.Boolean('Include opt-out link', default=True)
+    sms_allow_unsubscribe = fields.Boolean('Include opt-out link', default=False)
 
     @api.onchange('mailing_type')
     def _onchange_mailing_type(self):

@@ -60,7 +60,7 @@ class PaymentAcquirer(models.Model):
     """
     _name = 'payment.acquirer'
     _description = 'Payment Acquirer'
-    _order = 'state desc, sequence, name'
+    _order = 'module_state, state, sequence, name'
 
     def _get_default_view_template_id(self):
         return self.env.ref('payment.default_acquirer_button', raise_if_not_found=False)
@@ -1038,6 +1038,7 @@ class PaymentToken(models.Model):
     short_name = fields.Char('Short name', compute='_compute_short_name')
     partner_id = fields.Many2one('res.partner', 'Partner', required=True)
     acquirer_id = fields.Many2one('payment.acquirer', 'Acquirer Account', required=True)
+    company_id = fields.Many2one(related='acquirer_id.company_id', store=True, index=True)
     acquirer_ref = fields.Char('Acquirer Ref.', required=True)
     active = fields.Boolean('Active', default=True)
     payment_ids = fields.One2many('payment.transaction', 'payment_token_id', 'Payment Transactions')

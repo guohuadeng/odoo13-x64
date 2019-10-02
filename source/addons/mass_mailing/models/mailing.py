@@ -104,7 +104,6 @@ class MassMailing(models.Model):
         help="Use a specific mail server in priority. Otherwise Odoo relies on the first outgoing mail server available (based on their sequencing) as it does for normal mails.")
     contact_list_ids = fields.Many2many('mailing.list', 'mail_mass_mailing_list_rel',
         string='Mailing Lists')
-    contact_list_count = fields.Integer('# Contact List', compute='_compute_contact_list_count')
     contact_ab_pc = fields.Integer(string='A/B Testing percentage',
         help='Percentage of the contacts that will be mailed. Recipients will be taken randomly.', default=100)
     unique_ab_testing = fields.Boolean(string='Allow A/B Testing', default=False,
@@ -129,11 +128,6 @@ class MassMailing(models.Model):
     replied_ratio = fields.Integer(compute="_compute_statistics", string='Replied Ratio')
     bounced_ratio = fields.Integer(compute="_compute_statistics", string='Bounced Ratio')
     next_departure = fields.Datetime(compute="_compute_next_departure", string='Scheduled date')
-
-    @api.depends('contact_list_ids')
-    def _compute_contact_list_count(self):
-        for mass_mailing in self:
-            mass_mailing.contact_list_count = len(mass_mailing.contact_list_ids)
 
     def _compute_total(self):
         for mass_mailing in self:
@@ -203,23 +197,21 @@ class MassMailing(models.Model):
             else:
                 mass_mailing.next_departure = cron_time
 
-    @api.onchange('mailing_model_real', 'contact_list_ids')
+    @api.onchange('mailing_model_name', 'contact_list_ids')
     def _onchange_model_and_list(self):
         mailing_domain = literal_eval(self.mailing_domain) if self.mailing_domain else []
-        if self.mailing_model_real:
+        if self.mailing_model_name:
             if mailing_domain:
                 try:
-                    self.env[self.mailing_model_real].search(mailing_domain, limit=1)
+                    self.env[self.mailing_model_name].search(mailing_domain, limit=1)
                 except:
                     mailing_domain = []
             if not mailing_domain:
-                if self.mailing_model_real == 'mailing.list' and self.contact_list_ids:
+                if self.mailing_model_name == 'mailing.list' and self.contact_list_ids:
                     mailing_domain = [('list_ids', 'in', self.contact_list_ids.ids)]
-                elif self.mailing_model_real == 'res.partner' and 'customer_rank' in self.env['res.partner']._fields:
-                    mailing_domain = [('customer_rank', '>', 0)]
-                elif 'is_blacklisted' in self.env[self.mailing_model_real]._fields and not self.mailing_domain:
+                elif 'is_blacklisted' in self.env[self.mailing_model_name]._fields and not self.mailing_domain:
                     mailing_domain = [('is_blacklisted', '=', False)]
-                elif 'opt_out' in self.env[self.mailing_model_real]._fields and not self.mailing_domain:
+                elif 'opt_out' in self.env[self.mailing_model_name]._fields and not self.mailing_domain:
                     mailing_domain = [('opt_out', '=', False)]
         else:
             mailing_domain = []

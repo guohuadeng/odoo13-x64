@@ -2,12 +2,11 @@
 
 from odoo import api, fields, models, _
 from odoo.exceptions import RedirectWarning, UserError, ValidationError
-from odoo.tools import float_is_zero, float_compare, safe_eval, date_utils
+from odoo.tools import float_is_zero, float_compare, safe_eval, date_utils, email_split, email_escape_char, email_re
 from odoo.tools.misc import formatLang, format_date
 
-from collections import OrderedDict
 from datetime import date, timedelta
-from itertools import groupby, chain
+from itertools import groupby
 from stdnum.iso7064 import mod_97_10
 from itertools import zip_longest
 from hashlib import sha256
@@ -1954,6 +1953,54 @@ class AccountMove(models.Model):
     def open_reconcile_view(self):
         return self.line_ids.open_reconcile_view()
 
+    @api.model
+    def message_new(self, msg_dict, custom_values=None):
+        # OVERRIDE
+        # Add custom behavior when receiving a new invoice through the mail's gateway.
+        if custom_values.get('type', 'entry') not in ('out_invoice', 'in_invoice'):
+            return False
+
+        def is_internal_partner(partner):
+            # Helper to know if the partner is an internal one.
+            return partner.user_ids and all(user.has_group('base.group_user') for user in partner.user_ids)
+
+        # Search for partners in copy.
+        cc_mail_addresses = email_split(msg_dict.get('cc', ''))
+        followers = [partner for partner in self._mail_find_partner_from_emails(cc_mail_addresses) if partner]
+
+        # Search for partner that sent the mail.
+        from_mail_addresses = email_split(msg_dict.get('from', ''))
+        senders = partners = [partner for partner in self._mail_find_partner_from_emails(from_mail_addresses) if partner]
+
+        # Search for partners using the user.
+        if not senders:
+            senders = partners = list(self._mail_search_on_user(from_mail_addresses))
+
+        if partners:
+            # Check we are not in the case when an internal user forwarded the mail manually.
+            if is_internal_partner(partners[0]):
+                # Search for partners in the mail's body.
+                body_mail_addresses = set(email_re.findall(msg_dict.get('body')))
+                partners = [partner for partner in self._mail_find_partner_from_emails(body_mail_addresses) if not is_internal_partner(partner)]
+
+        # Little hack: Inject the mail's subject in the body.
+        if msg_dict.get('subject') and msg_dict.get('body'):
+            msg_dict['body'] = '<div><div><h3>%s</h3></div>%s</div>' % (msg_dict['subject'], msg_dict['body'])
+
+        # Create the invoice.
+        values = {
+            'name': self.default_get(['name'])['name'],
+            'invoice_source_email': from_mail_addresses[0],
+            'partner_id': partners and partners[0].id or False,
+        }
+        move_ctx = self.with_context(default_type=custom_values['type'], default_journal_id=custom_values['journal_id'])
+        move = super(AccountMove, move_ctx).message_new(msg_dict, custom_values=values)
+
+        # Assign followers.
+        all_followers_ids = set(partner.id for partner in followers + senders + partners)
+        move.message_subscribe(list(all_followers_ids))
+        return move
+
     def post(self):
         for move in self:
             if not move.line_ids.filtered(lambda line: not line.display_type):
@@ -1992,7 +2039,7 @@ class AccountMove(models.Model):
             if move.auto_post and move.date > fields.Date.today():
                 raise UserError(_("This move is configured to be auto-posted on {}".format(move.date.strftime(self.env['res.lang']._lang_get(self.env.user.lang).date_format))))
 
-            move.message_subscribe([p.id for p in [move.partner_id, move.commercial_partner_id] if p not in move.message_partner_ids])
+            move.message_subscribe([p.id for p in [move.partner_id, move.commercial_partner_id] if p not in move.sudo().message_partner_ids])
 
             to_write = {'state': 'posted'}
 
@@ -2297,17 +2344,18 @@ class AccountMoveLine(models.Model):
 
     # ==== Business fields ====
     move_id = fields.Many2one('account.move', string='Journal Entry',
-        index=True, required=True, auto_join=True, ondelete="cascade",
+        index=True, required=True, readonly=True, auto_join=True, ondelete="cascade",
         help="The move of this entry line.")
     move_name = fields.Char(string='Number', related='move_id.name', store=True, index=True)
     date = fields.Date(related='move_id.date', store=True, readonly=True, index=True, copy=False, group_operator='min')
     ref = fields.Char(related='move_id.ref', store=True, copy=False, index=True, readonly=False)
     parent_state = fields.Selection(related='move_id.state', store=True, readonly=True)
-    journal_id = fields.Many2one(related='move_id.journal_id', store=True, readonly=False, index=True, copy=False)
+    journal_id = fields.Many2one(related='move_id.journal_id', store=True, index=True, copy=False)
     company_id = fields.Many2one(related='move_id.company_id', store=True, readonly=True)
     company_currency_id = fields.Many2one(related='company_id.currency_id', string='Company Currency',
         readonly=True, store=True,
         help='Utility field to express amount currency')
+    country_id = fields.Many2one(comodel_name='res.country', related='move_id.company_id.country_id')
     account_id = fields.Many2one('account.account', string='Account',
         index=True, ondelete="cascade",
         domain=[('deprecated', '=', False)])
@@ -2344,7 +2392,7 @@ class AccountMoveLine(models.Model):
     product_id = fields.Many2one('product.product', string='Product')
 
     # ==== Origin fields ====
-    reconcile_model_id = fields.Many2one('account.reconcile.model', string="Reconciliation Model", copy=False)
+    reconcile_model_id = fields.Many2one('account.reconcile.model', string="Reconciliation Model", copy=False, readonly=True)
     payment_id = fields.Many2one('account.payment', string="Originator Payment", copy=False,
         help="Payment that created this entry")
     statement_line_id = fields.Many2one('account.bank.statement.line',
@@ -3085,8 +3133,12 @@ class AccountMoveLine(models.Model):
         PROTECTED_FIELDS_LOCK_DATE = PROTECTED_FIELDS_TAX_LOCK_DATE + ['account_id', 'journal_id', 'amount_currency', 'currency_id', 'partner_id']
         PROTECTED_FIELDS_RECONCILIATION = ('account_id', 'date', 'debit', 'credit', 'amount_currency', 'currency_id')
 
-        if ('account_id' in vals) and self.env['account.account'].browse(vals['account_id']).deprecated:
+        account_to_write = self.env['account.account'].browse(vals['account_id']) if 'account_id' in vals else None
+
+        # Check writing a deprecated account.
+        if account_to_write and account_to_write.deprecated:
             raise UserError(_('You cannot use a deprecated account.'))
+
         # when making a reconciliation on an existing liquidity journal item, mark the payment as reconciled
         for line in self:
             if line.parent_state == 'posted':
@@ -3111,6 +3163,18 @@ class AccountMoveLine(models.Model):
             # Check the reconciliation.
             if any(field_will_change(line, field_name) for field_name in PROTECTED_FIELDS_RECONCILIATION):
                 line._check_reconciliation()
+
+            # Check switching receivable / payable accounts.
+            if account_to_write:
+                account_type = line.account_id.user_type_id.type
+                if line.move_id.is_sale_document(include_receipts=True):
+                    if (account_type == 'receivable' and account_to_write.user_type_id.type != account_type) \
+                            or (account_type != 'receivable' and account_to_write.user_type_id.type == 'receivable'):
+                        raise UserError(_("You can only set an account having the receivable type on payment terms lines for customer invoice."))
+                if line.move_id.is_purchase_document(include_receipts=True):
+                    if (account_type == 'payable' and account_to_write.user_type_id.type != account_type) \
+                            or (account_type != 'payable' and account_to_write.user_type_id.type == 'payable'):
+                        raise UserError(_("You can only set an account having the payable type on payment terms lines for vendor bill."))
 
         result = super(AccountMoveLine, self).write(vals)
 
@@ -3214,10 +3278,11 @@ class AccountMoveLine(models.Model):
     def name_get(self):
         result = []
         for line in self:
+            name = line.move_id.name or ''
             if line.ref:
-                result.append((line.id, (line.move_id.name or '') + '(' + line.ref + ')'))
-            else:
-                result.append((line.id, line.move_id.name))
+                name += " (%s)" % line.ref
+            name += (line.name or line.product_id.display_name) and (' ' + (line.name or line.product_id.display_name)) or ''
+            result.append((line.id, name))
         return result
 
     # -------------------------------------------------------------------------

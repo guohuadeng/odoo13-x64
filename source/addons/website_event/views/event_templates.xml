@@ -146,7 +146,7 @@
 
 <!-- Search Box -->
 <template id="events_search_box" inherit_id="website.website_search_box" primary="True">
-    <xpath expr="//div[hasclass('input-group')]" position="replace">
+    <xpath expr="//div[@role='search']" position="replace">
         <form t-attf-class="o_wevent_event_searchbar_form o_wait_lazy_js my-1 my-lg-0 #{_classes}"
               t-att-action="action if action else '/event'" method="get">
             <t t-set="search" t-value="search or _searches and _searches['search']"/>
@@ -580,7 +580,7 @@
             </div>
         </div>
         <div class="col-lg-4 pt-3 pt-lg-0 pl-2 pl-lg-0">
-            <button type="submit" class="btn btn-primary btn-block a-submit" t-attf-id="#{event.id}">Register</button>
+            <button type="submit" class="btn btn-primary o_wait_lazy_js btn-block a-submit" t-attf-id="#{event.id}">Register</button>
         </div>
     </div>
     <div t-if="description" class="row mx-0">
