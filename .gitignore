@@ -1,6 +1,7 @@
 #个人文件目录，不传到git，每个人将个人文件放到 _s 目录下
 /_s
 #个人 pg数据库
+/enterprise
 /zdata/pg
 /addons_ent
 /addons_ent_remove
