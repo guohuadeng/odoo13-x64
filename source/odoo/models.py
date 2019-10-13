@@ -2408,7 +2408,7 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                     continue            # don't update custom fields
                 new = field.update_db(self, columns)
                 if new and field.compute:
-                    fields_to_compute.append(field)
+                    fields_to_compute.append(field.name)
 
             if fields_to_compute:
                 @self.pool.post_init
@@ -2416,7 +2416,7 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                     recs = self.with_context(active_test=False).search([])
                     for field in fields_to_compute:
                         _logger.info("Storing computed values of %s", field)
-                        self.env.add_to_compute(field, recs)
+                        self.env.add_to_compute(recs._fields[field], recs)
 
         if self._auto:
             self._add_sql_constraints()
@@ -3204,7 +3204,7 @@ Record ids: %(records)s
 
     def _filter_access_rules_python(self, operation):
         dom = self.env['ir.rule']._compute_domain(self._name, operation)
-        return self.filtered_domain(dom or [])
+        return self.sudo().filtered_domain(dom or [])
 
     def unlink(self):
         """ unlink()
@@ -3355,16 +3355,13 @@ Record ids: %(records)s
               (from the database). Can not be used in :meth:`~.create`.
           ``(3, id, _)``
               removes the record of id ``id`` from the set, but does not
-              delete it. Can not be used on
-              :class:`~odoo.fields.One2many`. Can not be used in
+              delete it. Can not be used in
               :meth:`~.create`.
           ``(4, id, _)``
-              adds an existing record of id ``id`` to the set. Can not be
-              used on :class:`~odoo.fields.One2many`.
+              adds an existing record of id ``id`` to the set.
           ``(5, _, _)``
               removes all records from the set, equivalent to using the
-              command ``3`` on every record explicitly. Can not be used on
-              :class:`~odoo.fields.One2many`. Can not be used in
+              command ``3`` on every record explicitly. Can not be used in
               :meth:`~.create`.
           ``(6, _, ids)``
               replaces all existing records in the set by the ``ids`` list,
@@ -3396,14 +3393,32 @@ Record ids: %(records)s
         for fname in vals:
             field = self._fields[fname]
             if field.inverse:
+                if field.type in ('one2many', 'many2many'):
+                    # The written value is a list of commands that must applied
+                    # on the field's current value. Because the field is
+                    # protected while being written, the field's current value
+                    # will not be computed and default to an empty recordset. So
+                    # make sure the field's value is in cache before writing, in
+                    # order to avoid an inconsistent update.
+                    self[fname]
                 determine_inverses[field.inverse].append(field)
                 # DLE P150: `test_cancel_propagation`, `test_manufacturing_3_steps`, `test_manufacturing_flow`
                 # TODO: check whether still necessary
                 records_to_inverse[field] = self.filtered('id')
             if field.relational or self._field_inverses[field]:
                 relational_names.append(fname)
-            if field.compute and not field.readonly:
-                protected.update(self._field_computed.get(field, [field]))
+            if field.inverse or (field.compute and not field.readonly):
+                if field.store or field.type not in ('one2many', 'many2many'):
+                    # Protect the field from being recomputed while being
+                    # inversed. In the case of non-stored x2many fields, the
+                    # field's value may contain unexpeced new records (created
+                    # by command 0). Those new records are necessary for
+                    # inversing the field, but should no longer appear if the
+                    # field is recomputed afterwards. Not protecting the field
+                    # will automatically invalidate the field from the cache,
+                    # forcing its value to be recomputed once dependencies are
+                    # up-to-date.
+                    protected.update(self._field_computed.get(field, [field]))
             if fname == 'company_id' or (field.relational and field.check_company):
                 check_company = True
 
@@ -5517,7 +5532,7 @@ Record ids: %(records)s
                 if node:
                     trigger_tree_merge(tree, node)
         if tree:
-            self.sudo()._modified_triggers(tree, create)
+            self.sudo().with_context(active_test=False)._modified_triggers(tree, create)
 
     def _modified_triggers(self, tree, create=False):
         """ Process a tree of field triggers on ``self``. """
@@ -5549,7 +5564,7 @@ Record ids: %(records)s
                 continue
             else:
                 # val is another tree of dependencies
-                model = self.env[key.model_name].with_context(active_test=False)
+                model = self.env[key.model_name]
                 for invf in model._field_inverses[key]:
                     # use an inverse of field without domain
                     if not (invf.type in ('one2many', 'many2many') and invf.domain):

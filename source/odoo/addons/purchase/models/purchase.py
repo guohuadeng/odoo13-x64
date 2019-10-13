@@ -156,7 +156,10 @@ class PurchaseOrder(models.Model):
     @api.model
     def create(self, vals):
         if vals.get('name', 'New') == 'New':
-            vals['name'] = self.env['ir.sequence'].next_by_code('purchase.order') or '/'
+            seq_date = None
+            if 'date_order' in vals:
+                seq_date = fields.Datetime.context_timestamp(self, fields.Datetime.to_datetime(vals['date_order']))
+            vals['name'] = self.env['ir.sequence'].next_by_code('purchase.order', sequence_date=seq_date) or '/'
         return super(PurchaseOrder, self).create(vals)
 
     def write(self, vals):
@@ -403,7 +406,11 @@ class PurchaseOrder(models.Model):
             result['domain'] = "[('id', 'in', " + str(self.invoice_ids.ids) + ")]"
         else:
             res = self.env.ref('account.view_move_form', False)
-            result['views'] = [(res and res.id or False, 'form')]
+            form_view = [(res and res.id or False, 'form')]
+            if 'views' in result:
+                result['views'] = form_view + [(state,view) for state,view in action['views'] if view != 'form']
+            else:
+                result['views'] = form_view
             # Do not set an invoice_id if we want to create a new bill.
             if not create_bill:
                 result['res_id'] = self.invoice_ids.id or False

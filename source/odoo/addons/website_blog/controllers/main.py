@@ -158,13 +158,14 @@ class WebsiteBlog(http.Controller):
 
         if blog:
             values['main_object'] = blog
+            values['edit_in_backend'] = True
             values['blog_url'] = QueryURL('', ['blog', 'tag'], blog=blog, tag=tag, date_begin=date_begin, date_end=date_end)
         else:
             values['blog_url'] = QueryURL('/blog', ['tag'], date_begin=date_begin, date_end=date_end)
 
         return request.render("website_blog.blog_post_short", values)
 
-    @http.route(['''/blog/<model("blog.blog", "[('website_id', 'in', (False, current_website_id))]"):blog>/feed'''], type='http', auth="public")
+    @http.route(['''/blog/<model("blog.blog", "[('website_id', 'in', (False, current_website_id))]"):blog>/feed'''], type='http', auth="public", website=True)
     def blog_feed(self, blog, limit='15', **kwargs):
         v = {}
         v['blog'] = blog

@@ -1764,7 +1764,7 @@ class MailThread(models.AbstractModel):
         return return_values
 
     @api.returns('mail.message', lambda value: value.id)
-    def message_post(self,
+    def message_post(self, *,
                      body='', subject=None, message_type='notification',
                      email_from=None, author_id=None, parent_id=False,
                      subtype_id=False, subtype=None, partner_ids=None, channel_ids=None,
@@ -1954,7 +1954,8 @@ class MailThread(models.AbstractModel):
             composer.write(update_values)
         return composer.send_mail(auto_commit=auto_commit)
 
-    def message_notify(self, partner_ids=False, parent_id=False, model=False, res_id=False,
+    def message_notify(self, *,
+                       partner_ids=False, parent_id=False, model=False, res_id=False,
                        author_id=None, email_from=None, body='', subject=False, **kwargs):
         """ Shortcut allowing to notify partners of messages that shouldn't be 
         displayed on a document. It pushes notifications on inbox or by email depending
@@ -1997,7 +1998,7 @@ class MailThread(models.AbstractModel):
         MailThread._notify_thread(new_message, values, **notif_kwargs)
         return new_message
 
-    def _message_log(self, body='', author_id=None, email_from=None, subject=False, message_type='notification', **kwargs):
+    def _message_log(self, *, body='', author_id=None, email_from=None, subject=False, message_type='notification', **kwargs):
         """ Shortcut allowing to post note on a document. It does not perform
         any notification and pre-computes some values to have a short code
         as optimized as possible. This method is private as it does not check
@@ -2869,7 +2870,9 @@ class MailThread(models.AbstractModel):
         for pid, sids, template in res:
             new_partners.setdefault(pid, sids)
             if template:
-                notify_data.setdefault(template, list()).append(pid)
+                partner = self.env['res.partner'].browse(pid)
+                lang = partner.lang if partner else None
+                notify_data.setdefault((template, lang), list()).append(pid)
 
         self.env['mail.followers']._insert_followers(
             self._name, self.ids,
@@ -2878,8 +2881,8 @@ class MailThread(models.AbstractModel):
             check_existing=True, existing_policy='skip')
 
         # notify people from auto subscription, for example like assignation
-        for template, pids in notify_data.items():
-            self._message_auto_subscribe_notify(pids, template)
+        for (template, lang), pids in notify_data.items():
+            self.with_context(lang=lang)._message_auto_subscribe_notify(pids, template)
 
         return True
 

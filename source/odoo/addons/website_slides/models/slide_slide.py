@@ -130,8 +130,8 @@ class Slide(models.Model):
     slide_ids = fields.One2many('slide.slide', "category_id", string="Slides")
     # subscribers
     partner_ids = fields.Many2many('res.partner', 'slide_slide_partner', 'slide_id', 'partner_id',
-                                   string='Subscribers', groups='website.group_website_publisher')
-    slide_partner_ids = fields.One2many('slide.slide.partner', 'slide_id', string='Subscribers information', groups='website.group_website_publisher')
+                                   string='Subscribers', groups='website.group_website_publisher', copy=False)
+    slide_partner_ids = fields.One2many('slide.slide.partner', 'slide_id', string='Subscribers information', groups='website.group_website_publisher', copy=False)
     user_membership_id = fields.Many2one(
         'slide.slide.partner', string="Subscriber information", compute='_compute_user_membership_id', compute_sudo=False,
         help="Subscriber information for the current logged in user")
@@ -362,6 +362,9 @@ class Slide(models.Model):
                     url = '%s/slides/slide/%s' % (base_url, slug(slide))
                 slide.website_url = url
 
+    def get_backend_menu_id(self):
+        return self.env.ref('website_slides.website_slides_menu_root').id
+
     @api.depends('channel_id.can_publish')
     def _compute_can_publish(self):
         for record in self:
@@ -434,7 +437,7 @@ class Slide(models.Model):
     # ---------------------------------------------------------
 
     @api.returns('mail.message', lambda value: value.id)
-    def message_post(self, message_type='notification', **kwargs):
+    def message_post(self, *, message_type='notification', **kwargs):
         self.ensure_one()
         if message_type == 'comment' and not self.channel_id.can_comment:  # user comments have a restriction on karma
             raise AccessError(_('Not enough karma to comment'))
@@ -657,7 +660,7 @@ class Slide(models.Model):
     def _fetch_data(self, base_url, params, content_type=False):
         result = {'values': dict()}
         try:
-            response = requests.get(base_url, params=params)
+            response = requests.get(base_url, timeout=3, params=params)
             response.raise_for_status()
             if content_type == 'json':
                 result['values'] = response.json()

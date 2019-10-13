@@ -79,9 +79,9 @@ class SaleOrder(models.Model):
                 invoice_status = 'no'
             elif any(invoice_status == 'to invoice' for invoice_status in line_invoice_status):
                 invoice_status = 'to invoice'
-            elif all(invoice_status == 'invoiced' for invoice_status in line_invoice_status):
+            elif line_invoice_status and all(invoice_status == 'invoiced' for invoice_status in line_invoice_status):
                 invoice_status = 'invoiced'
-            elif all(invoice_status in ['invoiced', 'upselling'] for invoice_status in line_invoice_status):
+            elif line_invoice_status and all(invoice_status in ['invoiced', 'upselling'] for invoice_status in line_invoice_status):
                 invoice_status = 'upselling'
             else:
                 invoice_status = 'no'
@@ -408,10 +408,14 @@ class SaleOrder(models.Model):
     @api.model
     def create(self, vals):
         if vals.get('name', _('New')) == _('New'):
+            seq_date = None
+            if 'date_order' in vals:
+                seq_date = fields.Datetime.context_timestamp(self, fields.Datetime.to_datetime(vals['date_order']))
             if 'company_id' in vals:
-                vals['name'] = self.env['ir.sequence'].with_context(force_company=vals['company_id']).next_by_code('sale.order') or _('New')
+                vals['name'] = self.env['ir.sequence'].with_context(force_company=vals['company_id']).next_by_code(
+                    'sale.order', sequence_date=seq_date) or _('New')
             else:
-                vals['name'] = self.env['ir.sequence'].next_by_code('sale.order') or _('New')
+                vals['name'] = self.env['ir.sequence'].next_by_code('sale.order', sequence_date=seq_date) or _('New')
 
         # Makes sure partner_invoice_id', 'partner_shipping_id' and 'pricelist_id' are defined
         if any(f not in vals for f in ['partner_invoice_id', 'partner_shipping_id', 'pricelist_id']):
@@ -519,7 +523,11 @@ class SaleOrder(models.Model):
         if len(invoices) > 1:
             action['domain'] = [('id', 'in', invoices.ids)]
         elif len(invoices) == 1:
-            action['views'] = [(self.env.ref('account.view_move_form').id, 'form')]
+            form_view = [(self.env.ref('account.view_move_form').id, 'form')]
+            if 'views' in action:
+                action['views'] = form_view + [(state,view) for state,view in action['views'] if view != 'form']
+            else:
+                action['views'] = form_view
             action['res_id'] = invoices.id
         else:
             action = {'type': 'ir.actions.act_window_close'}
@@ -567,7 +575,7 @@ class SaleOrder(models.Model):
                     if pending_section:
                         invoice_vals['invoice_line_ids'].append((0, 0, pending_section._prepare_invoice_line()))
                         pending_section = None
-                invoice_vals['invoice_line_ids'].append((0, 0, line._prepare_invoice_line()))
+                    invoice_vals['invoice_line_ids'].append((0, 0, line._prepare_invoice_line()))
 
             if not invoice_vals['invoice_line_ids']:
                 raise UserError(_('There is no invoiceable line. If a product has a Delivered quantities invoicing policy, please make sure that a quantity has been delivered.'))
@@ -579,9 +587,9 @@ class SaleOrder(models.Model):
                 'There is no invoiceable line. If a product has a Delivered quantities invoicing policy, please make sure that a quantity has been delivered.'))
 
         # 2) Manage 'grouped' parameter: group by (partner_id, currency_id).
-        if grouped:
+        if not grouped:
             new_invoice_vals_list = []
-            for invoices in groupby(invoice_vals_list, key=lambda x: (x.partner_id.id, x.currency_id.id)):
+            for grouping_keys, invoices in groupby(invoice_vals_list, key=lambda x: (x.get('partner_id'), x.get('currency_id'))):
                 origins = set()
                 payment_refs = set()
                 refs = set()
@@ -1056,8 +1064,7 @@ class SaleOrderLine(models.Model):
         for line in self:
             fpos = line.order_id.fiscal_position_id or line.order_id.partner_id.property_account_position_id
             # If company_id is set, always filter taxes by the company
-            line_company_id = line.company_id or line.order_id.company_id
-            taxes = line.product_id.taxes_id.filtered(lambda r: not line_company_id or r.company_id == line_company_id)
+            taxes = line.product_id.taxes_id.filtered(lambda r: not line.company_id or r.company_id == line.company_id)
             line.tax_id = fpos.map_tax(taxes, line.product_id, line.order_id.partner_shipping_id) if fpos else taxes
 
     @api.model

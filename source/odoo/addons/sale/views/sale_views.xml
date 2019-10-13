@@ -525,7 +525,11 @@
                                         options='{"no_open": True}'
                                         optional="show"
                                     />
-                                    <field name="customer_lead" optional="hide"/>
+                                    <field
+                                        name="customer_lead"
+                                        optional="hide"
+                                        attrs="{'readonly': [('parent.state', 'not in', ['draft', 'sent'])]}"
+                                    />
                                     <field
                                         name="price_unit"
                                         attrs="{'readonly': [('qty_invoiced', '&gt;', 0)]}"
@@ -1232,7 +1236,7 @@
         <record id="action_invoice_salesteams" model="ir.actions.act_window">
             <field name="name">Invoices</field>
             <field name="res_model">account.move</field>
-            <field name="view_mode">tree,form,calendar,graph,kanban,pivot</field>
+            <field name="view_mode">tree,form,kanban</field>
             <field name="view_id" ref="account.view_move_tree"/>
             <field name="domain">[
                 ('state', '=', 'posted'),

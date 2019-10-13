@@ -233,6 +233,11 @@ class Field(MetaField('DummyField', (object,), {})):
         on the company. In other words, users that belong to different companies
         may see different values for the field on a given record.
 
+        .. warning::
+
+            Company-dependent fields aren't stored in the table of the model they're defined on,
+            instead, they are stored in the ``ir.property`` model's table.
+
         :param company_dependent: whether the field is company-dependent (boolean)
 
         .. _field-incremental-definition:
@@ -549,7 +554,7 @@ class Field(MetaField('DummyField', (object,), {})):
         if self.depends is None:
             self.depends = ('.'.join(self.related),)
         self.compute = self._compute_related
-        if not (self.readonly or field.readonly):
+        if self.inherited or not (self.readonly or field.readonly):
             self.inverse = self._inverse_related
         if field._description_searchable:
             # allow searching on self only if the related field is searchable

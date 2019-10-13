@@ -1844,7 +1844,7 @@ class AccountMove(models.Model):
                 else:
                     continue
 
-                for tax in self.env['account.tax'].browse(tax_ids):
+                for tax in self.env['account.tax'].browse(tax_ids).flatten_taxes_hierarchy():
                     for inv_rep_line, ref_rep_line in zip(tax.invoice_repartition_line_ids, tax.refund_repartition_line_ids):
                         mapping[inv_rep_line] = ref_rep_line
             return mapping
@@ -1872,7 +1872,8 @@ class AccountMove(models.Model):
             # ==== Map tax repartition lines ====
             if line_vals.get('tax_ids') and line_vals['tax_ids'][0][2]:
                 # Base line.
-                invoice_repartition_lines = self.env['account.tax'].browse(line_vals['tax_ids'][0][2])\
+                taxes = self.env['account.tax'].browse(line_vals['tax_ids'][0][2]).flatten_taxes_hierarchy()
+                invoice_repartition_lines = taxes\
                     .mapped('invoice_repartition_line_ids')\
                     .filtered(lambda line: line.repartition_type == 'base')
                 refund_repartition_lines = invoice_repartition_lines\
@@ -1923,10 +1924,11 @@ class AccountMove(models.Model):
         reverse_type_map = {
             'entry': 'entry',
             'out_invoice': 'out_refund',
+            'out_refund': 'entry',
             'in_invoice': 'in_refund',
-            'in_refund': 'in_invoice',
-            'out_receipt': 'in_receipt',
-            'in_receipt': 'out_receipt',
+            'in_refund': 'entry',
+            'out_receipt': 'entry',
+            'in_receipt': 'entry',
         }
 
         move_vals_list = []
@@ -2375,7 +2377,7 @@ class AccountMoveLine(models.Model):
     name = fields.Char(string='Label')
     quantity = fields.Float(string='Quantity',
         default=1.0, digits='Product Unit of Measure',
-        help="The optional quantity expressed by this line, eg: number of product sold."
+        help="The optional quantity expressed by this line, eg: number of product sold. "
              "The quantity is not a legal requirement but is very useful for some reports.")
     price_unit = fields.Float(string='Unit Price', digits='Product Price')
     discount = fields.Float(string='Discount (%)', digits='Discount', default=0.0)
@@ -3048,6 +3050,7 @@ class AccountMoveLine(models.Model):
 
         for vals in vals_list:
             move = self.env['account.move'].browse(vals['move_id'])
+            vals.setdefault('company_currency_id', move.company_id.currency_id.id) # important to bypass the ORM limitation where monetary fields are not rounded; more info in the commit message
 
             if move.is_invoice(include_receipts=True):
                 currency = self.env['res.currency'].browse(vals.get('currency_id'))

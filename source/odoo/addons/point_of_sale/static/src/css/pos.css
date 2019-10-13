@@ -46,8 +46,8 @@ html {
 }
 
 table {
-    border-spacing: 0px 10px;
-    border-collapse: inherit;
+    border-spacing: 0px;
+    border-collapse: collapse;
 }
 td {
     padding: 0px;
@@ -1300,6 +1300,8 @@ td {
 
 .pos .paymentlines {
     width: 100%;
+    border-spacing: 0px 10px;
+    border-collapse: inherit;
 }
 .pos .paymentlines .controls {
     width: 40px;
@@ -1543,9 +1545,6 @@ td {
         border: none !important;
         font-size: 13px !important;
         width: 266px !important;
-    }
-    .pos .pos-receipts{
-        display: none !important;
     }
     .o_debug_manager {
         display: none !important;

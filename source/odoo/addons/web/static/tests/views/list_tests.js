@@ -917,6 +917,43 @@ QUnit.module('Views', {
         form.destroy();
     });
 
+    QUnit.test('editable list view: click on last element after creation empty new line', async function (assert) {
+        assert.expect(1);
+
+        this.data.bar = {
+            fields: {
+                titi: {string: "Char", type: "char", required: true},
+                int_field: {string: "int_field", type: "integer", sortable: true, required: true}
+            },
+            records: [
+                {id: 1, titi: 'cui', int_field: 2},
+                {id: 2, titi: 'cuicui', int_field: 4},
+            ],
+        };
+        this.data.foo.records[0].o2m = [1, 2];
+
+        var form = await createView({
+            View: FormView,
+            model: 'foo',
+            data: this.data,
+            res_id: 1,
+            viewOptions: { mode: 'edit' },
+            arch: '<form>'+
+                    '<field name="o2m">'+
+                        '<tree editable="top">'+
+                            '<field name="int_field" widget="handle"/>'+
+                            '<field name="titi"/>'+
+                        '</tree>'+
+                    '</field>'+
+                '</form>',
+        });
+        await testUtils.dom.click(form.$('.o_field_x2many_list_row_add > a'));
+        await testUtils.dom.click(form.$('.o_data_row:last() > td.o_list_char'));
+        // This test ensure that they aren't traceback when clicking on the last row.
+        assert.containsN(form, '.o_data_row', 2, "list should have exactly 2 rows");
+        form.destroy();
+    });
+
     QUnit.test('basic operations for editable list renderer', async function (assert) {
         assert.expect(2);
 
@@ -6074,6 +6111,48 @@ QUnit.module('Views', {
         list.destroy();
     });
 
+    QUnit.test('editable list: edit many2one from external link', async function (assert) {
+        assert.expect(2);
+
+        const list = await createView({
+            arch: `
+                <tree editable="top" multi_edit="1">
+                    <field name="m2o"/>
+                </tree>`,
+            archs: {
+                'bar,false,form': '<form string="Bar"><field name="display_name"/></form>',
+            },
+            data: this.data,
+            mockRPC: function (route, args) {
+                if (args.method === 'get_formview_id') {
+                    return Promise.resolve(false);
+                }
+                return this._super(route, args);
+            },
+            model: 'foo',
+            View: ListView,
+        });
+
+        await testUtils.dom.click(list.$('thead .o_list_record_selector:first input'));
+        await testUtils.dom.click(list.$('.o_data_row:first .o_data_cell:eq(0)'));
+        await testUtils.dom.click(list.$('.o_external_button:first'));
+
+        // Change the M2O value in the Form dialog
+        await testUtils.fields.editInput($('.modal input:first'), "OOF");
+        await testUtils.dom.click($('.modal .btn-primary'));
+
+        assert.strictEqual($('.modal .o_field_widget[name=m2o]').text(), "OOF",
+            "Value of the m2o should be updated in the confirmation dialog");
+
+        // Close the confirmation dialog
+        await testUtils.dom.click($('.modal .btn-primary'));
+
+        assert.strictEqual(list.$('.o_data_cell:first').text(), "OOF",
+            "Value of the m2o should be updated in the list");
+
+        list.destroy();
+    });
+
     QUnit.test('list grouped by date:month', async function (assert) {
         assert.expect(1);
 
@@ -8213,6 +8292,36 @@ QUnit.module('Views', {
 
         assert.ok(list.$('th:contains(Reference Field)').is(':visible'),
             "should have a visible reference field");
+
+        list.destroy();
+    });
+    QUnit.test("quickcreate in a many2one in a list", async function (assert) {
+        assert.expect(2);
+
+        const list = await createView({
+            arch: '<tree editable="top"><field name="m2o"/></tree>',
+            data: this.data,
+            model: 'foo',
+            View: ListView,
+        });
+
+        await testUtils.dom.click(list.$('.o_data_row:first .o_data_cell:first'));
+
+        const $input = list.$('.o_data_row:first .o_data_cell:first input');
+        await testUtils.fields.editInput($input, "aaa");
+        $input.trigger('keyup');
+        $input.trigger('blur');
+        document.body.click();
+
+        await testUtils.nextTick();
+
+        assert.containsOnce(document.body, '.modal', "the quick_create modal should appear");
+
+        await testUtils.dom.click($('.modal .btn-primary:first'));
+        await testUtils.dom.click(document.body);
+
+        assert.strictEqual(list.el.getElementsByClassName('o_data_cell')[0].innerHTML, "aaa",
+            "value should have been updated");
 
         list.destroy();
     });
