@@ -6,7 +6,9 @@ Green Odoo 13 x64， https://www.Sunpop.cn
 本版本在使用64位的基础上，对postgresql进行了优化，并使用nginx进行反向代理，实现了longpolling，可以使用odoo的桌面消息通知，也不会经常报错了。
 在windows上搭建了一个完整的高性能 Odoo 环境。
 因速度原因，不再支持一键更新至最新版，请手工高速下载后解压覆盖 /source 目录文件。
-http://nightly.odoocdn.com/master/nightly/src/odoo_13.0alpha1.latest.zip
+http://nightly.odoo.com/13.0/nightly/src/odoo_13.0.latest.zip
+因百度cdn问题，以下链接要输入验证码
+http://nightly.odoocdn.com/13.0/nightly/src/odoo_13.0.latest.zip
 master版本有问题时，请下载
 https://github.com/odoo/odoo/tree/saas-12.5
 
