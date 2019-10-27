@@ -13,10 +13,10 @@ master版本有问题时，请下载
 https://github.com/odoo/odoo/tree/saas-12.5
 
 ## 版本信息
-1. python 3.5.2, 64位
+1. python 3.7.5, 64位
 2. postgresql 10.10 ,64位
 3. Nginx 1.15.5， 64位
-4. Odoo 13社区版，20191013版
+4. Odoo 13社区版，20191028版
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度
@@ -27,14 +27,14 @@ https://www.sunpop.cn/?s=odoo13
 使用pycharm搭建odoo 12, 11,10 开发调试环境
 http://www.sunpop.cn/odoo_12_11_10_dev_with_pycharm_setup/
 
-## odoo12 在线演示学习，请注册
-http://demo.odooapp.cn
-
 ## odoo13 在线演示学习，请注册
 http://demo.erpapp.cn
 
+## odoo12 在线演示学习，请注册
+http://demo.odooapp.cn
+
 ## 多数的系统，请先安装 win 支持，用于PG及后续增加 python 依赖
-.\extra\vcredist_x64.2013.exe
+.\extra\vcredist_x64.exe
 
 ## 操作说明
 - 启动odoo：执行 r.bat后，访问 http://localhost:8013  或者  http://localhost
@@ -83,15 +83,18 @@ createuser --createdb --no-createrole --no-superuser --pwprompt odoo
 ```
 
 # 附：如何自行制作绿色安装包
-## 先装 python 3.5.2 ，pip3，用64位。与ubuntu 内置一样版本，改python.exe为python3.exe
+## 先装 python 3.7.5 ，pip3，用64位。与ubuntu 内置一样版本，改python.exe为python3.exe
 ```
 https://www.python.org/downloads/windows/
+cd d:\odoo13-x64\runtime\python3
+SET PATH=d:\odoo13-x64\runtime\python3;d:\odoo13\runtime\python3\scripts;%PATH%
 ```
 
 ## 安装pip
 ```
 SET PATH=%CD%\runtime\pgsql\bin;%CD%\runtime\python3;%CD%\runtime\python3\scripts;%CD%\runtime\win32\wkhtmltopdf;%CD%\runtime\win32\nodejs;%CD%\source;%PATH%
-python3 .\extra\get-pip.py
+runtime\python3\python .\extra\get-pip.py
+python3 ..\..\extra\get-pip.py
 ```
 ## 对某些要编译的Python包，在此找
 ```
@@ -100,10 +103,10 @@ http://www.lfd.uci.edu/~gohlke/pythonlibs/
 ## 部份要人工下载安装的odoo依赖，已下载放在 ./extra
 ## 优化 requirements.txt 可忽略ms库
 
-## python 3.5 ，此版本才可断点
+## python 3.7.5
 ```
 pip3 install -r .\source\requirements.txt  -i https://mirrors.aliyun.com/pypi/simple
-pip3 install -r .\rfix.txt  -i https://mirrors.aliyun.com/pypi/simple
+pip3 install reportlab==3.3.0  -i https://mirrors.ustc.edu.cn/pypi/web/simple
 pip3 install .\extra\Pillow-5.0.0-cp35-cp35m-win_amd64.whl
 pip3 install .\extra\psycopg2-2.7.4-cp35-cp35m-win_amd64.whl
 pip3 install .\extra\pyldap-2.4.45-cp35-cp35m-win_amd64.whl

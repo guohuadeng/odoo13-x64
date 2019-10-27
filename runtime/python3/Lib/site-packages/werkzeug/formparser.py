@@ -11,12 +11,19 @@
 """
 import re
 import codecs
-from io import BytesIO
-from tempfile import TemporaryFile
+
+# there are some platforms where SpooledTemporaryFile is not available.
+# In that case we need to provide a fallback.
+try:
+    from tempfile import SpooledTemporaryFile
+except ImportError:
+    from tempfile import TemporaryFile
+    SpooledTemporaryFile = None
+
 from itertools import chain, repeat, tee
 from functools import update_wrapper
 
-from werkzeug._compat import to_native, text_type
+from werkzeug._compat import to_native, text_type, BytesIO
 from werkzeug.urls import url_decode_stream
 from werkzeug.wsgi import make_line_iter, \
     get_input_stream, get_content_length
@@ -38,7 +45,10 @@ _supported_multipart_encodings = frozenset(['base64', 'quoted-printable'])
 def default_stream_factory(total_content_length, filename, content_type,
                            content_length=None):
     """The stream factory that is used per default."""
-    if total_content_length > 1024 * 500:
+    max_size = 1024 * 500
+    if SpooledTemporaryFile is not None:
+        return SpooledTemporaryFile(max_size=max_size, mode='wb+')
+    if total_content_length is None or total_content_length > max_size:
         return TemporaryFile('wb+')
     return BytesIO()
 
@@ -286,15 +296,11 @@ class MultiPartParser(object):
 
     def __init__(self, stream_factory=None, charset='utf-8', errors='replace',
                  max_form_memory_size=None, cls=None, buffer_size=64 * 1024):
-        self.stream_factory = stream_factory
         self.charset = charset
         self.errors = errors
         self.max_form_memory_size = max_form_memory_size
-        if stream_factory is None:
-            stream_factory = default_stream_factory
-        if cls is None:
-            cls = MultiDict
-        self.cls = cls
+        self.stream_factory = default_stream_factory if stream_factory is None else stream_factory
+        self.cls = MultiDict if cls is None else cls
 
         # make sure the buffer size is divisible by four so that we can base64
         # decode chunk by chunk
@@ -407,7 +413,9 @@ class MultiPartParser(object):
             disposition, extra = parse_options_header(disposition)
             transfer_encoding = self.get_part_encoding(headers)
             name = extra.get('name')
-            filename = extra.get('filename')
+
+            # Accept filename* to support non-ascii filenames as per rfc2231
+            filename = extra.get('filename') or extra.get('filename*')
 
             # if no content type is given we stream into memory.  A list is
             # used as a temporary container.

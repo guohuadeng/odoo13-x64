@@ -40,3 +40,122 @@
 2019-10-03 14:20:49.802 HKT [1252] 日志:  工作进程: logical replication launcher (PID 2244) 已退出, 退出代码 1
 2019-10-03 14:20:50.632 HKT [580] 日志:  正在关闭
 2019-10-03 14:20:50.799 HKT [1252] 日志:  数据库系统已关闭
+2019-10-08 21:16:03.918 HKT [3468] LOG:  listening on IPv6 address "::1", port 5432
+2019-10-08 21:16:03.918 HKT [3468] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2019-10-08 21:16:04.060 HKT [19428] LOG:  database system was shut down at 2019-10-03 14:20:50 HKT
+2019-10-08 21:16:04.170 HKT [3468] LOG:  database system is ready to accept connections
+2019-10-08 21:17:10.031 HKT [18960] FATAL:  database "app" does not exist
+2019-10-08 21:17:10.177 HKT [17100] FATAL:  database "app" does not exist
+2019-10-08 21:17:50.134 HKT [10088] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2019-10-08 21:17:50.134 HKT [12664] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2019-10-08 21:17:50.134 HKT [6252] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2019-10-08 21:17:50.134 HKT [3376] LOG:  could not receive data from client: An existing connection was forcibly closed by the remote host.
+	
+2019-10-08 21:18:40.083 HKT [3468] LOG:  received fast shutdown request
+2019-10-08 21:18:40.087 HKT [3468] LOG:  aborting any active transactions
+2019-10-08 21:18:40.087 HKT [14856] FATAL:  terminating connection due to administrator command
+2019-10-08 21:18:40.087 HKT [2252] FATAL:  terminating connection due to administrator command
+2019-10-08 21:18:40.103 HKT [3468] LOG:  worker process: logical replication launcher (PID 9968) exited with exit code 1
+2019-10-08 21:18:40.105 HKT [14744] LOG:  shutting down
+2019-10-08 21:18:40.202 HKT [3468] LOG:  database system is shut down
+2019-10-13 12:01:00.418 HKT [23128] LOG:  listening on IPv6 address "::1", port 5432
+2019-10-13 12:01:00.418 HKT [23128] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2019-10-13 12:01:00.718 HKT [15888] LOG:  database system was shut down at 2019-10-08 21:18:40 HKT
+2019-10-13 12:01:00.832 HKT [23128] LOG:  database system is ready to accept connections
+2019-10-13 12:02:08.128 HKT [23868] ERROR:  could not serialize access due to concurrent update
+2019-10-13 12:02:08.128 HKT [23868] STATEMENT:  DELETE FROM ir_attachment WHERE id IN (720)
+2019-10-13 12:05:27.041 HKT [23128] LOG:  server process (PID 17312) was terminated by exception 0xC000013A
+2019-10-13 12:05:27.041 HKT [23128] DETAIL:  Failed process was running: COMMIT
+2019-10-13 12:05:27.041 HKT [23128] HINT:  See C include file "ntstatus.h" for a description of the hexadecimal value.
+2019-10-13 12:05:27.041 HKT [23128] LOG:  terminating any other active server processes
+2019-10-13 12:05:27.042 HKT [3140] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.042 HKT [3140] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.042 HKT [3140] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.042 HKT [6800] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.042 HKT [6800] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.042 HKT [6800] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.042 HKT [3132] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.042 HKT [3132] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.042 HKT [3132] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.042 HKT [10056] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.042 HKT [10056] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.042 HKT [10056] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.043 HKT [20016] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.043 HKT [20016] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.043 HKT [20016] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.043 HKT [23868] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.043 HKT [23868] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.043 HKT [23868] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.043 HKT [21748] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.043 HKT [21748] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.043 HKT [21748] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.044 HKT [9548] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.044 HKT [9548] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.044 HKT [9548] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.045 HKT [5996] WARNING:  terminating connection because of crash of another server process
+2019-10-13 12:05:27.045 HKT [5996] DETAIL:  The postmaster has commanded this server process to roll back the current transaction and exit, because another server process exited abnormally and possibly corrupted shared memory.
+2019-10-13 12:05:27.045 HKT [5996] HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+2019-10-13 12:05:27.082 HKT [23128] LOG:  all server processes terminated; reinitializing
+2019-10-13 12:05:27.282 HKT [18992] LOG:  database system was interrupted; last known up at 2019-10-13 12:02:26 HKT
+2019-10-13 12:05:29.605 HKT [18992] LOG:  database system was not properly shut down; automatic recovery in progress
+2019-10-13 12:05:29.614 HKT [18992] LOG:  redo starts at 0/69CF950
+2019-10-13 12:05:30.819 HKT [18992] LOG:  invalid record length at 0/7771450: wanted 24, got 0
+2019-10-13 12:05:30.819 HKT [18992] LOG:  redo done at 0/7771418
+2019-10-13 12:05:30.819 HKT [18992] LOG:  last completed transaction was at log time 2019-10-13 12:03:59.543828+08
+2019-10-13 12:05:30.836 HKT [23128] LOG:  received fast shutdown request
+2019-10-13 12:05:31.908 HKT [23128] LOG:  abnormal database system shutdown
+2019-10-13 12:05:31.913 HKT [23128] LOG:  database system is shut down
+2019-10-28 00:26:42.450 HKT [13724] LOG:  listening on IPv6 address "::1", port 5432
+2019-10-28 00:26:42.450 HKT [13724] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2019-10-28 00:26:42.595 HKT [12932] LOG:  database system was interrupted; last known up at 2019-10-13 12:05:31 HKT
+2019-10-28 00:26:44.377 HKT [12932] LOG:  database system was not properly shut down; automatic recovery in progress
+2019-10-28 00:26:44.382 HKT [12932] LOG:  invalid record length at 0/77714C0: wanted 24, got 0
+2019-10-28 00:26:44.382 HKT [12932] LOG:  redo is not required
+2019-10-28 00:26:44.475 HKT [13724] LOG:  database system is ready to accept connections
+2019-10-28 00:27:16.425 HKT [13724] LOG:  received fast shutdown request
+2019-10-28 00:27:16.428 HKT [13724] LOG:  aborting any active transactions
+2019-10-28 00:27:16.442 HKT [13724] LOG:  worker process: logical replication launcher (PID 5880) exited with exit code 1
+2019-10-28 00:27:16.443 HKT [11600] LOG:  shutting down
+2019-10-28 00:27:16.488 HKT [13724] LOG:  database system is shut down
+2019-10-28 00:27:19.353 HKT [5472] LOG:  listening on IPv6 address "::1", port 5432
+2019-10-28 00:27:19.353 HKT [5472] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2019-10-28 00:27:19.514 HKT [13184] LOG:  database system was shut down at 2019-10-28 00:27:16 HKT
+2019-10-28 00:27:19.610 HKT [5472] LOG:  database system is ready to accept connections
+2019-10-28 00:28:23.076 HKT [15256] ERROR:  could not obtain lock on row in relation "ir_cron"
+2019-10-28 00:28:23.076 HKT [15256] STATEMENT:  SELECT *
+	                                       FROM ir_cron
+	                                       WHERE numbercall != 0
+	                                          AND active
+	                                          AND nextcall <= (now() at time zone 'UTC')
+	                                          AND id=3
+	                                       FOR UPDATE NOWAIT
+2019-10-28 00:28:23.322 HKT [15256] ERROR:  could not obtain lock on row in relation "ir_cron"
+2019-10-28 00:28:23.322 HKT [15256] STATEMENT:  SELECT *
+	                                       FROM ir_cron
+	                                       WHERE numbercall != 0
+	                                          AND active
+	                                          AND nextcall <= (now() at time zone 'UTC')
+	                                          AND id=3
+	                                       FOR UPDATE NOWAIT
+2019-10-28 00:28:33.606 HKT [14608] FATAL:  database "e1" does not exist
+2019-10-28 00:28:42.399 HKT [3600] FATAL:  database "demo" does not exist
+2019-10-28 00:28:56.042 HKT [5472] LOG:  received fast shutdown request
+2019-10-28 00:28:56.045 HKT [5472] LOG:  aborting any active transactions
+2019-10-28 00:28:56.061 HKT [5472] LOG:  worker process: logical replication launcher (PID 9804) exited with exit code 1
+2019-10-28 00:28:56.062 HKT [10132] LOG:  shutting down
+2019-10-28 00:28:56.119 HKT [5472] LOG:  database system is shut down
+2019-10-28 00:29:15.753 HKT [14756] LOG:  listening on IPv6 address "::1", port 5432
+2019-10-28 00:29:15.753 HKT [14756] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2019-10-28 00:29:15.996 HKT [12564] LOG:  database system was shut down at 2019-10-28 00:29:12 HKT
+2019-10-28 00:29:16.085 HKT [14756] LOG:  database system is ready to accept connections
+2019-10-28 00:31:01.300 HKT [14756] LOG:  received fast shutdown request
+2019-10-28 00:31:01.304 HKT [14756] LOG:  aborting any active transactions
+2019-10-28 00:31:01.304 HKT [7052] FATAL:  terminating connection due to administrator command
+2019-10-28 00:31:01.305 HKT [13796] FATAL:  terminating connection due to administrator command
+2019-10-28 00:31:01.305 HKT [14608] FATAL:  terminating connection due to administrator command
+2019-10-28 00:31:01.321 HKT [14756] LOG:  worker process: logical replication launcher (PID 14344) exited with exit code 1
+2019-10-28 00:31:01.331 HKT [9100] LOG:  shutting down
+2019-10-28 00:31:02.186 HKT [14756] LOG:  database system is shut down

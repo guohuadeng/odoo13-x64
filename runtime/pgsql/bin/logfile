@@ -16,3 +16,12 @@
 2019-10-02 19:18:07.251 HKT [2904] 日志:  工作进程: logical replication launcher (PID 7312) 已退出, 退出代码 1
 2019-10-02 19:18:07.262 HKT [9524] 日志:  正在关闭
 2019-10-02 19:18:07.307 HKT [2904] 日志:  数据库系统已关闭
+2019-10-28 00:29:06.315 HKT [6068] LOG:  listening on IPv6 address "::1", port 5432
+2019-10-28 00:29:06.315 HKT [6068] LOG:  listening on IPv4 address "127.0.0.1", port 5432
+2019-10-28 00:29:06.452 HKT [15164] LOG:  database system was shut down at 2019-10-28 00:29:04 HKT
+2019-10-28 00:29:06.533 HKT [6068] LOG:  database system is ready to accept connections
+2019-10-28 00:29:12.749 HKT [6068] LOG:  received fast shutdown request
+2019-10-28 00:29:12.753 HKT [6068] LOG:  aborting any active transactions
+2019-10-28 00:29:12.767 HKT [6068] LOG:  worker process: logical replication launcher (PID 11600) exited with exit code 1
+2019-10-28 00:29:12.767 HKT [10924] LOG:  shutting down
+2019-10-28 00:29:12.822 HKT [6068] LOG:  database system is shut down

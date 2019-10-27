@@ -1,6 +1,10 @@
 """Build Environment used for isolation during sdist building
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
+
 import logging
 import os
 import sys
@@ -12,7 +16,7 @@ from sysconfig import get_paths
 from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
 from pip import __file__ as pip_location
-from pip._internal.utils.misc import call_subprocess
+from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
@@ -51,7 +55,6 @@ class BuildEnvironment(object):
     def __init__(self):
         # type: () -> None
         self._temp_dir = TempDirectory(kind="build-env")
-        self._temp_dir.create()
 
         self._prefixes = OrderedDict((
             (name, _Prefix(os.path.join(self._temp_dir.path, name)))
@@ -177,15 +180,18 @@ class BuildEnvironment(object):
             formats = getattr(finder.format_control, format_control)
             args.extend(('--' + format_control.replace('_', '-'),
                          ','.join(sorted(formats or {':none:'}))))
-        if finder.index_urls:
-            args.extend(['-i', finder.index_urls[0]])
-            for extra_index in finder.index_urls[1:]:
+
+        index_urls = finder.index_urls
+        if index_urls:
+            args.extend(['-i', index_urls[0]])
+            for extra_index in index_urls[1:]:
                 args.extend(['--extra-index-url', extra_index])
         else:
             args.append('--no-index')
         for link in finder.find_links:
             args.extend(['--find-links', link])
-        for _, host, _ in finder.secure_origins:
+
+        for host in finder.trusted_hosts:
             args.extend(['--trusted-host', host])
         if finder.allow_all_prereleases:
             args.append('--pre')
