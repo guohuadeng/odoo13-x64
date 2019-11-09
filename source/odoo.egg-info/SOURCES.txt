@@ -7415,6 +7415,7 @@ odoo/addons/l10n_ch/tests/test_l10n_ch_swissqr.py
 odoo/addons/l10n_ch/views/account_invoice_view.xml
 odoo/addons/l10n_ch/views/res_bank_view.xml
 odoo/addons/l10n_ch/views/res_config_settings_views.xml
+odoo/addons/l10n_ch/views/setup_wizard_views.xml
 odoo/addons/l10n_cl/__init__.py
 odoo/addons/l10n_cl/__manifest__.py
 odoo/addons/l10n_cl/data/account_chart_template_data.xml
@@ -14509,6 +14510,7 @@ odoo/addons/sale_product_matrix/models/product_template.py
 odoo/addons/sale_product_matrix/models/sale_order.py
 odoo/addons/sale_product_matrix/report/sale_report_templates.xml
 odoo/addons/sale_product_matrix/static/src/js/product_matrix_configurator.js
+odoo/addons/sale_product_matrix/static/tests/section_and_note_widget_tests.js
 odoo/addons/sale_product_matrix/views/assets.xml
 odoo/addons/sale_product_matrix/views/product_template_views.xml
 odoo/addons/sale_product_matrix/views/sale_views.xml
@@ -16071,6 +16073,7 @@ odoo/addons/test_lint/tests/__init__.py
 odoo/addons/test_lint/tests/_odoo_checker_sql_injection.py
 odoo/addons/test_lint/tests/_odoo_checkers.py
 odoo/addons/test_lint/tests/test_ecmascript.py
+odoo/addons/test_lint/tests/test_markers.py
 odoo/addons/test_lint/tests/test_pylint.py
 odoo/addons/test_mail/__init__.py
 odoo/addons/test_mail/__manifest__.py

@@ -1,0 +1,1 @@
+# 一键安装最新odoo 13,12,11社区版企业版+ postgresql10 +nginx在ubuntu上的自动安装脚本，阿里云测试通过，https://www.sunpop.cn/odoo-12-postgresql-10-ubuntu-aliyun-one-click-install-script/

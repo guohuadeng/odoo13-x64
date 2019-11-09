@@ -67,7 +67,7 @@ class AccountTaxReportLine(models.Model):
 
     name = fields.Char(string="Name", required=True, help="Complete name for this report line, to be used in report.")
     tag_ids = fields.Many2many(string="Tags", comodel_name='account.account.tag', relation='account_tax_report_line_tags_rel', help="Tax tags populating this line")
-    country_id = fields.Many2one(string="Country", comodel_name='res.country', required=True, default=lambda x: x.env.user.company_id.country_id.id, help="Country for which this line is available.")
+    country_id = fields.Many2one(string="Country", comodel_name='res.country', required=True, default=lambda x: x.env.company.country_id.id, help="Country for which this line is available.")
     report_action_id = fields.Many2one(string="Report Action", comodel_name='ir.actions.act_window', help="The optional action to call when clicking on this line in accounting reports.")
     children_line_ids = fields.One2many(string="Children Lines", comodel_name='account.tax.report.line', inverse_name='parent_id', help="Lines that should be rendered as children of this one")
     parent_id = fields.Many2one(string="Parent Line", comodel_name='account.tax.report.line')
@@ -1638,7 +1638,7 @@ class AccountTaxRepartitionLine(models.Model):
     refund_tax_id = fields.Many2one(comodel_name='account.tax', help="The tax set to apply this repartition on refund invoices. Mutually exclusive with invoice_tax_id")
     tax_id = fields.Many2one(comodel_name='account.tax', compute='_compute_tax_id')
     country_id = fields.Many2one(string="Country", comodel_name='res.country', related='company_id.country_id',  help="Technical field used to restrict tags domain in form view.")
-    company_id = fields.Many2one(string="Company", comodel_name='res.company', required=True, default=lambda x: x.env.user.company_id, help="The company this repartition line belongs to.")
+    company_id = fields.Many2one(string="Company", comodel_name='res.company', required=True, default=lambda x: x.env.company, help="The company this repartition line belongs to.")
     sequence = fields.Integer(string="Sequence", default=1, help="The order in which display and match repartition lines. For refunds to work properly, invoice repartition lines should be arranged in the same order as the credit note repartition lines they correspond to.")
 
     @api.constrains('invoice_tax_id', 'refund_tax_id')
