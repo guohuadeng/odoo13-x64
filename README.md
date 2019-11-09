@@ -142,3 +142,6 @@ pip3 install .\extra\psutil-5.6.1-cp36-cp36m-win_amd64.whl
 runtime/nginx/nginx.conf
 ```
 ## 安装结束
+
+## 关于 odoo 13 Debug 调试
+https://github.com/odoo/odoo/issues/40061
