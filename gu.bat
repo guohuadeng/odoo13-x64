@@ -1,7 +1,7 @@
 title update GreenOdoo13 x64 fast - www.sunpop.cn
-cd source_git/enterprise
+cd source_git/odoo
 git pull
 cd..
-cd odoo
+cd enterprise
 git pull
 cd..
