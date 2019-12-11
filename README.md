@@ -16,7 +16,7 @@ https://github.com/odoo/odoo/tree/saas-12.5
 1. python 3.7.5, 64位
 2. postgresql 10.10 ,64位
 3. Nginx 1.15.5， 64位
-4. Odoo 13社区版，20191109版
+4. Odoo 13社区版，20191205版
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度
@@ -136,6 +136,12 @@ pip3 install .\extra\psutil-5.6.1-cp36-cp36m-win_amd64.whl
 pip3 install .\extra\lxml-4.2.3-cp36-cp36m-win_amd64.whl
 pip3 install .\extra\psutil-5.6.1-cp36-cp36m-win_amd64.whl
 ```
+## pycrypto 处理
+你可以使用以下pip 命令：
+pip3 install -i https://pypi.douban.com/simple pycryptodome 
+
+在Windows 系统上安装则稍有不同：
+pip3 install -i https://pypi.douban.com/simple pycryptodomex
 
 ## Nginx配置相关
 ```
