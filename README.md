@@ -9,14 +9,12 @@ Green Odoo 13 x64， https://www.Sunpop.cn
 http://nightly.odoo.com/13.0/nightly/src/odoo_13.0.latest.zip
 因百度cdn问题，以下链接要输入验证码
 http://nightly.odoocdn.com/13.0/nightly/src/odoo_13.0.latest.zip
-master版本有问题时，请下载
-https://github.com/odoo/odoo/tree/saas-12.5
 
 ## 版本信息
 1. python 3.7.5, 64位
 2. postgresql 10.10 ,64位
 3. Nginx 1.15.5， 64位
-4. Odoo 13社区版，20191109版
+4. Odoo 13社区版，20191215版
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度
