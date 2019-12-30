@@ -134,11 +134,40 @@ pip3 install .\extra\psutil-5.6.1-cp36-cp36m-win_amd64.whl
 pip3 install .\extra\lxml-4.2.3-cp36-cp36m-win_amd64.whl
 pip3 install .\extra\psutil-5.6.1-cp36-cp36m-win_amd64.whl
 ```
+## Nginx在已安装的情况下新增 echo 模块,https://www.jianshu.com/p/db389775f972
+```
+cd src
+wget https://github.com/openresty/echo-nginx-module/archive/v0.61.tar.gz
+wget http://nginx.org/download/nginx-1.14.0.tar.gz
+tar -zxvf v0.61.tar.gz
+tar -zxvf nginx-1.14.0.tar.gz
+cp -r echo-nginx-module-0.61 nginx-1.14.0/echo-nginx-module-0.61
+cd nginx-1.14.0
+./configure --add-module=echo-nginx-module-0.61
+apt remove nginx -y
+make install
+cp -f /root/src/nginx-1.14.0/objs/nginx /usr/local/nginx/sbin/nginx
+apt-get install nginx -y
+```
+  nginx path prefix: "/usr/local/nginx"
+  nginx binary file: "/usr/local/nginx/sbin/nginx"
+  nginx modules path: "/usr/local/nginx/modules"
+  nginx configuration prefix: "/usr/local/nginx/conf"
+  nginx configuration file: "/usr/local/nginx/conf/nginx.conf"
+  nginx pid file: "/usr/local/nginx/logs/nginx.pid"
+  nginx error log file: "/usr/local/nginx/logs/error.log"
+  nginx http access log file: "/usr/local/nginx/logs/access.log"
+  nginx http client request body temporary files: "client_body_temp"
+  nginx http proxy temporary files: "proxy_temp"
+  nginx http fastcgi temporary files: "fastcgi_temp"
+  nginx http uwsgi temporary files: "uwsgi_temp"
+  nginx http scgi temporary files: "scgi_temp"
 
 ## Nginx配置相关
 ```
-runtime/nginx/nginx.conf
+runtime/nginx/n``````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````                                                                                                                                                                                                                           ginx.conf
 ```
+
 ## 安装结束
 
 ## 关于 odoo 13 Debug 调试
