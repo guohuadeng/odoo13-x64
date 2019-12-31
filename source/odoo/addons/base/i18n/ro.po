@@ -5807,7 +5807,7 @@ msgstr ""
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.view_partner_short_form
 msgid "<b>Company Address:</b>"
-msgstr ""
+msgstr "<b>Adresă companie:</b>"
 
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.view_server_action_form
@@ -8612,7 +8612,7 @@ msgstr "Schimbă parola"
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.view_country_form
 msgid "Change the way addresses are displayed in reports"
-msgstr ""
+msgstr "Modificați modul în care se afișează adresele în rapoarte"
 
 #. module: base
 #: code:addons/base/models/res_partner.py:0
@@ -13988,7 +13988,7 @@ msgstr "Facturi & Plăți"
 #. module: base
 #: model:ir.module.module,summary:base.module_documents_account
 msgid "Invoices from Documents"
-msgstr ""
+msgstr "Facturi din documente"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_account

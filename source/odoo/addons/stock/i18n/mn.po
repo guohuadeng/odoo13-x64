@@ -105,7 +105,7 @@ msgstr "%s (хуулбар)"
 #: code:addons/stock/wizard/stock_picking_responsible.py:0
 #, python-format
 msgid "%s has a restricted access to %s"
-msgstr ""
+msgstr "%s нь %s уруу хандах эрхгүй"
 
 #. module: stock
 #: code:addons/stock/models/stock_warehouse.py:0
@@ -125,7 +125,7 @@ msgstr "%s: Барааг %s-с нийлүүлэх"
 #: code:addons/stock/models/res_company.py:0
 #, python-format
 msgid "%s: Transit Location"
-msgstr "%s: Дамжуулах Байрлал"
+msgstr "%s: Дамжуулах байрлал"
 
 #. module: stock
 #: model:ir.actions.report,print_report_name:stock.action_report_delivery
@@ -432,7 +432,7 @@ msgstr "<strong>Байршил</strong>"
 #: model_terms:ir.ui.view,arch_db:stock.report_inventory
 #: model_terms:ir.ui.view,arch_db:stock.report_picking
 msgid "<strong>Lot/Serial Number</strong>"
-msgstr "<strong>Цувралын Дугаар</strong>"
+msgstr "<strong>Цувралын дугаар</strong>"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_stock_warehouse_orderpoint_kanban
@@ -473,7 +473,7 @@ msgstr ""
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.view_stock_track_confirmation
 msgid "<strong>Product(s) tracked: </strong>"
-msgstr "<strong>Барааг мөшгих: </strong>"
+msgstr "<strong>Мөшгих бараа: </strong>"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.report_delivery_document
@@ -511,7 +511,7 @@ msgstr ""
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.message_head
 msgid "<strong>The initial demand has been updated.</strong>"
-msgstr "<strong>Эхний үлдэгдэл шинэчлэгдсэн.</strong>"
+msgstr "<strong>Эхний шаардлага шинэчлэгдсэн.</strong>"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.report_picking
@@ -1930,7 +1930,7 @@ msgstr "Зөрүү"
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.stock_inventory_line_search
 msgid "Difference different than zero"
-msgstr ""
+msgstr "Зөрүү нь тэгээс ялгаатай"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.stock_package_destination_form_view
@@ -7007,7 +7007,7 @@ msgstr ""
 #. module: stock
 #: model:ir.model.fields.selection,name:stock.selection__stock_picking__move_type__one
 msgid "When all products are ready"
-msgstr ""
+msgstr "Бүх бараа бэлэн үед"
 
 #. module: stock
 #: model:ir.model.fields,help:stock.field_stock_location_route__product_selectable
@@ -7393,7 +7393,7 @@ msgstr ""
 #: code:addons/stock/wizard/stock_picking_return.py:0
 #, python-format
 msgid "You may only return Done pickings."
-msgstr ""
+msgstr "Хийгдсэн бэлтгэх баримтыг буцаах боломжтой."
 
 #. module: stock
 #: code:addons/stock/wizard/stock_picking_return.py:0
@@ -7518,7 +7518,7 @@ msgstr "ын"
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.exception_on_picking
 msgid "processed instead of"
-msgstr ""
+msgstr "оронд нь боловсруулсан"
 
 #. module: stock
 #: model_terms:ir.ui.view,arch_db:stock.stock_report_view_graph

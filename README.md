@@ -14,7 +14,7 @@ http://nightly.odoocdn.com/13.0/nightly/src/odoo_13.0.latest.zip
 1. python 3.7.5, 64位
 2. postgresql 10.10 ,64位
 3. Nginx 1.15.5， 64位
-4. Odoo 13社区版，20191109版
+4. Odoo 13社区版，20191231版
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度
@@ -140,6 +140,9 @@ pip3 install -i https://pypi.douban.com/simple pycryptodome
 
 在Windows 系统上安装则稍有不同：
 pip3 install -i https://pypi.douban.com/simple pycryptodomex
+装完注意改大小写 
+./runtime/python3/Lib/site-packages/Crypto
+
 ## Nginx在已安装的情况下新增 echo 模块,https://www.jianshu.com/p/db389775f972
 ```
 cd src
