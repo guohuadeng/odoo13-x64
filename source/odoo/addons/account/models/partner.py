@@ -126,7 +126,7 @@ class AccountFiscalPosition(models.Model):
         base_domain = [
             ('auto_apply', '=', True),
             ('vat_required', '=', vat_required),
-            ('company_id', '=', company_id),
+            ('company_id', 'in', [company_id, False]),
         ]
         null_state_dom = state_domain = [('state_ids', '=', False)]
         null_zip_dom = zip_domain = [('zip_from', '=', False), ('zip_to', '=', False)]
@@ -473,8 +473,9 @@ class ResPartner(models.Model):
         action['context'] = {'default_type':'out_invoice', 'type':'out_invoice', 'journal_type': 'sale', 'search_default_unpaid': 1}
         return action
 
-    @api.onchange('company_id')
+    @api.onchange('company_id', 'parent_id')
     def _onchange_company_id(self):
+        super(ResPartner, self)._onchange_company_id()
         if self.company_id:
             company = self.company_id
         else:

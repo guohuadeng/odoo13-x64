@@ -6,12 +6,16 @@ from odoo import fields, models, api, _
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    stock_move_id = fields.Many2one('stock.move', string='Stock Move')
+    stock_move_id = fields.Many2one('stock.move', string='Stock Move', index=True)
     stock_valuation_layer_ids = fields.One2many('stock.valuation.layer', 'account_move_id', string='Stock Valuation Layer')
 
     # -------------------------------------------------------------------------
     # OVERRIDE METHODS
     # -------------------------------------------------------------------------
+
+    def _get_lines_onchange_currency(self):
+        # OVERRIDE
+        return self.line_ids.filtered(lambda l: not l.is_anglo_saxon_line)
 
     def _reverse_move_vals(self, default_values, cancel=True):
         # OVERRIDE

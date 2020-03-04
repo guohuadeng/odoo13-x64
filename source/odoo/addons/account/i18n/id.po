@@ -659,6 +659,11 @@ msgid "<span>Quantity</span>"
 msgstr "<span>Jumlah</span>"
 
 #. module: account
+#: model_terms:ir.ui.view,arch_db:account.report_payment_receipt_document
+msgid "<span>Reference</span>"
+msgstr ""
+
+#. module: account
 #: model_terms:ir.ui.view,arch_db:account.account_journal_dashboard_kanban_view
 msgid "<span>Reporting</span>"
 msgstr "<span>Laporan</span>"
@@ -10834,6 +10839,14 @@ msgid "The account %s (%s) is deprecated."
 msgstr "The account %s (%s) is deprecated."
 
 #. module: account
+#: code:addons/account/models/account.py:0
+#, python-format
+msgid ""
+"The account is already in use in a 'sale' or 'purchase' journal. This means "
+"that the account's type couldn't be 'receivable' or 'payable'."
+msgstr ""
+
+#. module: account
 #: code:addons/account/models/account_move.py:0
 #, python-format
 msgid ""
@@ -10887,10 +10900,10 @@ msgstr ""
 #: model:ir.model.constraint,message:account.constraint_account_move_line_check_amount_currency_balance_sign
 msgid ""
 "The amount expressed in the secondary currency must be positive when account"
-" is debited and negative when account is credited."
+" is debited and negative when account is credited. Moreover, the currency "
+"field has to be left empty when the amount is expressed in the company "
+"currency."
 msgstr ""
-"Jumlah yang dinyatakan dalam mata uang sekunder harus positif ketika akun "
-"didebet dan negatif ketika akun dikredit."
 
 #. module: account
 #: code:addons/account/models/account_bank_statement.py:0
@@ -11471,6 +11484,14 @@ msgid "The tie-breaking rule used for float rounding operations"
 msgstr "Aturan penyeimbang yang digunakan untuk operasi pembulatan desimal"
 
 #. module: account
+#: code:addons/account/models/account.py:0
+#, python-format
+msgid ""
+"The type of the journal's default credit/debit account shouldn't be "
+"'receivable' or 'payable'."
+msgstr ""
+
+#. module: account
 #: model_terms:ir.ui.view,arch_db:account.portal_my_invoices
 msgid "There are currently no invoices and payments for your account."
 msgstr "Saat ini tidak ada faktur dan pembayaran untuk akun Anda."
@@ -11490,6 +11511,14 @@ msgid ""
 msgstr ""
 "Masih ada ayat belum terekam pada periode yang ingin Anda kunci. Anda harus "
 "merekam atau menghapusnya."
+
+#. module: account
+#: code:addons/account/models/account_payment.py:0
+#, python-format
+msgid ""
+"There is more than one receivable/payable account in the concerned invoices."
+" You cannot group payments in that case."
+msgstr ""
 
 #. module: account
 #: code:addons/account/models/account_payment.py:0

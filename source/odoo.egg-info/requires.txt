@@ -36,4 +36,4 @@ zeep
 pyopenssl
 
 [ldap]
-pyldap
+python-ldap

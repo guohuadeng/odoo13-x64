@@ -710,6 +710,23 @@ class ModelChildNoCheck(models.Model):
     parent_id = fields.Many2one('test_new_api.model_parent', check_company=False)
 
 
+class ModelPrivateAddressOnchange(models.Model):
+    _name = 'test_new_api.model_private_address_onchange'
+    _description = 'Model Private Address Onchange'
+    _check_company_auto = True
+
+    name = fields.Char()
+    company_id = fields.Many2one('res.company', required=True)
+    address_id = fields.Many2one('res.partner', check_company=True)
+
+    @api.onchange('name')
+    def _onchange_name(self):
+        if self.name and not self.address_id:
+            self.address_id = self.env['res.partner'].sudo().create({
+                'name': self.name,
+                'type': 'private',
+            })
+
 # model with explicit and stored field 'display_name'
 class Display(models.Model):
     _name = 'test_new_api.display'
@@ -742,6 +759,10 @@ class ModelActiveField(models.Model):
     active = fields.Boolean(default=True)
     parent_id = fields.Many2one('test_new_api.model_active_field')
     children_ids = fields.One2many('test_new_api.model_active_field', 'parent_id')
+    all_children_ids = fields.One2many('test_new_api.model_active_field', 'parent_id',
+                                       context={'active_test': False})
+    active_children_ids = fields.One2many('test_new_api.model_active_field', 'parent_id',
+                                          context={'active_test': True})
     parent_active = fields.Boolean(string='Active Parent', related='parent_id.active', store=True)
 
 
@@ -794,3 +815,20 @@ class ModelParentM2o(models.Model):
 
     name = fields.Char('Name')
     child_ids = fields.One2many('test_new_api.model_child_m2o', 'parent_id', string="Children")
+
+
+class Country(models.Model):
+    _name = 'test_new_api.country'
+    _description = 'Country, ordered by name'
+    _order = 'name, id'
+
+    name = fields.Char()
+
+
+class City(models.Model):
+    _name = 'test_new_api.city'
+    _description = 'City, ordered by country then name'
+    _order = 'country_id, name, id'
+
+    name = fields.Char()
+    country_id = fields.Many2one('test_new_api.country')

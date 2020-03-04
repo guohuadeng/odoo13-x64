@@ -40,7 +40,7 @@ from operator import attrgetter, itemgetter
 
 import babel.dates
 import dateutil.relativedelta
-import psycopg2
+import psycopg2, psycopg2.extensions
 from lxml import etree
 from lxml.builder import E
 from psycopg2.extensions import AsIs
@@ -53,7 +53,7 @@ from .exceptions import AccessError, MissingError, ValidationError, UserError
 from .osv.query import Query
 from .tools import frozendict, lazy_classproperty, lazy_property, ormcache, \
                    Collector, LastOrderedSet, OrderedSet, IterableGenerator, \
-                   groupby
+                   groupby, unique
 from .tools.config import config
 from .tools.func import frame_codeinfo
 from .tools.misc import CountingStream, clean_context, DEFAULT_SERVER_DATETIME_FORMAT, DEFAULT_SERVER_DATE_FORMAT, get_lang
@@ -756,19 +756,27 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             for r in missing
         )
         fields = ['module', 'model', 'name', 'res_id']
-        cr.copy_from(io.StringIO(
-            u'\n'.join(
-                u"%s\t%s\t%s\t%d" % (
-                    modname,
-                    record._name,
-                    xids[record.id][1],
-                    record.id,
-                )
-                for record in missing
-            )),
-            table='ir_model_data',
-            columns=fields,
-        )
+
+        # disable eventual async callback / support for the extent of
+        # the COPY FROM, as these are apparently incompatible
+        callback = psycopg2.extensions.get_wait_callback()
+        psycopg2.extensions.set_wait_callback(None)
+        try:
+            cr.copy_from(io.StringIO(
+                u'\n'.join(
+                    u"%s\t%s\t%s\t%d" % (
+                        modname,
+                        record._name,
+                        xids[record.id][1],
+                        record.id,
+                    )
+                    for record in missing
+                )),
+                table='ir_model_data',
+                columns=fields,
+            )
+        finally:
+            psycopg2.extensions.set_wait_callback(callback)
         self.env['ir.model.data'].invalidate_cache(fnames=fields)
 
         return (
@@ -977,7 +985,7 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                     # Failed to write, log to messages, rollback savepoint (to
                     # avoid broken transaction) and keep going
                 except Exception as e:
-                    _logger.exception("Error while loading record")
+                    _logger.debug("Error while loading record", exc_info=True)
                     info = rec_data['info']
                     message = (_(u'Unknown error during import:') + u' %s: %s' % (type(e), e))
                     moreinfo = _('Resolve other errors first')
@@ -1702,10 +1710,9 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             _logger.warning("Cannot execute name_search, no _rec_name defined on %s", self._name)
         elif not (name == '' and operator == 'ilike'):
             args += [(self._rec_name, operator, name)]
-        access_rights_uid = name_get_uid or self._uid
-        ids = self._search(args, limit=limit, access_rights_uid=access_rights_uid)
+        ids = self._search(args, limit=limit, access_rights_uid=name_get_uid)
         recs = self.browse(ids)
-        return lazy_name_get(recs.with_user(access_rights_uid))
+        return lazy_name_get(recs.with_user(name_get_uid))
 
     @api.model
     def _add_missing_default_values(self, values):
@@ -2507,22 +2514,20 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
         cr = self._cr
         foreign_key_re = re.compile(r'\s*foreign\s+key\b.*', re.I)
 
-        def process(key, definition):
+        for (key, definition, message) in self._sql_constraints:
             conname = '%s_%s' % (self._table, key)
             current_definition = tools.constraint_definition(cr, self._table, conname)
-            if not current_definition:
-                # constraint does not exists
-                tools.add_constraint(cr, self._table, conname, definition)
-            elif current_definition != definition:
+            if current_definition == definition:
+                continue
+
+            if current_definition:
                 # constraint exists but its definition may have changed
                 tools.drop_constraint(cr, self._table, conname)
-                tools.add_constraint(cr, self._table, conname, definition)
 
-        for (key, definition, _) in self._sql_constraints:
             if foreign_key_re.match(definition):
-                self.pool.post_init(process, key, definition)
+                self.pool.post_init(tools.add_constraint, cr, self._table, conname, definition)
             else:
-                process(key, definition)
+                self.pool.post_constraint(tools.add_constraint, cr, self._table, conname, definition)
 
     def _execute_sql(self):
         """ Execute the SQL code from the _sql attribute (if any)."""
@@ -3146,12 +3151,13 @@ Fields:
             # The first part of the check verifies that all records linked via relation fields are compatible
             # with the company of the origin document, i.e. `self.account_id.company_id == self.company_id`
             for name in regular_fields:
+                corecord = record.sudo()[name]
                 # Special case with `res.users` since an user can belong to multiple companies.
-                if record[name]._name == 'res.users' and record[name].company_ids:
-                    if not (company <= record[name].company_ids):
+                if corecord._name == 'res.users' and corecord.company_ids:
+                    if not (company <= corecord.company_ids):
                         inconsistent_fields.add(name)
                         inconsistent_recs |= record
-                elif not (record[name].company_id <= company):
+                elif not (corecord.company_id <= company):
                     inconsistent_fields.add(name)
                     inconsistent_recs |= record
             # The second part of the check (for property / company-dependent fields) verifies that the records
@@ -3164,11 +3170,12 @@ Fields:
                 company = self.env.company
             for name in property_fields:
                 # Special case with `res.users` since an user can belong to multiple companies.
-                if record[name]._name == 'res.users' and record[name].company_ids:
-                    if not (company <= record[name].company_ids):
+                corecord = record.sudo()[name]
+                if corecord._name == 'res.users' and corecord.company_ids:
+                    if not (company <= corecord.company_ids):
                         inconsistent_fields.add(name)
                         inconsistent_recs |= record
-                elif not (record[name].company_id <= company):
+                elif not (corecord.company_id <= company):
                     inconsistent_fields.add(name)
                     inconsistent_recs |= record
 
@@ -4272,8 +4279,14 @@ Record ids: %(records)s
         return order_by_clause and (' ORDER BY %s ' % order_by_clause) or ''
 
     @api.model
-    def _flush_search(self, domain, fields=None, order=None):
+    def _flush_search(self, domain, fields=None, order=None, seen=None):
         """ Flush all the fields appearing in `domain`, `fields` and `order`. """
+        if seen is None:
+            seen = set()
+        elif self._name in seen:
+            return
+        seen.add(self._name)
+
         to_flush = defaultdict(set)             # {model_name: field_names}
         if fields:
             to_flush[self._name].update(fields)
@@ -4305,7 +4318,7 @@ Record ids: %(records)s
                             to_flush[model._name].add(f)
                             if rfield.type in ('many2one', 'one2many', 'many2many'):
                                 model = self.env[rfield.comodel_name]
-                                if rfield.type == 'one2many':
+                                if rfield.type == 'one2many' and rfield.inverse_name:
                                     to_flush[rfield.comodel_name].add(rfield.inverse_name)
                 if field.comodel_name:
                     model_name = field.comodel_name
@@ -4319,8 +4332,11 @@ Record ids: %(records)s
         order_spec = order or self._order
         for order_part in order_spec.split(','):
             order_field = order_part.split()[0]
-            if order_field in self._fields:
+            field = self._fields.get(order_field)
+            if field is not None:
                 to_flush[self._name].add(order_field)
+                if field.relational:
+                    self.env[field.comodel_name]._flush_search([], seen=seen)
 
         if 'active' in self:
             to_flush[self._name].add('active')
@@ -5026,6 +5042,8 @@ Record ids: %(records)s
         non-superuser mode, unless `user` is the superuser (by convention, the
         superuser is always in superuser mode.)
         """
+        if not user:
+            return self
         return self.with_env(self.env(user=user, su=False))
 
     def with_context(self, *args, **kwargs):
@@ -5048,9 +5066,9 @@ Record ids: %(records)s
 
             The returned recordset has the same prefetch object as ``self``.
         """
-        if args and 'allowed_company_ids' not in args[0] and 'allowed_company_ids' in self._context:
-            args[0]['allowed_company_ids'] = self._context.get('allowed_company_ids') 
         context = dict(args[0] if args else self._context, **kwargs)
+        if 'allowed_company_ids' not in context and 'allowed_company_ids' in self._context:
+            context['allowed_company_ids'] = self._context.get('allowed_company_ids')
         return self.with_env(self.env(context=context))
 
     def with_prefetch(self, prefetch_ids=None):
@@ -5162,10 +5180,10 @@ Record ids: %(records)s
             records.mapped('name')
 
             # returns a recordset of partners
-            record.mapped('partner_id')
+            records.mapped('partner_id')
 
             # returns the union of all partner banks, with duplicates removed
-            record.mapped('partner_id.bank_ids')
+            records.mapped('partner_id.bank_ids')
         """
         if not func:
             return self                 # support for an empty path of fields
@@ -5602,11 +5620,17 @@ Record ids: %(records)s
             (:class:`Field` instance), including ``self``.
             Return at most ``limit`` records.
         """
-        recs = self.browse(self._prefetch_ids)
+        # This method returns records that are either all real, or all new.
+        # Those records are aimed at being either fetched, or computed.  But the
+        # method '_fetch_field' is not correct with new records: it considers
+        # them as forbidden records, and clears their cache!  On the other hand,
+        # compute methods are not invoked with a mix of real and new records for
+        # the sake of code simplicity.
+        kind = bool(self.id)
+        recs = self.browse(unique(self._prefetch_ids))
         ids = [self.id]
         for record_id in self.env.cache.get_missing_ids(recs - self, field):
-            if not record_id:
-                # Do not prefetch `NewId`
+            if bool(record_id) != kind:
                 continue
             ids.append(record_id)
             if limit and limit <= len(ids):

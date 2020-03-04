@@ -36,6 +36,10 @@ class WebsiteForm(http.Controller):
             id_record = self.insert_record(request, model_record, data['record'], data['custom'], data.get('meta'))
             if id_record:
                 self.insert_attachment(model_record, id_record, data['attachments'])
+                # in case of an email, we want to send it immediately instead of waiting
+                # for the email queue to process
+                if model_name == 'mail.mail':
+                    request.env[model_name].sudo().browse(id_record).send()
 
         # Some fields have additional SQL constraints that we can't check generically
         # Ex: crm.lead.probability which is a float between 0 and 1
@@ -107,6 +111,7 @@ class WebsiteForm(http.Controller):
 
     # Extract all data sent by the form and sort its on several properties
     def extract_data(self, model, values):
+        dest_model = request.env[model.sudo().model]
 
         data = {
             'record': {},        # Values to create record
@@ -129,7 +134,8 @@ class WebsiteForm(http.Controller):
                 # If it's not, we'll use attachments instead
                 if field_name in authorized_fields and authorized_fields[field_name]['type'] == 'binary':
                     data['record'][field_name] = base64.b64encode(field_value.read())
-                    if authorized_fields[field_name]['manual']:
+                    field_value.stream.seek(0) # do not consume value forever
+                    if authorized_fields[field_name]['manual'] and field_name + "_filename" in dest_model:
                         data['record'][field_name + "_filename"] = field_value.filename
                 else:
                     field_value.field_name = field_name
@@ -163,7 +169,6 @@ class WebsiteForm(http.Controller):
         # def website_form_input_filter(self, values):
         #     values['name'] = '%s\'s Application' % values['partner_name']
         #     return values
-        dest_model = request.env[model.sudo().model]
         if hasattr(dest_model, "website_form_input_filter"):
             data['record'] = dest_model.website_form_input_filter(request, data['record'])
 
@@ -175,6 +180,8 @@ class WebsiteForm(http.Controller):
 
     def insert_record(self, request, model, values, custom, meta=None):
         model_name = model.sudo().model
+        if model_name == 'mail.mail':
+            values.update({'reply_to': values.get('email_from')})
         record = request.env[model_name].sudo().with_context(mail_create_nosubscribe=True).create(values)
 
         if custom or meta:
