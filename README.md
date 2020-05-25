@@ -1,3 +1,6 @@
+# 注意，本Git已转移，本处不再更新。 The repo is moved to follow url.
+https://gitee.com/guohuadeng/odoo13-x64
+
 # odoo 13 Windows 64位绿色版
 Green Odoo 13 x64， https://www.Sunpop.cn
 ---------------------------------------
