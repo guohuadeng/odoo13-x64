@@ -207,8 +207,11 @@ class FleetVehicle(models.Model):
         if 'driver_id' in vals and vals['driver_id']:
             res.create_driver_history(vals['driver_id'])
         if 'future_driver_id' in vals and vals['future_driver_id']:
-            future_driver = self.env['res.partner'].browse(vals['future_driver_id'])
-            future_driver.write({'plan_to_change_car': True})
+            state_waiting_list = self.env.ref('fleet.fleet_vehicle_state_waiting_list', raise_if_not_found=False)
+            states = res.mapped('state_id').ids
+            if not state_waiting_list or state_waiting_list.id not in states:
+                future_driver = self.env['res.partner'].browse(vals['future_driver_id'])
+                future_driver.sudo().write({'plan_to_change_car': True})
         return res
 
     def write(self, vals):
@@ -217,8 +220,11 @@ class FleetVehicle(models.Model):
             self.filtered(lambda v: v.driver_id.id != driver_id).create_driver_history(driver_id)
 
         if 'future_driver_id' in vals and vals['future_driver_id']:
-            future_driver = self.env['res.partner'].browse(vals['future_driver_id'])
-            future_driver.write({'plan_to_change_car': True})
+            state_waiting_list = self.env.ref('fleet.fleet_vehicle_state_waiting_list', raise_if_not_found=False)
+            states = self.mapped('state_id').ids if 'state_id' not in vals else [vals['state_id']]
+            if not state_waiting_list or state_waiting_list.id not in states:
+                future_driver = self.env['res.partner'].browse(vals['future_driver_id'])
+                future_driver.sudo().write({'plan_to_change_car': True})
 
         res = super(FleetVehicle, self).write(vals)
         if 'active' in vals and not vals['active']:
@@ -248,7 +254,7 @@ class FleetVehicle(models.Model):
         vehicles._close_driver_history()
 
         for vehicle in self:
-            vehicle.future_driver_id.write({'plan_to_change_car': False})
+            vehicle.future_driver_id.sudo().write({'plan_to_change_car': False})
             vehicle.driver_id = vehicle.future_driver_id
             vehicle.future_driver_id = False
 
@@ -295,7 +301,7 @@ class FleetVehicle(models.Model):
 
     def _track_subtype(self, init_values):
         self.ensure_one()
-        if 'driver_id' in init_values:
+        if 'driver_id' in init_values or 'future_driver_id' in init_values:
             return self.env.ref('fleet.mt_fleet_driver_updated')
         return super(FleetVehicle, self)._track_subtype(init_values)
 

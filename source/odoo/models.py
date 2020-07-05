@@ -970,8 +970,9 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
             except Exception:
                 pass
 
+            errors = 0
             # try again, this time record by record
-            for rec_data in data_list:
+            for i, rec_data in enumerate(data_list, 1):
                 try:
                     with cr.savepoint():
                         rec = self._load_records([rec_data], mode == 'update')
@@ -984,6 +985,7 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                     messages.append(dict(info, type='error', **PGERROR_TO_OE[e.pgcode](self, fg, info, e)))
                     # Failed to write, log to messages, rollback savepoint (to
                     # avoid broken transaction) and keep going
+                    errors += 1
                 except Exception as e:
                     _logger.debug("Error while loading record", exc_info=True)
                     info = rec_data['info']
@@ -992,6 +994,13 @@ class BaseModel(MetaModel('DummyModel', (object,), {'_register': False})):
                     messages.append(dict(info, type='error', message=message, moreinfo=moreinfo))
                     # Failed for some reason, perhaps due to invalid data supplied,
                     # rollback savepoint and keep going
+                    errors += 1
+                if errors >= 10 and (errors >= i / 10):
+                    messages.append({
+                        'type': 'warning',
+                        'message': _(u"Found more than 10 errors and more than one error per 10 records, interrupted to avoid showing too many errors.")
+                    })
+                    break
 
         # make 'flush' available to the methods below, in the case where XMLID
         # resolution fails, for instance
@@ -2964,14 +2973,6 @@ Fields:
             else:
                 _logger.warning("%s.read() with unknown field '%s'", self._name, name)
 
-        env = self.env
-        cr, user, context, su = env.args
-
-        # make a query object for selecting ids, and apply security rules to it
-        param_ids = object()
-        query = Query(['"%s"' % self._table], ['"%s".id IN %%s' % self._table], [param_ids])
-        self._apply_ir_rules(query, 'read')
-
         # determine the fields that are stored as columns in tables; ignore 'id'
         fields_pre = [
             field
@@ -2981,30 +2982,42 @@ Fields:
             if not (field.inherited and callable(field.base_field.translate))
         ]
 
-        # the query may involve several tables: we need fully-qualified names
-        def qualify(field):
-            col = field.name
-            res = self._inherits_join_calc(self._table, field.name, query)
-            if field.type == 'binary' and (context.get('bin_size') or context.get('bin_size_' + col)):
-                # PG 9.2 introduces conflicting pg_size_pretty(numeric) -> need ::cast
-                res = 'pg_size_pretty(length(%s)::bigint)' % res
-            return '%s as "%s"' % (res, col)
+        if fields_pre:
+            env = self.env
+            cr, user, context, su = env.args
 
-        # selected fields are: 'id' followed by fields_pre
-        qual_names = [qualify(name) for name in [self._fields['id']] + fields_pre]
+            # make a query object for selecting ids, and apply security rules to it
+            param_ids = object()
+            query = Query(['"%s"' % self._table], ['"%s".id IN %%s' % self._table], [param_ids])
+            self._apply_ir_rules(query, 'read')
 
-        # determine the actual query to execute
-        from_clause, where_clause, params = query.get_sql()
-        query_str = "SELECT %s FROM %s WHERE %s" % (",".join(qual_names), from_clause, where_clause)
+            # the query may involve several tables: we need fully-qualified names
+            def qualify(field):
+                col = field.name
+                res = self._inherits_join_calc(self._table, field.name, query)
+                if field.type == 'binary' and (context.get('bin_size') or context.get('bin_size_' + col)):
+                    # PG 9.2 introduces conflicting pg_size_pretty(numeric) -> need ::cast
+                    res = 'pg_size_pretty(length(%s)::bigint)' % res
+                return '%s as "%s"' % (res, col)
 
-        # fetch one list of record values per field
-        param_pos = params.index(param_ids)
+            # selected fields are: 'id' followed by fields_pre
+            qual_names = [qualify(name) for name in [self._fields['id']] + fields_pre]
 
-        result = []
-        for sub_ids in cr.split_for_in_conditions(self.ids):
-            params[param_pos] = tuple(sub_ids)
-            cr.execute(query_str, params)
-            result += cr.fetchall()
+            # determine the actual query to execute
+            from_clause, where_clause, params = query.get_sql()
+            query_str = "SELECT %s FROM %s WHERE %s" % (",".join(qual_names), from_clause, where_clause)
+
+            # fetch one list of record values per field
+            param_pos = params.index(param_ids)
+
+            result = []
+            for sub_ids in cr.split_for_in_conditions(self.ids):
+                params[param_pos] = tuple(sub_ids)
+                cr.execute(query_str, params)
+                result += cr.fetchall()
+        else:
+            self.check_access_rule('read')
+            result = [(id_,) for id_ in self.ids]
 
         fetched = self.browse()
         if result:
@@ -5414,6 +5427,12 @@ Record ids: %(records)s
                     id_vals = self.env.all.towrite.pop(model_name)
                     process(self.env[model_name], id_vals)
 
+            # missing for one2many fields, flush their inverse
+            for fname in fnames:
+                field = self._fields[fname]
+                if field.type == 'one2many' and field.inverse_name:
+                    self.env[field.comodel_name].flush([field.inverse_name])
+
     #
     # New records - represent records that do not exist in the database yet;
     # they are used to perform onchanges.
@@ -5740,6 +5759,9 @@ Record ids: %(records)s
 
                         # TODO: find a better fix
                         if key.model_name == records._name:
+                            if not any(self._ids):
+                                # if self are new, records should be new as well
+                                records = records.browse(it and NewId(it) for it in records._ids)
                             break
                 else:
                     new_records = self.filtered(lambda r: not r.id)
@@ -5763,6 +5785,9 @@ Record ids: %(records)s
             if not recs:
                 return
             if field.compute and field.store:
+                # do not force recomputation on new records; those will be
+                # recomputed by accessing the field on the records
+                recs = recs.filtered('id')
                 try:
                     recs.mapped(field.name)
                 except MissingError:
@@ -5779,9 +5804,8 @@ Record ids: %(records)s
 
         if fnames is None:
             # recompute everything
-            fields_to_compute = self.env.fields_to_compute()
-            while fields_to_compute:
-                process(next(iter(fields_to_compute)))
+            for field in list(self.env.fields_to_compute()):
+                process(field)
         else:
             fields = [self._fields[fname] for fname in fnames]
 

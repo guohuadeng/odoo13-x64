@@ -35,6 +35,7 @@ publicWidget.registry.subscribe = publicWidget.Widget.extend({
             self.$('input.js_subscribe_email')
                 .val(data.email || "")
                 .prop('disabled', isSubscriber);
+            // Compat: remove d-none for DBs that have the button saved with it.
             self.$target.removeClass('d-none');
             self.$('.js_subscribe_btn').toggleClass('d-none', !!isSubscriber);
             self.$('.js_subscribed_btn').toggleClass('d-none', !isSubscriber);
@@ -45,13 +46,6 @@ publicWidget.registry.subscribe = publicWidget.Widget.extend({
                 'list_id': this.$target.data('list-id'),
             },
         }).then(always).guardedCatch(always)]);
-    },
-    /**
-     * @override
-     */
-    destroy: function () {
-        this.$target.addClass('d-none');
-        this._super.apply(this, arguments);
     },
 
     //--------------------------------------------------------------------------
@@ -167,7 +161,7 @@ publicWidget.registry.newsletter_popup = publicWidget.Widget.extend({
             $content: $('<div/>').html(content),
             $parentNode: this.$target,
             backdrop: !this.editableMode,
-            dialogClass: 'p-0' + (this.editableMode ? ' o_editable oe_structure oe_empty' : ''),
+            dialogClass: 'p-0' + (this.editableMode ? ' oe_structure oe_empty' : ''),
             renderFooter: false,
             size: 'medium',
         });

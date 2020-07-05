@@ -102,7 +102,6 @@ class Lang(models.Model):
         iso_lang = tools.get_iso_codes(lang)
         for ln in tools.get_locales(lang):
             try:
-                ln = ln[0:ln.index('.')]
                 locale.setlocale(locale.LC_ALL, str(ln))
                 fail = False
                 break
@@ -206,6 +205,14 @@ class Lang(models.Model):
         """ Return the available languages as a list of (code, name) sorted by name. """
         langs = self.with_context(active_test=False).search([])
         return sorted([(lang.code, lang.url_code, lang.name) for lang in langs], key=itemgetter(2))
+
+    @api.model
+    @tools.ormcache('code')
+    def _lang_code_to_urlcode(self, code):
+        for c, urlc, name in self.get_available():
+            if c == code:
+                return urlc
+        return self._lang_get(code).url_code
 
     @api.model
     @tools.ormcache()

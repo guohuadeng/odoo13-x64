@@ -12,6 +12,7 @@ from odoo import exceptions, tests
 from odoo.addons.test_mail.tests.common import BaseFunctionalTest
 from odoo.addons.test_mail.models.test_mail_models import MailTestActivity
 from odoo.tools import mute_logger
+from odoo.tests.common import Form
 
 
 class TestActivityCommon(BaseFunctionalTest):
@@ -150,6 +151,74 @@ class TestActivityFlow(TestActivityCommon):
             activity.with_user(self.user_admin).write({'user_id': self.user_employee.id})
         self.assertEqual(activity.user_id, self.user_employee)
 
+    @mute_logger('odoo.addons.mail.models.mail_mail')
+    def test_activity_summary_sync(self):
+        """ Test summary from type is copied on activities if set (currently only in form-based onchange) """
+        ActivityType = self.env['mail.activity.type']
+        email_activity_type = ActivityType.create({
+            'name': 'email',
+            'summary': 'Email Summary',
+        })
+        call_activity_type = ActivityType.create({'name': 'call'})
+        with Form(self.env['mail.activity'].with_context(default_res_model_id=self.env.ref('base.model_res_partner'))) as ActivityForm:
+            ActivityForm.res_model_id = self.env.ref('base.model_res_partner')
+
+            ActivityForm.activity_type_id = call_activity_type
+            # activity summary should be empty
+            self.assertEqual(ActivityForm.summary, False)
+
+            ActivityForm.activity_type_id = email_activity_type
+            # activity summary should be replaced with email's default summary
+            self.assertEqual(ActivityForm.summary, email_activity_type.summary)
+
+            ActivityForm.activity_type_id = call_activity_type
+            # activity summary remains unchanged from change of activity type as call activity doesn't have default summary
+            self.assertEqual(ActivityForm.summary, email_activity_type.summary)
+
+    def test_action_feedback_attachment(self):
+        Partner = self.env['res.partner']
+        Activity = self.env['mail.activity']
+        Attachment = self.env['ir.attachment']
+        Message = self.env['mail.message']
+
+        partner = self.env['res.partner'].create({
+            'name': 'Tester',
+        })
+
+        activity = Activity.create({
+            'summary': 'Test',
+            'activity_type_id': 1,
+            'res_model_id': self.env.ref('base.model_res_partner').id,
+            'res_id': partner.id,
+        })
+
+        attachments = Attachment
+        attachments += Attachment.create({
+            'name': 'test',
+            'res_name': 'test',
+            'res_model': 'mail.activity',
+            'res_id': activity.id,
+            'datas': 'test',
+        })
+        attachments += Attachment.create({
+            'name': 'test2',
+            'res_name': 'test',
+            'res_model': 'mail.activity',
+            'res_id': activity.id,
+            'datas': 'testtest',
+        })
+
+        # Adding the attachments to the activity
+        activity.attachment_ids = attachments
+
+        # Checking if the attachment has been forwarded to the message
+        # when marking an activity as "Done"
+        activity.action_feedback()
+        activity_message = Message.search([], order='id desc', limit=1)
+        self.assertEqual(set(activity_message.attachment_ids.ids), set(attachments.ids))
+        for attachment in attachments:
+            self.assertEqual(attachment.res_id, activity_message.id)
+            self.assertEqual(attachment.res_model, activity_message._name)
 
 @tests.tagged('mail_activity')
 class TestActivityMixin(TestActivityCommon):

@@ -134,7 +134,7 @@ class MailActivity(models.Model):
     activity_decoration = fields.Selection(related='activity_type_id.decoration_type', readonly=True)
     icon = fields.Char('Icon', related='activity_type_id.icon', readonly=True)
     summary = fields.Char('Summary')
-    note = fields.Html('Note')
+    note = fields.Html('Note', sanitize_style=True)
     date_deadline = fields.Date('Due Date', index=True, required=True, default=fields.Date.context_today)
     automated = fields.Boolean(
         'Automated activity', readonly=True,
@@ -210,7 +210,8 @@ class MailActivity(models.Model):
     @api.onchange('activity_type_id')
     def _onchange_activity_type_id(self):
         if self.activity_type_id:
-            self.summary = self.activity_type_id.summary
+            if self.activity_type_id.summary:
+                self.summary = self.activity_type_id.summary
             # Date.context_today is correct because date_deadline is a Date and is meant to be
             # expressed in user TZ
             base = fields.Date.context_today(self)
@@ -294,7 +295,7 @@ class MailActivity(models.Model):
         assigned user should be able to at least read the document. We therefore
         raise an UserError if the assigned user has no access to the document. """
         for activity in self:
-            model = self.env[activity.res_model].with_user(activity.user_id)
+            model = self.env[activity.res_model].with_user(activity.user_id).with_context(allowed_company_ids=activity.user_id.company_ids.ids)
             try:
                 model.check_access_rights('read')
             except exceptions.AccessError:
@@ -465,6 +466,19 @@ class MailActivity(models.Model):
         # marking as 'done'
         messages = self.env['mail.message']
         next_activities_values = []
+
+        # Search for all attachments linked to the activities we are about to unlink. This way, we
+        # can link them to the message posted and prevent their deletion.
+        attachments = self.env['ir.attachment'].search_read([
+            ('res_model', '=', self._name),
+            ('res_id', 'in', self.ids),
+        ], ['id', 'res_id'])
+
+        activity_attachments = defaultdict(list)
+        for attachment in attachments:
+            activity_id = attachment['res_id']
+            activity_attachments[activity_id].append(attachment['id'])
+
         for activity in self:
             # extract value to generate next activities
             if activity.force_next:
@@ -495,7 +509,19 @@ class MailActivity(models.Model):
                 mail_activity_type_id=activity.activity_type_id.id,
                 attachment_ids=[(4, attachment_id) for attachment_id in attachment_ids] if attachment_ids else [],
             )
-            messages |= record.message_ids[0]
+
+            # Moving the attachments in the message
+            # TODO: Fix void res_id on attachment when you create an activity with an image
+            # directly, see route /web_editor/attachment/add
+            activity_message = record.message_ids[0]
+            message_attachments = self.env['ir.attachment'].browse(activity_attachments[activity.id])
+            if message_attachments:
+                message_attachments.write({
+                    'res_id': activity_message.id,
+                    'res_model': activity_message._name,
+                })
+                activity_message.attachment_ids = message_attachments
+            messages |= activity_message
 
         next_activities = self.env['mail.activity'].create(next_activities_values)
         self.unlink()  # will unlink activity, dont access `self` after that

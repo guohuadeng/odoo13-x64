@@ -245,8 +245,12 @@ class MassMailing(models.Model):
     def copy(self, default=None):
         self.ensure_one()
         default = dict(default or {},
-                       name=_('%s (copy)') % self.name)
-        return super(MassMailing, self).copy(default=default)
+                       name=_('%s (copy)') % self.name,
+                       contact_list_ids=self.contact_list_ids.ids)
+        res = super(MassMailing, self).copy(default=default)
+        # Re-evaluating the domain
+        res._onchange_model_and_list()
+        return res
 
     def _group_expand_states(self, states, domain, order):
         return [key for key, val in type(self).state.selection]
@@ -476,7 +480,12 @@ class MassMailing(models.Model):
     def _get_recipients(self):
         if self.mailing_domain:
             domain = safe_eval(self.mailing_domain)
-            res_ids = self.env[self.mailing_model_real].search(domain).ids
+            try:
+                res_ids = self.env[self.mailing_model_real].search(domain).ids
+            except ValueError:
+                res_ids = []
+                _logger.exception('Cannot get the mass mailing recipients, model: %s, domain: %s',
+                                  self.mailing_model_real, domain)
         else:
             res_ids = []
             domain = [('id', 'in', res_ids)]

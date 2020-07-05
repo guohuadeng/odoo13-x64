@@ -17,7 +17,7 @@ http://nightly.odoocdn.com/13.0/nightly/src/odoo_13.0.latest.zip
 1. python 3.7.5, 64位
 2. postgresql 10.10 ,64位
 3. Nginx 1.15.5， 64位
-4. Odoo 13社区版，20191231版
+4. Odoo 13社区版，20200705版
 5. 增加 sphinx 及 tx_client，用于文档及翻译
 
 ## 全新功能，更快速度
@@ -54,9 +54,10 @@ http://demo.odooapp.cn
 ├─addons_patch    app通用源码，需要直接修改的放这里，多用于调整bug和翻译
 ├─data  要人工导入的资料
 ├─extra  附加包，如 WKHTMLTOPDF
+├─fixed  修复内容包
 ├─odoofile  odoo生成的静态文件资源
 ├─runtime   运行库，包括pg数据文件
-└─source    odoo12源码
+└─source    odoo13源码
 
 ## 主要文件说明
 odoo.conf   配置

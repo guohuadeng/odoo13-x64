@@ -33,7 +33,7 @@ class StockMove(models.Model):
         self.ensure_one()
         price_unit = self.price_unit
         # If the move is a return, use the original move's price unit.
-        if self.origin_returned_move_id and self.origin_returned_move_id.stock_valuation_layer_ids:
+        if self.origin_returned_move_id and self.origin_returned_move_id.sudo().stock_valuation_layer_ids:
             price_unit = self.origin_returned_move_id.stock_valuation_layer_ids[-1].unit_cost
         return not self.company_id.currency_id.is_zero(price_unit) and price_unit or self.product_id.standard_price
 
@@ -263,8 +263,7 @@ class StockMove(models.Model):
                 stock_valuation_layers |= getattr(todo_valued_moves, '_create_%s_svl' % valued_type)()
                 continue
 
-
-        for svl in stock_valuation_layers:
+        for svl in stock_valuation_layers.with_context(active_test=False):
             if not svl.product_id.valuation == 'real_time':
                 continue
             if svl.currency_id.is_zero(svl.value):
@@ -276,7 +275,7 @@ class StockMove(models.Model):
         # For every in move, run the vacuum for the linked product.
         products_to_vacuum = valued_moves['in'].mapped('product_id')
         company = valued_moves['in'].mapped('company_id') and valued_moves['in'].mapped('company_id')[0] or self.env.company
-        for product_to_vacuum in products_to_vacuum:
+        for product_to_vacuum in products_to_vacuum.with_context(active_test=False):
             product_to_vacuum._run_fifo_vacuum(company)
 
         return res

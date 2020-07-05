@@ -173,7 +173,7 @@ class Project(models.Model):
         string='Members')
     is_favorite = fields.Boolean(compute='_compute_is_favorite', inverse='_inverse_is_favorite', string='Show Project on dashboard',
         help="Whether this project should be displayed on your dashboard.")
-    label_tasks = fields.Char(string='Use Tasks as', default='Tasks', help="Label used for the tasks of the project.")
+    label_tasks = fields.Char(string='Use Tasks as', default='Tasks', help="Label used for the tasks of the project.", translate=True)
     tasks = fields.One2many('project.task', 'project_id', string="Task Activities")
     resource_calendar_id = fields.Many2one(
         'resource.calendar', string='Working Time',
@@ -417,8 +417,10 @@ class Project(models.Model):
     @api.model
     def _send_rating_all(self):
         projects = self.search([('rating_status', '=', 'periodic'), ('rating_request_deadline', '<=', fields.Datetime.now())])
-        projects.mapped('task_ids')._send_task_rating_mail()
-        projects._compute_rating_request_deadline()
+        for project in projects:
+            project.task_ids._send_task_rating_mail()
+            project._compute_rating_request_deadline()
+            self.env.cr.commit()
 
 
 class Task(models.Model):
@@ -913,8 +915,6 @@ class Task(models.Model):
         self.write({'user_id': self.env.user.id})
 
     def action_open_parent_task(self):
-        if self.sudo().parent_id and self.sudo().parent_id.company_id.id not in self.env.companies.ids:
-            raise UserError(_('The parent task belongs to a company you do not have access to.'))
         return {
             'name': _('Parent Task'),
             'view_mode': 'form',
@@ -925,8 +925,6 @@ class Task(models.Model):
         }
 
     def action_subtask(self):
-        if self.sudo().subtask_project_id and self.sudo().subtask_project_id.company_id.id not in self.env.companies.ids:
-            raise UserError(_('The subtasks belong to a company you do not have access to.'))
         action = self.env.ref('project.project_task_action_sub_task').read()[0]
 
         # only display subtasks of current task
